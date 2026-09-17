@@ -1,0 +1,790 @@
+{
+  "$defs": {
+    "Authority": {
+      "enum": [
+        "dod",
+        "dha",
+        "army",
+        "marine_corps",
+        "navy",
+        "air_force",
+        "gao",
+        "other"
+      ],
+      "title": "Authority",
+      "type": "string"
+    },
+    "Branch": {
+      "enum": [
+        "army",
+        "marine_corps",
+        "navy",
+        "air_force",
+        "space_force",
+        "coast_guard",
+        "unknown"
+      ],
+      "title": "Branch",
+      "type": "string"
+    },
+    "CanonicalWeapon": {
+      "additionalProperties": false,
+      "properties": {
+        "source_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "facts": {
+          "items": {
+            "$ref": "#/$defs/FactEvidence"
+          },
+          "minItems": 1,
+          "title": "Facts",
+          "type": "array"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "weapon_system_id": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Weapon System Id",
+          "type": "string"
+        },
+        "canonical_name": {
+          "minLength": 1,
+          "title": "Canonical Name",
+          "type": "string"
+        },
+        "aliases": {
+          "default": [],
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Aliases",
+          "type": "array"
+        },
+        "record_kind": {
+          "enum": [
+            "weapon_system",
+            "exposure_category"
+          ],
+          "title": "Record Kind",
+          "type": "string"
+        },
+        "weapon_family": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Weapon Family",
+          "type": "string"
+        },
+        "caliber": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Caliber"
+        },
+        "service_branches": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Branch"
+          },
+          "title": "Service Branches",
+          "type": "array"
+        },
+        "dod_tier1_status": {
+          "$ref": "#/$defs/Tier1Status",
+          "default": "unknown"
+        },
+        "tier1_category": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tier1 Category"
+        },
+        "tier1_basis": {
+          "enum": [
+            "listed",
+            "absent_from_complete_list",
+            "not_determined"
+          ],
+          "title": "Tier1 Basis",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_ids",
+        "facts",
+        "weapon_system_id",
+        "canonical_name",
+        "record_kind",
+        "weapon_family",
+        "tier1_basis"
+      ],
+      "title": "CanonicalWeapon",
+      "type": "object"
+    },
+    "Citation": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "locator": {
+          "minLength": 1,
+          "title": "Locator",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "locator"
+      ],
+      "title": "Citation",
+      "type": "object"
+    },
+    "DatasetMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "dataset_name": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Dataset Name",
+          "type": "string"
+        },
+        "dataset_version": {
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+          "title": "Dataset Version",
+          "type": "string"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "title": "Generated At",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source_registry_version": {
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+          "title": "Source Registry Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dataset_name",
+        "dataset_version",
+        "generated_at",
+        "schema_version",
+        "source_registry_version"
+      ],
+      "title": "DatasetMetadata",
+      "type": "object"
+    },
+    "ExposureRelevance": {
+      "enum": [
+        "direct_weapon_operator",
+        "crew_member",
+        "frequent_proximity_possible",
+        "breaching_or_explosives",
+        "instructor_exposure_possible",
+        "unknown"
+      ],
+      "title": "ExposureRelevance",
+      "type": "string"
+    },
+    "FactEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "minLength": 1,
+          "title": "Field",
+          "type": "string"
+        },
+        "citations": {
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "minItems": 1,
+          "title": "Citations",
+          "type": "array"
+        },
+        "basis": {
+          "default": "direct",
+          "enum": [
+            "direct",
+            "curator_mapping"
+          ],
+          "title": "Basis",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "citations"
+      ],
+      "title": "FactEvidence",
+      "type": "object"
+    },
+    "OccupationCatalog": {
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/DatasetMetadata"
+        },
+        "records": {
+          "items": {
+            "$ref": "#/$defs/OccupationalSpecialty"
+          },
+          "minItems": 1,
+          "title": "Records",
+          "type": "array"
+        }
+      },
+      "required": [
+        "metadata",
+        "records"
+      ],
+      "title": "OccupationCatalog",
+      "type": "object"
+    },
+    "OccupationWeaponRelationship": {
+      "additionalProperties": false,
+      "properties": {
+        "source_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "facts": {
+          "items": {
+            "$ref": "#/$defs/FactEvidence"
+          },
+          "minItems": 1,
+          "title": "Facts",
+          "type": "array"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "relationship_id": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Relationship Id",
+          "type": "string"
+        },
+        "occupation_id": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Occupation Id",
+          "type": "string"
+        },
+        "weapon_system_id": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Weapon System Id",
+          "type": "string"
+        },
+        "relationship_type": {
+          "$ref": "#/$defs/RelationshipType"
+        },
+        "documentation_strength": {
+          "enum": [
+            "direct_duty",
+            "direct_training_standard",
+            "observed_training",
+            "contextual"
+          ],
+          "title": "Documentation Strength",
+          "type": "string"
+        },
+        "temporal_scope": {
+          "minLength": 1,
+          "title": "Temporal Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_ids",
+        "facts",
+        "relationship_id",
+        "occupation_id",
+        "weapon_system_id",
+        "relationship_type",
+        "documentation_strength",
+        "temporal_scope"
+      ],
+      "title": "OccupationWeaponRelationship",
+      "type": "object"
+    },
+    "OccupationalSpecialty": {
+      "additionalProperties": false,
+      "properties": {
+        "source_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "facts": {
+          "items": {
+            "$ref": "#/$defs/FactEvidence"
+          },
+          "minItems": 1,
+          "title": "Facts",
+          "type": "array"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "occupation_id": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Occupation Id",
+          "type": "string"
+        },
+        "branch": {
+          "$ref": "#/$defs/Branch"
+        },
+        "code": {
+          "minLength": 1,
+          "title": "Code",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "occupational_family": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Occupational Family"
+        },
+        "blast_exposure_relevance": {
+          "items": {
+            "$ref": "#/$defs/ExposureRelevance"
+          },
+          "minItems": 1,
+          "title": "Blast Exposure Relevance",
+          "type": "array"
+        }
+      },
+      "required": [
+        "source_ids",
+        "facts",
+        "occupation_id",
+        "branch",
+        "code",
+        "title",
+        "blast_exposure_relevance"
+      ],
+      "title": "OccupationalSpecialty",
+      "type": "object"
+    },
+    "ReferenceSource": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "organization": {
+          "minLength": 1,
+          "title": "Organization",
+          "type": "string"
+        },
+        "authority": {
+          "$ref": "#/$defs/Authority"
+        },
+        "publication_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Publication Date"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "source_type": {
+          "$ref": "#/$defs/ReferenceSourceType"
+        },
+        "accessed_date": {
+          "format": "date",
+          "title": "Accessed Date",
+          "type": "string"
+        },
+        "document_version": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Document Version"
+        },
+        "retrieval_method": {
+          "$ref": "#/$defs/RetrievalMethod"
+        },
+        "content_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Content Sha256"
+        },
+        "tier1_list_scope": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tier1 List Scope"
+        },
+        "tier1_list_complete": {
+          "default": false,
+          "title": "Tier1 List Complete",
+          "type": "boolean"
+        },
+        "notes": {
+          "minLength": 1,
+          "title": "Notes",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "title",
+        "organization",
+        "authority",
+        "publication_date",
+        "url",
+        "source_type",
+        "accessed_date",
+        "document_version",
+        "retrieval_method",
+        "content_sha256",
+        "notes"
+      ],
+      "title": "ReferenceSource",
+      "type": "object"
+    },
+    "ReferenceSourceType": {
+      "enum": [
+        "official",
+        "peer_reviewed"
+      ],
+      "title": "ReferenceSourceType",
+      "type": "string"
+    },
+    "RelationshipCatalog": {
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/DatasetMetadata"
+        },
+        "records": {
+          "items": {
+            "$ref": "#/$defs/OccupationWeaponRelationship"
+          },
+          "minItems": 1,
+          "title": "Records",
+          "type": "array"
+        }
+      },
+      "required": [
+        "metadata",
+        "records"
+      ],
+      "title": "RelationshipCatalog",
+      "type": "object"
+    },
+    "RelationshipType": {
+      "enum": [
+        "primary_platform",
+        "commonly_operated",
+        "crew_exposure",
+        "training_exposure",
+        "possible_exposure"
+      ],
+      "title": "RelationshipType",
+      "type": "string"
+    },
+    "RetrievalMethod": {
+      "enum": [
+        "downloaded",
+        "indexed_official_text"
+      ],
+      "title": "RetrievalMethod",
+      "type": "string"
+    },
+    "SourceRegistry": {
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/DatasetMetadata"
+        },
+        "records": {
+          "items": {
+            "$ref": "#/$defs/ReferenceSource"
+          },
+          "minItems": 1,
+          "title": "Records",
+          "type": "array"
+        }
+      },
+      "required": [
+        "metadata",
+        "records"
+      ],
+      "title": "SourceRegistry",
+      "type": "object"
+    },
+    "Taxonomy": {
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/DatasetMetadata"
+        },
+        "records": {
+          "items": {
+            "$ref": "#/$defs/TaxonomyCategory"
+          },
+          "minItems": 1,
+          "title": "Records",
+          "type": "array"
+        }
+      },
+      "required": [
+        "metadata",
+        "records"
+      ],
+      "title": "Taxonomy",
+      "type": "object"
+    },
+    "TaxonomyCategory": {
+      "additionalProperties": false,
+      "properties": {
+        "source_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "facts": {
+          "items": {
+            "$ref": "#/$defs/FactEvidence"
+          },
+          "minItems": 1,
+          "title": "Facts",
+          "type": "array"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "category_id": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Category Id",
+          "type": "string"
+        },
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "official_tier1",
+            "research_family"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "parent_category_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Category Id"
+        }
+      },
+      "required": [
+        "source_ids",
+        "facts",
+        "category_id",
+        "label",
+        "scope"
+      ],
+      "title": "TaxonomyCategory",
+      "type": "object"
+    },
+    "Tier1Status": {
+      "enum": [
+        "yes",
+        "no",
+        "unknown"
+      ],
+      "title": "Tier1Status",
+      "type": "string"
+    },
+    "WeaponCatalog": {
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/DatasetMetadata"
+        },
+        "records": {
+          "items": {
+            "$ref": "#/$defs/CanonicalWeapon"
+          },
+          "minItems": 1,
+          "title": "Records",
+          "type": "array"
+        }
+      },
+      "required": [
+        "metadata",
+        "records"
+      ],
+      "title": "WeaponCatalog",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "sources": {
+      "$ref": "#/$defs/SourceRegistry"
+    },
+    "weapons": {
+      "$ref": "#/$defs/WeaponCatalog"
+    },
+    "occupations": {
+      "$ref": "#/$defs/OccupationCatalog"
+    },
+    "relationships": {
+      "$ref": "#/$defs/RelationshipCatalog"
+    },
+    "taxonomy": {
+      "$ref": "#/$defs/Taxonomy"
+    }
+  },
+  "required": [
+    "sources",
+    "weapons",
+    "occupations",
+    "relationships",
+    "taxonomy"
+  ],
+  "title": "ReferenceBundle",
+  "type": "object"
+}

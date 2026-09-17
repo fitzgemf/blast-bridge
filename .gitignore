@@ -1,0 +1,32 @@
+# Python and tools
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Local configuration and potentially sensitive research material
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+*.log
+/data/raw/*
+!/data/raw/.gitkeep
+/data/curated/*
+!/data/curated/.gitkeep
+/data/synthetic/*
+!/data/synthetic/.gitkeep
+/research/sources/*
+!/research/sources/README.md
+/notebooks/*
+!/notebooks/README.md

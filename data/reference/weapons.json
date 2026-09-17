@@ -1,0 +1,1972 @@
+{
+  "metadata": {
+    "dataset_name": "weapons",
+    "dataset_version": "0.1.0",
+    "generated_at": "2026-09-17T03:53:00.484633+00:00",
+    "schema_version": "0.1.0",
+    "source_registry_version": "0.1.0"
+  },
+  "records": [
+    {
+      "weapon_system_id": "m119",
+      "canonical_name": "M119 howitzer",
+      "aliases": [],
+      "record_kind": "weapon_system",
+      "weapon_family": "howitzer",
+      "caliber": "105 mm",
+      "service_branches": [
+        "army"
+      ],
+      "dod_tier1_status": "yes",
+      "tier1_category": "howitzer",
+      "tier1_basis": "listed",
+      "notes": "Name-level platform record; the cited list does not establish identical blast behavior across variants or ammunition.",
+      "facts": [
+        {
+          "field": "canonical_name",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "record_kind",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "weapon_family",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "caliber",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "service_branches.0",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "dod_tier1_status",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_category",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_basis",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-redleg-2024",
+        "dod-report-2021"
+      ]
+    },
+    {
+      "weapon_system_id": "m777",
+      "canonical_name": "M777 howitzer",
+      "aliases": [],
+      "record_kind": "weapon_system",
+      "weapon_family": "howitzer",
+      "caliber": "155 mm",
+      "service_branches": [
+        "army",
+        "marine_corps"
+      ],
+      "dod_tier1_status": "yes",
+      "tier1_category": "howitzer",
+      "tier1_basis": "listed",
+      "notes": "Name-level platform record; the cited list does not establish identical blast behavior across variants or ammunition.",
+      "facts": [
+        {
+          "field": "canonical_name",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "record_kind",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "weapon_family",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "caliber",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "service_branches.0",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "service_branches.1",
+          "citations": [
+            {
+              "source_id": "usmc-artillery-tr-2018",
+              "locator": "Appendix F, printed p. F-4, event 0811-GUNS-1014, loading assessment description and equipment"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "dod_tier1_status",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_category",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_basis",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-redleg-2024",
+        "dod-report-2021",
+        "usmc-artillery-tr-2018"
+      ]
+    },
+    {
+      "weapon_system_id": "m109-paladin",
+      "canonical_name": "M109 Paladin",
+      "aliases": [],
+      "record_kind": "weapon_system",
+      "weapon_family": "howitzer",
+      "caliber": "155 mm",
+      "service_branches": [
+        "army"
+      ],
+      "dod_tier1_status": "yes",
+      "tier1_category": "howitzer",
+      "tier1_basis": "listed",
+      "notes": "Name-level platform record; the cited list does not establish identical blast behavior across variants or ammunition.",
+      "facts": [
+        {
+          "field": "canonical_name",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "record_kind",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "weapon_family",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "caliber",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "service_branches.0",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "dod_tier1_status",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_category",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_basis",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-redleg-2024",
+        "dod-report-2021"
+      ]
+    },
+    {
+      "weapon_system_id": "m224",
+      "canonical_name": "M224 mortar",
+      "aliases": [],
+      "record_kind": "weapon_system",
+      "weapon_family": "mortar",
+      "caliber": "60 mm",
+      "service_branches": [
+        "army",
+        "marine_corps"
+      ],
+      "dod_tier1_status": "yes",
+      "tier1_category": "mortar",
+      "tier1_basis": "listed",
+      "notes": "Base model identity; variant-specific properties are not generalized from this record.",
+      "facts": [
+        {
+          "field": "canonical_name",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "record_kind",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "weapon_family",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "caliber",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "service_branches.0",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "service_branches.1",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy18",
+              "locator": "Section 3110, MOS 0341, paragraph a. Summary"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "dod_tier1_status",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_category",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_basis",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-mortars-2026",
+        "dod-report-2021",
+        "usmc-mos-fy18"
+      ]
+    },
+    {
+      "weapon_system_id": "m252",
+      "canonical_name": "M252 mortar",
+      "aliases": [],
+      "record_kind": "weapon_system",
+      "weapon_family": "mortar",
+      "caliber": "81 mm",
+      "service_branches": [
+        "army",
+        "marine_corps"
+      ],
+      "dod_tier1_status": "yes",
+      "tier1_category": "mortar",
+      "tier1_basis": "listed",
+      "notes": "Base model identity; variant-specific properties are not generalized from this record.",
+      "facts": [
+        {
+          "field": "canonical_name",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "record_kind",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "weapon_family",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "caliber",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "service_branches.0",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "service_branches.1",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy18",
+              "locator": "Section 3110, MOS 0341, paragraph a. Summary"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "dod_tier1_status",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_category",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_basis",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-mortars-2026",
+        "dod-report-2021",
+        "usmc-mos-fy18"
+      ]
+    },
+    {
+      "weapon_system_id": "m120",
+      "canonical_name": "M120 mortar",
+      "aliases": [],
+      "record_kind": "weapon_system",
+      "weapon_family": "mortar",
+      "caliber": "120 mm",
+      "service_branches": [
+        "army"
+      ],
+      "dod_tier1_status": "yes",
+      "tier1_category": "mortar",
+      "tier1_basis": "listed",
+      "notes": "M120 and M121 are separate identities; the official list prints them together as M120/M121.",
+      "facts": [
+        {
+          "field": "canonical_name",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "record_kind",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "weapon_family",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "caliber",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "service_branches.0",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "dod_tier1_status",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_category",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_basis",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-mortars-2026",
+        "dod-report-2021"
+      ]
+    },
+    {
+      "weapon_system_id": "m121",
+      "canonical_name": "M121 mortar",
+      "aliases": [],
+      "record_kind": "weapon_system",
+      "weapon_family": "mortar",
+      "caliber": "120 mm",
+      "service_branches": [],
+      "dod_tier1_status": "yes",
+      "tier1_category": "mortar",
+      "tier1_basis": "listed",
+      "notes": "M120 and M121 are separate identities; the official list prints them together as M120/M121.",
+      "facts": [
+        {
+          "field": "canonical_name",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "record_kind",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "weapon_family",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "caliber",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "dod_tier1_status",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_category",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_basis",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "dod-report-2021"
+      ]
+    },
+    {
+      "weapon_system_id": "m3-maaws",
+      "canonical_name": "M3 MAAWS",
+      "aliases": [
+        "Carl Gustaf M3"
+      ],
+      "record_kind": "weapon_system",
+      "weapon_family": "shoulder_mounted",
+      "caliber": "84 mm",
+      "service_branches": [
+        "army"
+      ],
+      "dod_tier1_status": "yes",
+      "tier1_category": "shoulder_mounted",
+      "tier1_basis": "listed",
+      "notes": "Legacy M3 is retained separately from M3A1. M3A1 is not an alias and its Tier-1 status is not inferred.",
+      "facts": [
+        {
+          "field": "canonical_name",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "aliases.0",
+          "citations": [
+            {
+              "source_id": "army-maaws-2024",
+              "locator": "Opening description and legacy M3 history paragraphs"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "record_kind",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "weapon_family",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "caliber",
+          "citations": [
+            {
+              "source_id": "army-maaws-2024",
+              "locator": "Opening description and legacy M3 history paragraphs"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "service_branches.0",
+          "citations": [
+            {
+              "source_id": "army-maaws-2024",
+              "locator": "Opening description and legacy M3 history paragraphs"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "dod_tier1_status",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_category",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_basis",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "army-maaws-2024",
+              "locator": "Opening description and legacy M3 history paragraphs"
+            },
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-maaws-2024",
+        "dod-report-2021"
+      ]
+    },
+    {
+      "weapon_system_id": "m136-at4",
+      "canonical_name": "M136 AT4",
+      "aliases": [
+        "AT4"
+      ],
+      "record_kind": "weapon_system",
+      "weapon_family": "shoulder_mounted",
+      "caliber": null,
+      "service_branches": [],
+      "dod_tier1_status": "yes",
+      "tier1_category": "shoulder_mounted",
+      "tier1_basis": "listed",
+      "notes": "M136 follows the 2021 report. The 2023 DHA article prints M135 AT4; that conflicting designation is not added as an alias. Caliber remains uncurated.",
+      "facts": [
+        {
+          "field": "canonical_name",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "aliases.0",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "record_kind",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "weapon_family",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "dod_tier1_status",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_category",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_basis",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            },
+            {
+              "source_id": "dha-tier1-2023",
+              "locator": "Tier 1 category lists, Shoulder Mounted Weapons: AT4 designation"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "dha-tier1-2023",
+        "dod-report-2021"
+      ]
+    },
+    {
+      "weapon_system_id": "m72-law",
+      "canonical_name": "M72 LAW",
+      "aliases": [],
+      "record_kind": "weapon_system",
+      "weapon_family": "shoulder_mounted",
+      "caliber": null,
+      "service_branches": [],
+      "dod_tier1_status": "yes",
+      "tier1_category": "shoulder_mounted",
+      "tier1_basis": "listed",
+      "notes": "Caliber, variant and branch applicability remain uncurated.",
+      "facts": [
+        {
+          "field": "canonical_name",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "record_kind",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "weapon_family",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "dod_tier1_status",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_category",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_basis",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "dod-report-2021"
+      ]
+    },
+    {
+      "weapon_system_id": "m107",
+      "canonical_name": "M107 sniper rifle",
+      "aliases": [],
+      "record_kind": "weapon_system",
+      "weapon_family": "rifle",
+      "caliber": ".50 caliber",
+      "service_branches": [],
+      "dod_tier1_status": "yes",
+      "tier1_category": "caliber_50",
+      "tier1_basis": "listed",
+      "notes": "Identity and caliber are explicit in the official .50 Caliber Weapons panel. Service applicability and exact configurations remain uncurated.",
+      "facts": [
+        {
+          "field": "canonical_name",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "record_kind",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "weapon_family",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "caliber",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "dod_tier1_status",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_category",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_basis",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "dod-report-2021"
+      ]
+    },
+    {
+      "weapon_system_id": "mk15",
+      "canonical_name": "MK15 sniper rifle",
+      "aliases": [],
+      "record_kind": "weapon_system",
+      "weapon_family": "rifle",
+      "caliber": ".50 caliber",
+      "service_branches": [],
+      "dod_tier1_status": "yes",
+      "tier1_category": "caliber_50",
+      "tier1_basis": "listed",
+      "notes": "Identity and caliber are explicit in the official .50 Caliber Weapons panel. Service applicability and exact configurations remain uncurated.",
+      "facts": [
+        {
+          "field": "canonical_name",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "record_kind",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "weapon_family",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "caliber",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "dod_tier1_status",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_category",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_basis",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "dod-report-2021"
+      ]
+    },
+    {
+      "weapon_system_id": "m2a1",
+      "canonical_name": "M2A1 machine gun",
+      "aliases": [],
+      "record_kind": "weapon_system",
+      "weapon_family": "machine_gun",
+      "caliber": ".50 caliber",
+      "service_branches": [],
+      "dod_tier1_status": "yes",
+      "tier1_category": "caliber_50",
+      "tier1_basis": "listed",
+      "notes": "Identity and caliber are explicit in the official .50 Caliber Weapons panel. Service applicability and exact configurations remain uncurated.",
+      "facts": [
+        {
+          "field": "canonical_name",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "record_kind",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "weapon_family",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "caliber",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "dod_tier1_status",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_category",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_basis",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "dod-report-2021"
+      ]
+    },
+    {
+      "weapon_system_id": "gau-21",
+      "canonical_name": "GAU-21 machine gun",
+      "aliases": [],
+      "record_kind": "weapon_system",
+      "weapon_family": "machine_gun",
+      "caliber": ".50 caliber",
+      "service_branches": [],
+      "dod_tier1_status": "yes",
+      "tier1_category": "caliber_50",
+      "tier1_basis": "listed",
+      "notes": "Identity and caliber are explicit in the official .50 Caliber Weapons panel. Service applicability and exact configurations remain uncurated.",
+      "facts": [
+        {
+          "field": "canonical_name",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "record_kind",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "weapon_family",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "caliber",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "dod_tier1_status",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_category",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_basis",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "dod-report-2021"
+      ]
+    },
+    {
+      "weapon_system_id": "explosive-breaching",
+      "canonical_name": "Explosive breaching",
+      "aliases": [],
+      "record_kind": "exposure_category",
+      "weapon_family": "breaching_charges",
+      "caliber": null,
+      "service_branches": [],
+      "dod_tier1_status": "yes",
+      "tier1_category": "breaching_charges",
+      "tier1_basis": "listed",
+      "notes": "Exposure category representing the listed door/wall breaching charges, not a single weapon. No charge weights, construction details or generalized blast values are stored.",
+      "facts": [
+        {
+          "field": "canonical_name",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "record_kind",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "weapon_family",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "dod_tier1_status",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_category",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_basis",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "dod-report-2021"
+      ]
+    },
+    {
+      "weapon_system_id": "m142-himars",
+      "canonical_name": "M142 HIMARS",
+      "aliases": [
+        "High Mobility Artillery Rocket System (HIMARS)"
+      ],
+      "record_kind": "weapon_system",
+      "weapon_family": "rocket_artillery",
+      "caliber": null,
+      "service_branches": [
+        "army"
+      ],
+      "dod_tier1_status": "unknown",
+      "tier1_category": null,
+      "tier1_basis": "not_determined",
+      "notes": "Not named in the reviewed 2021 Tier-1 figure; overall/current status remains unknown. No official Tier-1 category is assigned. Launcher caliber is not inferred from a munition.",
+      "facts": [
+        {
+          "field": "canonical_name",
+          "citations": [
+            {
+              "source_id": "army-portfolio-2024",
+              "locator": "p. 99, HIMARS M142 description"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraph a(1)"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "aliases.0",
+          "citations": [
+            {
+              "source_id": "army-portfolio-2024",
+              "locator": "p. 99, HIMARS M142 description"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraph a(1)"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "record_kind",
+          "citations": [
+            {
+              "source_id": "army-portfolio-2024",
+              "locator": "p. 99, HIMARS M142 description"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraph a(1)"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "weapon_family",
+          "citations": [
+            {
+              "source_id": "army-portfolio-2024",
+              "locator": "p. 99, HIMARS M142 description"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraph a(1)"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "service_branches.0",
+          "citations": [
+            {
+              "source_id": "army-portfolio-2024",
+              "locator": "p. 99, HIMARS M142 description"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraph a(1)"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "dod_tier1_status",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_basis",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            },
+            {
+              "source_id": "army-portfolio-2024",
+              "locator": "p. 99"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-mos-2025",
+        "army-portfolio-2024",
+        "dod-report-2021"
+      ]
+    },
+    {
+      "weapon_system_id": "m270-mlrs",
+      "canonical_name": "M270 MLRS",
+      "aliases": [
+        "Multiple Launch Rocket System (MLRS)"
+      ],
+      "record_kind": "weapon_system",
+      "weapon_family": "rocket_artillery",
+      "caliber": null,
+      "service_branches": [
+        "army"
+      ],
+      "dod_tier1_status": "unknown",
+      "tier1_category": null,
+      "tier1_basis": "not_determined",
+      "notes": "M270 lineage record; A1/A2 configurations are not aliases or equivalent blast profiles. Not named in the reviewed Tier-1 figure; overall/current status remains unknown.",
+      "facts": [
+        {
+          "field": "canonical_name",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraph a(1)"
+            },
+            {
+              "source_id": "army-portfolio-2024",
+              "locator": "p. 103, M270A1/M270A2 description"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "aliases.0",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraph a(1)"
+            },
+            {
+              "source_id": "army-portfolio-2024",
+              "locator": "p. 103, M270A1/M270A2 description"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "record_kind",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraph a(1)"
+            },
+            {
+              "source_id": "army-portfolio-2024",
+              "locator": "p. 103, M270A1/M270A2 description"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "weapon_family",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraph a(1)"
+            },
+            {
+              "source_id": "army-portfolio-2024",
+              "locator": "p. 103, M270A1/M270A2 description"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "service_branches.0",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraph a(1)"
+            },
+            {
+              "source_id": "army-portfolio-2024",
+              "locator": "p. 103, M270A1/M270A2 description"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "dod_tier1_status",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_basis",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            },
+            {
+              "source_id": "army-portfolio-2024",
+              "locator": "p. 103"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-mos-2025",
+        "army-portfolio-2024",
+        "dod-report-2021"
+      ]
+    },
+    {
+      "weapon_system_id": "m1-abrams-120mm",
+      "canonical_name": "Abrams M256 120mm main gun",
+      "aliases": [],
+      "record_kind": "weapon_system",
+      "weapon_family": "tank_main_gun",
+      "caliber": "120 mm",
+      "service_branches": [
+        "army"
+      ],
+      "dod_tier1_status": "unknown",
+      "tier1_category": null,
+      "tier1_basis": "not_determined",
+      "notes": "Scoped to documented 120mm Abrams configurations, not every historical M1 variant. Not named in the reviewed Tier-1 figure; overall/current status remains unknown.",
+      "facts": [
+        {
+          "field": "canonical_name",
+          "citations": [
+            {
+              "source_id": "army-abrams-2015",
+              "locator": "M1A2 photo captions and paragraph identifying M256 120mm smoothbore guns"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "record_kind",
+          "citations": [
+            {
+              "source_id": "army-abrams-2015",
+              "locator": "M1A2 photo captions and paragraph identifying M256 120mm smoothbore guns"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "weapon_family",
+          "citations": [
+            {
+              "source_id": "army-abrams-2015",
+              "locator": "M1A2 photo captions and paragraph identifying M256 120mm smoothbore guns"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "caliber",
+          "citations": [
+            {
+              "source_id": "army-abrams-2015",
+              "locator": "M1A2 photo captions and paragraph identifying M256 120mm smoothbore guns"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "service_branches.0",
+          "citations": [
+            {
+              "source_id": "army-abrams-2015",
+              "locator": "M1A2 photo captions and paragraph identifying M256 120mm smoothbore guns"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "dod_tier1_status",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "tier1_basis",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            },
+            {
+              "source_id": "army-abrams-2015",
+              "locator": "M1A2 photo captions and paragraph identifying M256 120mm smoothbore guns"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-abrams-2015",
+        "dod-report-2021"
+      ]
+    }
+  ]
+}

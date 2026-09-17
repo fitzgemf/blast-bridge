@@ -1,0 +1,451 @@
+{
+  "metadata": {
+    "dataset_name": "taxonomy",
+    "dataset_version": "0.1.0",
+    "generated_at": "2026-09-17T03:53:00.484633+00:00",
+    "schema_version": "0.1.0",
+    "source_registry_version": "0.1.0"
+  },
+  "records": [
+    {
+      "category_id": "shoulder_mounted",
+      "label": "Shoulder Mounted",
+      "scope": "official_tier1",
+      "parent_category_id": null,
+      "notes": "Source-scoped research prioritization category, not an injury rating or a statement of equivalent blast characteristics.",
+      "facts": [
+        {
+          "field": "label",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "scope",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "dod-report-2021"
+      ]
+    },
+    {
+      "category_id": "caliber_50",
+      "label": ".50 Caliber Weapons",
+      "scope": "official_tier1",
+      "parent_category_id": null,
+      "notes": "Source-scoped research prioritization category, not an injury rating or a statement of equivalent blast characteristics.",
+      "facts": [
+        {
+          "field": "label",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "scope",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "dod-report-2021"
+      ]
+    },
+    {
+      "category_id": "indirect_fire",
+      "label": "Indirect Fire Systems",
+      "scope": "official_tier1",
+      "parent_category_id": null,
+      "notes": "Source-scoped research prioritization category, not an injury rating or a statement of equivalent blast characteristics.",
+      "facts": [
+        {
+          "field": "label",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "scope",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "dod-report-2021"
+      ]
+    },
+    {
+      "category_id": "howitzer",
+      "label": "Howitzers",
+      "scope": "official_tier1",
+      "parent_category_id": "indirect_fire",
+      "notes": "Source-scoped research prioritization category, not an injury rating or a statement of equivalent blast characteristics.",
+      "facts": [
+        {
+          "field": "label",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "scope",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "parent_category_id",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "dod-report-2021"
+      ]
+    },
+    {
+      "category_id": "mortar",
+      "label": "Mortars",
+      "scope": "official_tier1",
+      "parent_category_id": "indirect_fire",
+      "notes": "Source-scoped research prioritization category, not an injury rating or a statement of equivalent blast characteristics.",
+      "facts": [
+        {
+          "field": "label",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "scope",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "parent_category_id",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "dod-report-2021"
+      ]
+    },
+    {
+      "category_id": "breaching_charges",
+      "label": "Breaching Charges",
+      "scope": "official_tier1",
+      "parent_category_id": null,
+      "notes": "Source-scoped research prioritization category, not an injury rating or a statement of equivalent blast characteristics.",
+      "facts": [
+        {
+          "field": "label",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "scope",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "dod-report-2021"
+      ]
+    },
+    {
+      "category_id": "rocket_artillery",
+      "label": "Rocket/missile artillery",
+      "scope": "research_family",
+      "parent_category_id": null,
+      "notes": "BlastBridge grouping based on the cited system descriptions; not an additional official Tier-1 category.",
+      "facts": [
+        {
+          "field": "label",
+          "citations": [
+            {
+              "source_id": "army-portfolio-2024",
+              "locator": "pp. 99 and 103, launcher descriptions"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "scope",
+          "citations": [
+            {
+              "source_id": "army-portfolio-2024",
+              "locator": "pp. 99 and 103, launcher descriptions"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "army-portfolio-2024",
+              "locator": "pp. 99 and 103, launcher descriptions"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-portfolio-2024"
+      ]
+    },
+    {
+      "category_id": "tank_main_gun",
+      "label": "Tank main gun",
+      "scope": "research_family",
+      "parent_category_id": null,
+      "notes": "BlastBridge grouping based on the cited system descriptions; not an additional official Tier-1 category.",
+      "facts": [
+        {
+          "field": "label",
+          "citations": [
+            {
+              "source_id": "army-abrams-2015",
+              "locator": "M1A2 photo captions and paragraph identifying M256 120mm smoothbore guns"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "scope",
+          "citations": [
+            {
+              "source_id": "army-abrams-2015",
+              "locator": "M1A2 photo captions and paragraph identifying M256 120mm smoothbore guns"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "army-abrams-2015",
+              "locator": "M1A2 photo captions and paragraph identifying M256 120mm smoothbore guns"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-abrams-2015"
+      ]
+    },
+    {
+      "category_id": "rifle",
+      "label": "Rifle",
+      "scope": "research_family",
+      "parent_category_id": null,
+      "notes": "BlastBridge grouping based on the cited system descriptions; not an additional official Tier-1 category.",
+      "facts": [
+        {
+          "field": "label",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "scope",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "dod-report-2021"
+      ]
+    },
+    {
+      "category_id": "machine_gun",
+      "label": "Machine gun",
+      "scope": "research_family",
+      "parent_category_id": null,
+      "notes": "BlastBridge grouping based on the cited system descriptions; not an additional official Tier-1 category.",
+      "facts": [
+        {
+          "field": "label",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "scope",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "dod-report-2021",
+              "locator": "Figure 3, printed p. 4 / PDF p. 7: Tier 1 Weapon Systems & Breaching Charges"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "dod-report-2021"
+      ]
+    }
+  ]
+}

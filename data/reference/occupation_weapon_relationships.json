@@ -1,0 +1,1099 @@
+{
+  "metadata": {
+    "dataset_name": "occupation_weapon_relationships",
+    "dataset_version": "0.1.0",
+    "generated_at": "2026-09-17T03:53:00.484633+00:00",
+    "schema_version": "0.1.0",
+    "source_registry_version": "0.1.0"
+  },
+  "records": [
+    {
+      "relationship_id": "army-13m-m142-himars",
+      "occupation_id": "army-13m",
+      "weapon_system_id": "m142-himars",
+      "relationship_type": "primary_platform",
+      "documentation_strength": "direct_duty",
+      "temporal_scope": "Army Chapter 10C source snapshot; exact effective period not established.",
+      "notes": "Named launcher crew duties support this association; not all members operate both launchers.",
+      "facts": [
+        {
+          "field": "occupation_id",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraphs a(1)-a(2), PDF p. 56"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "weapon_system_id",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraphs a(1)-a(2), PDF p. 56"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "relationship_type",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraphs a(1)-a(2), PDF p. 56"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "documentation_strength",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraphs a(1)-a(2), PDF p. 56"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "temporal_scope",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraphs a(1)-a(2), PDF p. 56"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraphs a(1)-a(2), PDF p. 56"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-mos-2025"
+      ]
+    },
+    {
+      "relationship_id": "army-13m-m270-mlrs",
+      "occupation_id": "army-13m",
+      "weapon_system_id": "m270-mlrs",
+      "relationship_type": "primary_platform",
+      "documentation_strength": "direct_duty",
+      "temporal_scope": "Army Chapter 10C source snapshot; exact effective period not established.",
+      "notes": "Named launcher crew duties support this association; not all members operate both launchers.",
+      "facts": [
+        {
+          "field": "occupation_id",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraphs a(1)-a(2), PDF p. 56"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "weapon_system_id",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraphs a(1)-a(2), PDF p. 56"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "relationship_type",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraphs a(1)-a(2), PDF p. 56"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "documentation_strength",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraphs a(1)-a(2), PDF p. 56"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "temporal_scope",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraphs a(1)-a(2), PDF p. 56"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, paragraphs a(1)-a(2), PDF p. 56"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-mos-2025"
+      ]
+    },
+    {
+      "relationship_id": "army-13b-m119",
+      "occupation_id": "army-13b",
+      "weapon_system_id": "m119",
+      "relationship_type": "training_exposure",
+      "documentation_strength": "observed_training",
+      "temporal_scope": "Documented 2024 Best Redleg competition example.",
+      "notes": "Observed specialty/platform training association. The source does not establish use by every 13B or a population training frequency.",
+      "facts": [
+        {
+          "field": "occupation_id",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, paragraph a, PDF p. 49"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "weapon_system_id",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, paragraph a, PDF p. 49"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "relationship_type",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, paragraph a, PDF p. 49"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "documentation_strength",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, paragraph a, PDF p. 49"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "temporal_scope",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, paragraph a, PDF p. 49"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, paragraph a, PDF p. 49"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-mos-2025",
+        "army-redleg-2024"
+      ]
+    },
+    {
+      "relationship_id": "army-13b-m777",
+      "occupation_id": "army-13b",
+      "weapon_system_id": "m777",
+      "relationship_type": "training_exposure",
+      "documentation_strength": "observed_training",
+      "temporal_scope": "Documented 2024 Best Redleg competition example.",
+      "notes": "Observed specialty/platform training association. The source does not establish use by every 13B or a population training frequency.",
+      "facts": [
+        {
+          "field": "occupation_id",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, paragraph a, PDF p. 49"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "weapon_system_id",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, paragraph a, PDF p. 49"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "relationship_type",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, paragraph a, PDF p. 49"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "documentation_strength",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, paragraph a, PDF p. 49"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "temporal_scope",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, paragraph a, PDF p. 49"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, paragraph a, PDF p. 49"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-mos-2025",
+        "army-redleg-2024"
+      ]
+    },
+    {
+      "relationship_id": "army-13b-m109-paladin",
+      "occupation_id": "army-13b",
+      "weapon_system_id": "m109-paladin",
+      "relationship_type": "training_exposure",
+      "documentation_strength": "observed_training",
+      "temporal_scope": "Documented 2024 Best Redleg competition example.",
+      "notes": "Observed specialty/platform training association. The source does not establish use by every 13B or a population training frequency.",
+      "facts": [
+        {
+          "field": "occupation_id",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, paragraph a, PDF p. 49"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "weapon_system_id",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, paragraph a, PDF p. 49"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "relationship_type",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, paragraph a, PDF p. 49"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "documentation_strength",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, paragraph a, PDF p. 49"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "temporal_scope",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, paragraph a, PDF p. 49"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "army-redleg-2024",
+              "locator": "Winners list: 13B Cannon Crewmember, M119 / M777 / M109"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, paragraph a, PDF p. 49"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-mos-2025",
+        "army-redleg-2024"
+      ]
+    },
+    {
+      "relationship_id": "army-11c-m224",
+      "occupation_id": "army-11c",
+      "weapon_system_id": "m224",
+      "relationship_type": "possible_exposure",
+      "documentation_strength": "contextual",
+      "temporal_scope": "Spring 2026 professional-journal discussion of existing mortar formations.",
+      "notes": "Contextual connection between named mortars and 11C personnel; not a formal universal equipment assignment or an exposure measurement. M121 is not inferred from M120.",
+      "facts": [
+        {
+          "field": "occupation_id",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, paragraph a, PDF p. 20"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "weapon_system_id",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, paragraph a, PDF p. 20"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "relationship_type",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, paragraph a, PDF p. 20"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "documentation_strength",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, paragraph a, PDF p. 20"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "temporal_scope",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, paragraph a, PDF p. 20"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, paragraph a, PDF p. 20"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-mortars-2026",
+        "army-mos-2025"
+      ]
+    },
+    {
+      "relationship_id": "army-11c-m252",
+      "occupation_id": "army-11c",
+      "weapon_system_id": "m252",
+      "relationship_type": "possible_exposure",
+      "documentation_strength": "contextual",
+      "temporal_scope": "Spring 2026 professional-journal discussion of existing mortar formations.",
+      "notes": "Contextual connection between named mortars and 11C personnel; not a formal universal equipment assignment or an exposure measurement. M121 is not inferred from M120.",
+      "facts": [
+        {
+          "field": "occupation_id",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, paragraph a, PDF p. 20"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "weapon_system_id",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, paragraph a, PDF p. 20"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "relationship_type",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, paragraph a, PDF p. 20"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "documentation_strength",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, paragraph a, PDF p. 20"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "temporal_scope",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, paragraph a, PDF p. 20"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, paragraph a, PDF p. 20"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-mortars-2026",
+        "army-mos-2025"
+      ]
+    },
+    {
+      "relationship_id": "army-11c-m120",
+      "occupation_id": "army-11c",
+      "weapon_system_id": "m120",
+      "relationship_type": "possible_exposure",
+      "documentation_strength": "contextual",
+      "temporal_scope": "Spring 2026 professional-journal discussion of existing mortar formations.",
+      "notes": "Contextual connection between named mortars and 11C personnel; not a formal universal equipment assignment or an exposure measurement. M121 is not inferred from M120.",
+      "facts": [
+        {
+          "field": "occupation_id",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, paragraph a, PDF p. 20"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "weapon_system_id",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, paragraph a, PDF p. 20"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "relationship_type",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, paragraph a, PDF p. 20"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "documentation_strength",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, paragraph a, PDF p. 20"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "temporal_scope",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, paragraph a, PDF p. 20"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "army-mortars-2026",
+              "locator": "Army Transformation and Organization sections: existing M224/M252/M120 and 11C personnel"
+            },
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, paragraph a, PDF p. 20"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-mortars-2026",
+        "army-mos-2025"
+      ]
+    },
+    {
+      "relationship_id": "army-19k-m1-abrams-120mm",
+      "occupation_id": "army-19k",
+      "weapon_system_id": "m1-abrams-120mm",
+      "relationship_type": "crew_exposure",
+      "documentation_strength": "direct_duty",
+      "temporal_scope": "Army Chapter 10C duties with a documented 2015 Abrams 120mm configuration.",
+      "notes": "Crew-duty association to the scoped Abrams main gun; individual firing, crew position and dose remain unknown.",
+      "facts": [
+        {
+          "field": "occupation_id",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-19K, paragraphs a(1)-a(2), PDF p. 137"
+            },
+            {
+              "source_id": "army-abrams-2015",
+              "locator": "M1A2 photo captions and paragraph identifying M256 120mm smoothbore guns"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "weapon_system_id",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-19K, paragraphs a(1)-a(2), PDF p. 137"
+            },
+            {
+              "source_id": "army-abrams-2015",
+              "locator": "M1A2 photo captions and paragraph identifying M256 120mm smoothbore guns"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "relationship_type",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-19K, paragraphs a(1)-a(2), PDF p. 137"
+            },
+            {
+              "source_id": "army-abrams-2015",
+              "locator": "M1A2 photo captions and paragraph identifying M256 120mm smoothbore guns"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "documentation_strength",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-19K, paragraphs a(1)-a(2), PDF p. 137"
+            },
+            {
+              "source_id": "army-abrams-2015",
+              "locator": "M1A2 photo captions and paragraph identifying M256 120mm smoothbore guns"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "temporal_scope",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-19K, paragraphs a(1)-a(2), PDF p. 137"
+            },
+            {
+              "source_id": "army-abrams-2015",
+              "locator": "M1A2 photo captions and paragraph identifying M256 120mm smoothbore guns"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-19K, paragraphs a(1)-a(2), PDF p. 137"
+            },
+            {
+              "source_id": "army-abrams-2015",
+              "locator": "M1A2 photo captions and paragraph identifying M256 120mm smoothbore guns"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-abrams-2015",
+        "army-mos-2025"
+      ]
+    },
+    {
+      "relationship_id": "usmc-0341-m224",
+      "occupation_id": "usmc-0341",
+      "weapon_system_id": "m224",
+      "relationship_type": "primary_platform",
+      "documentation_strength": "direct_duty",
+      "temporal_scope": "Explicit platform names in FY18 NAVMC 1200.1C; historical scope.",
+      "notes": "The historical MOS summary names this system. FY26 wording is broader; no claim that every present-day 0341 operates it.",
+      "facts": [
+        {
+          "field": "occupation_id",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy18",
+              "locator": "Section 3110, MOS 0341, paragraph a. Summary"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "weapon_system_id",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy18",
+              "locator": "Section 3110, MOS 0341, paragraph a. Summary"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "relationship_type",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy18",
+              "locator": "Section 3110, MOS 0341, paragraph a. Summary"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "documentation_strength",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy18",
+              "locator": "Section 3110, MOS 0341, paragraph a. Summary"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "temporal_scope",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy18",
+              "locator": "Section 3110, MOS 0341, paragraph a. Summary"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy18",
+              "locator": "Section 3110, MOS 0341, paragraph a. Summary"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "usmc-mos-fy18"
+      ]
+    },
+    {
+      "relationship_id": "usmc-0341-m252",
+      "occupation_id": "usmc-0341",
+      "weapon_system_id": "m252",
+      "relationship_type": "primary_platform",
+      "documentation_strength": "direct_duty",
+      "temporal_scope": "Explicit platform names in FY18 NAVMC 1200.1C; historical scope.",
+      "notes": "The historical MOS summary names this system. FY26 wording is broader; no claim that every present-day 0341 operates it.",
+      "facts": [
+        {
+          "field": "occupation_id",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy18",
+              "locator": "Section 3110, MOS 0341, paragraph a. Summary"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "weapon_system_id",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy18",
+              "locator": "Section 3110, MOS 0341, paragraph a. Summary"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "relationship_type",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy18",
+              "locator": "Section 3110, MOS 0341, paragraph a. Summary"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "documentation_strength",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy18",
+              "locator": "Section 3110, MOS 0341, paragraph a. Summary"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "temporal_scope",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy18",
+              "locator": "Section 3110, MOS 0341, paragraph a. Summary"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy18",
+              "locator": "Section 3110, MOS 0341, paragraph a. Summary"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "usmc-mos-fy18"
+      ]
+    },
+    {
+      "relationship_id": "usmc-0811-m777",
+      "occupation_id": "usmc-0811",
+      "weapon_system_id": "m777",
+      "relationship_type": "training_exposure",
+      "documentation_strength": "direct_training_standard",
+      "temporal_scope": "NAVMC 3500.7C, 29 October 2018, loading assessment.",
+      "notes": "Documented M777/M777A2 training association, including a loading assessment. The cited assessment alone does not establish a blast exposure or live firing.",
+      "facts": [
+        {
+          "field": "occupation_id",
+          "citations": [
+            {
+              "source_id": "usmc-artillery-tr-2018",
+              "locator": "Appendix F, printed p. F-4, event 0811-GUNS-1014, loading assessment description and equipment"
+            },
+            {
+              "source_id": "usmc-mos-fy26",
+              "locator": "MOS 0811, paragraph a. Summary; printed p. 3-78"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "weapon_system_id",
+          "citations": [
+            {
+              "source_id": "usmc-artillery-tr-2018",
+              "locator": "Appendix F, printed p. F-4, event 0811-GUNS-1014, loading assessment description and equipment"
+            },
+            {
+              "source_id": "usmc-mos-fy26",
+              "locator": "MOS 0811, paragraph a. Summary; printed p. 3-78"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "relationship_type",
+          "citations": [
+            {
+              "source_id": "usmc-artillery-tr-2018",
+              "locator": "Appendix F, printed p. F-4, event 0811-GUNS-1014, loading assessment description and equipment"
+            },
+            {
+              "source_id": "usmc-mos-fy26",
+              "locator": "MOS 0811, paragraph a. Summary; printed p. 3-78"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "documentation_strength",
+          "citations": [
+            {
+              "source_id": "usmc-artillery-tr-2018",
+              "locator": "Appendix F, printed p. F-4, event 0811-GUNS-1014, loading assessment description and equipment"
+            },
+            {
+              "source_id": "usmc-mos-fy26",
+              "locator": "MOS 0811, paragraph a. Summary; printed p. 3-78"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "temporal_scope",
+          "citations": [
+            {
+              "source_id": "usmc-artillery-tr-2018",
+              "locator": "Appendix F, printed p. F-4, event 0811-GUNS-1014, loading assessment description and equipment"
+            },
+            {
+              "source_id": "usmc-mos-fy26",
+              "locator": "MOS 0811, paragraph a. Summary; printed p. 3-78"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "usmc-artillery-tr-2018",
+              "locator": "Appendix F, printed p. F-4, event 0811-GUNS-1014, loading assessment description and equipment"
+            },
+            {
+              "source_id": "usmc-mos-fy26",
+              "locator": "MOS 0811, paragraph a. Summary; printed p. 3-78"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "usmc-artillery-tr-2018",
+        "usmc-mos-fy26"
+      ]
+    }
+  ]
+}

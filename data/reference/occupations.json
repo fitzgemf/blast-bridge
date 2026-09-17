@@ -1,0 +1,632 @@
+{
+  "metadata": {
+    "dataset_name": "occupations",
+    "dataset_version": "0.1.0",
+    "generated_at": "2026-09-17T03:53:00.484633+00:00",
+    "schema_version": "0.1.0",
+    "source_registry_version": "0.1.0"
+  },
+  "records": [
+    {
+      "occupation_id": "army-13m",
+      "branch": "army",
+      "code": "13M",
+      "title": "MLRS/HIMARS Crewmember",
+      "occupational_family": "CMF 13",
+      "blast_exposure_relevance": [
+        "crew_member",
+        "direct_weapon_operator"
+      ],
+      "notes": "Relevance labels normalize the documented duties; they do not establish individual exposure, frequency or health outcome.",
+      "facts": [
+        {
+          "field": "branch",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, title and paragraph a. Major duties; PDF p. 56"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "code",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, title and paragraph a. Major duties; PDF p. 56"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "title",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, title and paragraph a. Major duties; PDF p. 56"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "occupational_family",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, title and paragraph a. Major duties; PDF p. 56"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "blast_exposure_relevance.0",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, title and paragraph a. Major duties; PDF p. 56"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "blast_exposure_relevance.1",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, title and paragraph a. Major duties; PDF p. 56"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13M, title and paragraph a. Major duties; PDF p. 56"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-mos-2025"
+      ]
+    },
+    {
+      "occupation_id": "army-13b",
+      "branch": "army",
+      "code": "13B",
+      "title": "Cannon Crewmember",
+      "occupational_family": "CMF 13",
+      "blast_exposure_relevance": [
+        "crew_member",
+        "direct_weapon_operator"
+      ],
+      "notes": "Relevance labels normalize the documented duties; they do not establish individual exposure, frequency or health outcome.",
+      "facts": [
+        {
+          "field": "branch",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, title and paragraph a. Major duties; PDF p. 49"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "code",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, title and paragraph a. Major duties; PDF p. 49"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "title",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, title and paragraph a. Major duties; PDF p. 49"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "occupational_family",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, title and paragraph a. Major duties; PDF p. 49"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "blast_exposure_relevance.0",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, title and paragraph a. Major duties; PDF p. 49"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "blast_exposure_relevance.1",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, title and paragraph a. Major duties; PDF p. 49"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-13B, title and paragraph a. Major duties; PDF p. 49"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-mos-2025"
+      ]
+    },
+    {
+      "occupation_id": "army-11c",
+      "branch": "army",
+      "code": "11C",
+      "title": "Indirect Fire Infantryman",
+      "occupational_family": "CMF 11",
+      "blast_exposure_relevance": [
+        "crew_member"
+      ],
+      "notes": "Relevance labels normalize the documented duties; they do not establish individual exposure, frequency or health outcome.",
+      "facts": [
+        {
+          "field": "branch",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, title and paragraph a. Major duties; PDF p. 20"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "code",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, title and paragraph a. Major duties; PDF p. 20"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "title",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, title and paragraph a. Major duties; PDF p. 20"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "occupational_family",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, title and paragraph a. Major duties; PDF p. 20"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "blast_exposure_relevance.0",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, title and paragraph a. Major duties; PDF p. 20"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-11C, title and paragraph a. Major duties; PDF p. 20"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-mos-2025"
+      ]
+    },
+    {
+      "occupation_id": "army-19k",
+      "branch": "army",
+      "code": "19K",
+      "title": "Armor Crewmember",
+      "occupational_family": "CMF 19",
+      "blast_exposure_relevance": [
+        "crew_member",
+        "direct_weapon_operator"
+      ],
+      "notes": "Relevance labels normalize the documented duties; they do not establish individual exposure, frequency or health outcome. The retrieved specification uses Armor Crewmember rather than the requested M1 Armor Crewman label; Abrams duties are explicit. Its mention of M10 Booker is not treated as current fielding evidence.",
+      "facts": [
+        {
+          "field": "branch",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-19K, title and paragraph a. Major duties; PDF p. 137"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "code",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-19K, title and paragraph a. Major duties; PDF p. 137"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "title",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-19K, title and paragraph a. Major duties; PDF p. 137"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "occupational_family",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-19K, title and paragraph a. Major duties; PDF p. 137"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "blast_exposure_relevance.0",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-19K, title and paragraph a. Major duties; PDF p. 137"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "blast_exposure_relevance.1",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-19K, title and paragraph a. Major duties; PDF p. 137"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-19K, title and paragraph a. Major duties; PDF p. 137"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-mos-2025"
+      ]
+    },
+    {
+      "occupation_id": "army-12b",
+      "branch": "army",
+      "code": "12B",
+      "title": "Combat Engineer",
+      "occupational_family": "CMF 12",
+      "blast_exposure_relevance": [
+        "breaching_or_explosives"
+      ],
+      "notes": "Relevance labels normalize the documented duties; they do not establish individual exposure, frequency or health outcome. General demolition and breaching duties do not establish a particular door/wall charge configuration.",
+      "facts": [
+        {
+          "field": "branch",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-12B, title and paragraph a. Major duties; PDF p. 25"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "code",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-12B, title and paragraph a. Major duties; PDF p. 25"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "title",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-12B, title and paragraph a. Major duties; PDF p. 25"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "occupational_family",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-12B, title and paragraph a. Major duties; PDF p. 25"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "blast_exposure_relevance.0",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-12B, title and paragraph a. Major duties; PDF p. 25"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-12B, title and paragraph a. Major duties; PDF p. 25"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-mos-2025"
+      ]
+    },
+    {
+      "occupation_id": "army-89d",
+      "branch": "army",
+      "code": "89D",
+      "title": "Explosive Ordnance Disposal (EOD) Specialist",
+      "occupational_family": "CMF 89",
+      "blast_exposure_relevance": [
+        "breaching_or_explosives"
+      ],
+      "notes": "Relevance labels normalize the documented duties; they do not establish individual exposure, frequency or health outcome. EOD disposal work is not equated with door/wall breaching; no breaching weapon relationship is asserted.",
+      "facts": [
+        {
+          "field": "branch",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-89D, title and paragraph a. Major duties; PDF p. 300"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "code",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-89D, title and paragraph a. Major duties; PDF p. 300"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "title",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-89D, title and paragraph a. Major duties; PDF p. 300"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "occupational_family",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-89D, title and paragraph a. Major duties; PDF p. 300"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "blast_exposure_relevance.0",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-89D, title and paragraph a. Major duties; PDF p. 300"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "army-mos-2025",
+              "locator": "Section 10-89D, title and paragraph a. Major duties; PDF p. 300"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "army-mos-2025"
+      ]
+    },
+    {
+      "occupation_id": "usmc-0811",
+      "branch": "marine_corps",
+      "code": "0811",
+      "title": "Field Artillery Cannoneer",
+      "occupational_family": null,
+      "blast_exposure_relevance": [
+        "crew_member"
+      ],
+      "notes": "Relevance is a normalization of the cited summary. Exact individual assignments and firing histories are not implied.",
+      "facts": [
+        {
+          "field": "branch",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy26",
+              "locator": "MOS 0811, paragraph a. Summary; printed p. 3-78"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "code",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy26",
+              "locator": "MOS 0811, paragraph a. Summary; printed p. 3-78"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "title",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy26",
+              "locator": "MOS 0811, paragraph a. Summary; printed p. 3-78"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "blast_exposure_relevance.0",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy26",
+              "locator": "MOS 0811, paragraph a. Summary; printed p. 3-78"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy26",
+              "locator": "MOS 0811, paragraph a. Summary; printed p. 3-78"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "usmc-mos-fy26"
+      ]
+    },
+    {
+      "occupation_id": "usmc-0341",
+      "branch": "marine_corps",
+      "code": "0341",
+      "title": "Mortarman",
+      "occupational_family": null,
+      "blast_exposure_relevance": [
+        "crew_member"
+      ],
+      "notes": "Relevance is a normalization of the cited summary. Exact individual assignments and firing histories are not implied.",
+      "facts": [
+        {
+          "field": "branch",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy26",
+              "locator": "MOS 0341, paragraph a. Summary; printed p. 3-33"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "code",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy26",
+              "locator": "MOS 0341, paragraph a. Summary; printed p. 3-33"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "title",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy26",
+              "locator": "MOS 0341, paragraph a. Summary; printed p. 3-33"
+            }
+          ],
+          "basis": "direct"
+        },
+        {
+          "field": "blast_exposure_relevance.0",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy26",
+              "locator": "MOS 0341, paragraph a. Summary; printed p. 3-33"
+            }
+          ],
+          "basis": "curator_mapping"
+        },
+        {
+          "field": "notes",
+          "citations": [
+            {
+              "source_id": "usmc-mos-fy26",
+              "locator": "MOS 0341, paragraph a. Summary; printed p. 3-33"
+            }
+          ],
+          "basis": "curator_mapping"
+        }
+      ],
+      "source_ids": [
+        "usmc-mos-fy26"
+      ]
+    }
+  ]
+}

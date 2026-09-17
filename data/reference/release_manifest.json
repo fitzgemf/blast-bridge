@@ -1,0 +1,37 @@
+{
+  "metadata": {
+    "dataset_name": "reference_release",
+    "dataset_version": "0.1.0",
+    "generated_at": "2026-09-17T03:53:00.484633+00:00",
+    "schema_version": "0.1.0",
+    "source_registry_version": "0.1.0"
+  },
+  "schema_sha256": "e484ceaa1f6dfad19f5ab7db1aec6a5638039062036e834b6dd9c362f7d37765",
+  "files": [
+    {
+      "filename": "sources.json",
+      "dataset_version": "0.1.0",
+      "sha256": "03d269aa42d56fa8f3eeff48d2b280546ea387abbc8b3f53d9795c956e05c98b"
+    },
+    {
+      "filename": "weapons.json",
+      "dataset_version": "0.1.0",
+      "sha256": "275c14652c7a4fab95cc1fcc4b16f0704c19f9e6e4d979aa2255610e065e0a41"
+    },
+    {
+      "filename": "occupations.json",
+      "dataset_version": "0.1.0",
+      "sha256": "c757382988a936468825d38713cda2587f18229f222ea043ef298b524950a12f"
+    },
+    {
+      "filename": "occupation_weapon_relationships.json",
+      "dataset_version": "0.1.0",
+      "sha256": "be6a5762d76ff233c94252c9812ec48c2e678252adfa6cab065f7fbb255809c5"
+    },
+    {
+      "filename": "taxonomy.json",
+      "dataset_version": "0.1.0",
+      "sha256": "3b23955fffa74ec62c7f6b4654355f27f211415920158b5b2cc98bd8c69a1121"
+    }
+  ]
+}
