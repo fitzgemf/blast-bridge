@@ -1,0 +1,1322 @@
+{
+  "$defs": {
+    "Assumption": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "assumption",
+          "title": "Kind",
+          "type": "string"
+        },
+        "assumption": {
+          "minLength": 1,
+          "title": "Assumption",
+          "type": "string"
+        },
+        "justification": {
+          "minLength": 1,
+          "title": "Justification",
+          "type": "string"
+        },
+        "usable_as_evidence": {
+          "const": false,
+          "title": "Usable As Evidence",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "assumption",
+        "justification",
+        "usable_as_evidence"
+      ],
+      "title": "Assumption",
+      "type": "object"
+    },
+    "Citation": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "locator": {
+          "minLength": 1,
+          "title": "Locator",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "locator"
+      ],
+      "title": "Citation",
+      "type": "object"
+    },
+    "CountValue": {
+      "additionalProperties": false,
+      "description": "Raw count qualification; bounds/central recollections are not prior parameters.",
+      "properties": {
+        "precision": {
+          "enum": [
+            "exact",
+            "approximate",
+            "greater_than",
+            "less_than",
+            "range"
+          ],
+          "title": "Precision",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "lower": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lower"
+        },
+        "upper": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Upper"
+        },
+        "recalled_central": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recalled Central"
+        }
+      },
+      "required": [
+        "precision"
+      ],
+      "title": "CountValue",
+      "type": "object"
+    },
+    "CountingDefinition": {
+      "additionalProperties": false,
+      "properties": {
+        "counting_unit": {
+          "$ref": "#/$defs/CountingUnit"
+        },
+        "definition": {
+          "minLength": 1,
+          "title": "Definition",
+          "type": "string"
+        },
+        "boundary": {
+          "minLength": 1,
+          "title": "Boundary",
+          "type": "string"
+        },
+        "source_id": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "locator": {
+          "minLength": 1,
+          "title": "Locator",
+          "type": "string"
+        },
+        "provenance_kind": {
+          "const": "research_definition",
+          "title": "Provenance Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "counting_unit",
+        "definition",
+        "boundary",
+        "source_id",
+        "locator",
+        "provenance_kind"
+      ],
+      "title": "CountingDefinition",
+      "type": "object"
+    },
+    "CountingUnit": {
+      "enum": [
+        "firing_event",
+        "exposure_event",
+        "firing_mission",
+        "live_fire_session",
+        "training_event",
+        "qualification_cycle",
+        "duty_day",
+        "annual_training_period"
+      ],
+      "title": "CountingUnit",
+      "type": "string"
+    },
+    "Estimate": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "estimate",
+          "title": "Kind",
+          "type": "string"
+        },
+        "estimated_frequency": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Frequency"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "estimated_rounds_per_event": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScopedCount"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "event_unit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CountingUnit"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "recollection": {
+          "minLength": 1,
+          "title": "Recollection",
+          "type": "string"
+        },
+        "uncertainty": {
+          "minLength": 1,
+          "title": "Uncertainty",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "recollection",
+        "uncertainty"
+      ],
+      "title": "Estimate",
+      "type": "object"
+    },
+    "EvidenceType": {
+      "enum": [
+        "doctrinal_requirement",
+        "qualification_requirement",
+        "official_unit_training_report",
+        "official_after_action_or_summary",
+        "training_calendar_or_schedule",
+        "school_requirement",
+        "range_or_ammunition_record",
+        "peer_reviewed_observation",
+        "government_report",
+        "subject_matter_expert",
+        "assumption"
+      ],
+      "title": "EvidenceType",
+      "type": "string"
+    },
+    "Frequency": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "$ref": "#/$defs/CountValue"
+        },
+        "counting_unit": {
+          "$ref": "#/$defs/CountingUnit"
+        },
+        "per": {
+          "$ref": "#/$defs/Interval"
+        },
+        "population_denominator": {
+          "enum": [
+            "unit",
+            "crew",
+            "launcher",
+            "person",
+            "unspecified"
+          ],
+          "title": "Population Denominator",
+          "type": "string"
+        },
+        "interpretation": {
+          "minLength": 1,
+          "title": "Interpretation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "count",
+        "counting_unit",
+        "per",
+        "population_denominator",
+        "interpretation"
+      ],
+      "title": "Frequency",
+      "type": "object"
+    },
+    "Interval": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "exclusiveMinimum": 0,
+          "title": "Value",
+          "type": "integer"
+        },
+        "unit": {
+          "enum": [
+            "day",
+            "week",
+            "month",
+            "year"
+          ],
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "unit"
+      ],
+      "title": "Interval",
+      "type": "object"
+    },
+    "Observation": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "observation",
+          "title": "Kind",
+          "type": "string"
+        },
+        "observed_frequency": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Frequency"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "observed_round_count": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScopedCount"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "observed_firing_event_count": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScopedCount"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "observed_training_event_count": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScopedCount"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reported_crew_count": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CountValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reported_launcher_count": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CountValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "denominator_linkage": {
+          "minLength": 1,
+          "title": "Denominator Linkage",
+          "type": "string"
+        },
+        "live_fire_confirmed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Live Fire Confirmed"
+        }
+      },
+      "required": [
+        "kind",
+        "denominator_linkage",
+        "live_fire_confirmed"
+      ],
+      "title": "Observation",
+      "type": "object"
+    },
+    "ParticipationRole": {
+      "enum": [
+        "weapon_operator",
+        "crew_member",
+        "nearby_crew",
+        "section_chief",
+        "safety_personnel",
+        "instructor",
+        "student",
+        "observer",
+        "unknown"
+      ],
+      "title": "ParticipationRole",
+      "type": "string"
+    },
+    "Representativeness": {
+      "enum": [
+        "single_unit_example",
+        "single_exercise_example",
+        "multiple_unit_evidence",
+        "service_wide_requirement",
+        "component_wide_requirement",
+        "school_environment",
+        "unknown"
+      ],
+      "title": "Representativeness",
+      "type": "string"
+    },
+    "Requirement": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "requirement",
+          "title": "Kind",
+          "type": "string"
+        },
+        "minimum_required_frequency": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Frequency"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "qualification_validity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Interval"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "task_sustainment_interval": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Interval"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "live_fire_required": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Live Fire Required"
+        },
+        "conditions": {
+          "minLength": 1,
+          "title": "Conditions",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "live_fire_required",
+        "conditions"
+      ],
+      "title": "Requirement",
+      "type": "object"
+    },
+    "Schedule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "schedule",
+          "title": "Kind",
+          "type": "string"
+        },
+        "planned_frequency": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Frequency"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "planned_activity": {
+          "minLength": 1,
+          "title": "Planned Activity",
+          "type": "string"
+        },
+        "completion_verified": {
+          "const": false,
+          "title": "Completion Verified",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "planned_activity",
+        "completion_verified"
+      ],
+      "title": "Schedule",
+      "type": "object"
+    },
+    "ScopedCount": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "$ref": "#/$defs/CountValue"
+        },
+        "population_denominator": {
+          "enum": [
+            "unit_total",
+            "crew",
+            "launcher",
+            "person",
+            "unspecified"
+          ],
+          "title": "Population Denominator",
+          "type": "string"
+        },
+        "scope": {
+          "minLength": 1,
+          "title": "Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "count",
+        "population_denominator",
+        "scope"
+      ],
+      "title": "ScopedCount",
+      "type": "object"
+    },
+    "TempoComponent": {
+      "enum": [
+        "active",
+        "army_national_guard",
+        "army_reserve",
+        "marine_corps_reserve",
+        "unknown"
+      ],
+      "title": "TempoComponent",
+      "type": "string"
+    },
+    "TempoEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "tempo_evidence_id": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Tempo Evidence Id",
+          "type": "string"
+        },
+        "branch": {
+          "enum": [
+            "army",
+            "marine_corps"
+          ],
+          "title": "Branch",
+          "type": "string"
+        },
+        "component": {
+          "$ref": "#/$defs/TempoComponent"
+        },
+        "occupation_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+            "type": "string"
+          },
+          "title": "Occupation Ids",
+          "type": "array"
+        },
+        "occupation_link_basis": {
+          "enum": [
+            "direct",
+            "curator_relevance",
+            "unknown"
+          ],
+          "title": "Occupation Link Basis",
+          "type": "string"
+        },
+        "weapon_system_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+            "type": "string"
+          },
+          "title": "Weapon System Ids",
+          "type": "array"
+        },
+        "weapon_link_basis": {
+          "enum": [
+            "direct",
+            "family_mapping",
+            "unknown"
+          ],
+          "title": "Weapon Link Basis",
+          "type": "string"
+        },
+        "source_platform_wording": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Platform Wording"
+        },
+        "unit_type": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit Type"
+        },
+        "crew_role": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Crew Role"
+        },
+        "participation_roles": {
+          "items": {
+            "$ref": "#/$defs/ParticipationRole"
+          },
+          "minItems": 1,
+          "title": "Participation Roles",
+          "type": "array"
+        },
+        "training_context": {
+          "items": {
+            "$ref": "#/$defs/TrainingContext"
+          },
+          "minItems": 1,
+          "title": "Training Context",
+          "type": "array"
+        },
+        "source_id": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "citations": {
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "minItems": 1,
+          "title": "Citations",
+          "type": "array"
+        },
+        "source_wording": {
+          "minLength": 1,
+          "title": "Source Wording",
+          "type": "string"
+        },
+        "normalized_activity_type": {
+          "$ref": "#/$defs/CountingUnit"
+        },
+        "mapping_note": {
+          "minLength": 1,
+          "title": "Mapping Note",
+          "type": "string"
+        },
+        "context_basis": {
+          "minLength": 1,
+          "title": "Context Basis",
+          "type": "string"
+        },
+        "time_window": {
+          "$ref": "#/$defs/TimeWindow"
+        },
+        "population_scope": {
+          "minLength": 1,
+          "title": "Population Scope",
+          "type": "string"
+        },
+        "unit_scope": {
+          "minLength": 1,
+          "title": "Unit Scope",
+          "type": "string"
+        },
+        "evidence_type": {
+          "$ref": "#/$defs/EvidenceType"
+        },
+        "representativeness": {
+          "$ref": "#/$defs/Representativeness"
+        },
+        "representativeness_basis": {
+          "minLength": 1,
+          "title": "Representativeness Basis",
+          "type": "string"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence"
+        },
+        "confidence_rationale": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence Rationale"
+        },
+        "limitations": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Limitations",
+          "type": "array"
+        },
+        "notes": {
+          "minLength": 1,
+          "title": "Notes",
+          "type": "string"
+        },
+        "individual_exposure_inference": {
+          "const": "not_established",
+          "title": "Individual Exposure Inference",
+          "type": "string"
+        },
+        "claim": {
+          "discriminator": {
+            "mapping": {
+              "assumption": "#/$defs/Assumption",
+              "estimate": "#/$defs/Estimate",
+              "observation": "#/$defs/Observation",
+              "requirement": "#/$defs/Requirement",
+              "schedule": "#/$defs/Schedule"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Requirement"
+            },
+            {
+              "$ref": "#/$defs/Observation"
+            },
+            {
+              "$ref": "#/$defs/Estimate"
+            },
+            {
+              "$ref": "#/$defs/Assumption"
+            },
+            {
+              "$ref": "#/$defs/Schedule"
+            }
+          ],
+          "title": "Claim"
+        }
+      },
+      "required": [
+        "tempo_evidence_id",
+        "branch",
+        "component",
+        "occupation_ids",
+        "occupation_link_basis",
+        "weapon_system_ids",
+        "weapon_link_basis",
+        "source_platform_wording",
+        "unit_type",
+        "crew_role",
+        "participation_roles",
+        "training_context",
+        "source_id",
+        "citations",
+        "source_wording",
+        "normalized_activity_type",
+        "mapping_note",
+        "context_basis",
+        "time_window",
+        "population_scope",
+        "unit_scope",
+        "evidence_type",
+        "representativeness",
+        "representativeness_basis",
+        "limitations",
+        "notes",
+        "individual_exposure_inference",
+        "claim"
+      ],
+      "title": "TempoEvidence",
+      "type": "object"
+    },
+    "TempoEvidenceDataset": {
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/TempoMetadata"
+        },
+        "records": {
+          "items": {
+            "$ref": "#/$defs/TempoEvidence"
+          },
+          "minItems": 1,
+          "title": "Records",
+          "type": "array"
+        }
+      },
+      "required": [
+        "metadata",
+        "records"
+      ],
+      "title": "TempoEvidenceDataset",
+      "type": "object"
+    },
+    "TempoMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "dataset_name": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Dataset Name",
+          "type": "string"
+        },
+        "dataset_version": {
+          "const": "0.2.0",
+          "title": "Dataset Version",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.2.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source_registry_version": {
+          "const": "0.2.0",
+          "title": "Source Registry Version",
+          "type": "string"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "title": "Generated At",
+          "type": "string"
+        },
+        "baseline_reference_version": {
+          "const": "0.1.0",
+          "title": "Baseline Reference Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dataset_name",
+        "dataset_version",
+        "schema_version",
+        "source_registry_version",
+        "generated_at",
+        "baseline_reference_version"
+      ],
+      "title": "TempoMetadata",
+      "type": "object"
+    },
+    "TempoSource": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "organization": {
+          "minLength": 1,
+          "title": "Organization",
+          "type": "string"
+        },
+        "source_type": {
+          "enum": [
+            "official",
+            "peer_reviewed",
+            "subject_matter_expert",
+            "assumption",
+            "research_definition"
+          ],
+          "title": "Source Type",
+          "type": "string"
+        },
+        "document_kind": {
+          "enum": [
+            "doctrine",
+            "training_manual",
+            "unit_report",
+            "government_report",
+            "school_page",
+            "schedule",
+            "range_record",
+            "peer_reviewed",
+            "user_note",
+            "research_definition",
+            "assumption"
+          ],
+          "title": "Document Kind",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "maxLength": 2083,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Url"
+        },
+        "publication_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Publication Date"
+        },
+        "document_version": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Document Version"
+        },
+        "accessed_date": {
+          "format": "date",
+          "title": "Accessed Date",
+          "type": "string"
+        },
+        "retrieval_method": {
+          "enum": [
+            "downloaded",
+            "indexed_official_text",
+            "provided_by_user",
+            "local_note"
+          ],
+          "title": "Retrieval Method",
+          "type": "string"
+        },
+        "content_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Content Sha256"
+        },
+        "local_filename": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9_-]+\\.(pdf|html|txt)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Local Filename"
+        },
+        "retrieval_limitation": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Retrieval Limitation"
+        },
+        "temporal_status": {
+          "enum": [
+            "historical_scope",
+            "current_status_unverified",
+            "not_applicable"
+          ],
+          "title": "Temporal Status",
+          "type": "string"
+        },
+        "notes": {
+          "minLength": 1,
+          "title": "Notes",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "title",
+        "organization",
+        "source_type",
+        "document_kind",
+        "url",
+        "publication_date",
+        "document_version",
+        "accessed_date",
+        "retrieval_method",
+        "content_sha256",
+        "local_filename",
+        "retrieval_limitation",
+        "temporal_status",
+        "notes"
+      ],
+      "title": "TempoSource",
+      "type": "object"
+    },
+    "TempoSources": {
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/TempoMetadata"
+        },
+        "records": {
+          "items": {
+            "$ref": "#/$defs/TempoSource"
+          },
+          "minItems": 1,
+          "title": "Records",
+          "type": "array"
+        }
+      },
+      "required": [
+        "metadata",
+        "records"
+      ],
+      "title": "TempoSources",
+      "type": "object"
+    },
+    "TempoTaxonomy": {
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/TempoMetadata"
+        },
+        "records": {
+          "items": {
+            "$ref": "#/$defs/CountingDefinition"
+          },
+          "maxItems": 8,
+          "minItems": 8,
+          "title": "Records",
+          "type": "array"
+        },
+        "source_term_mappings": {
+          "items": {
+            "$ref": "#/$defs/TermMapping"
+          },
+          "minItems": 1,
+          "title": "Source Term Mappings",
+          "type": "array"
+        },
+        "evidence_types": {
+          "items": {
+            "$ref": "#/$defs/EvidenceType"
+          },
+          "title": "Evidence Types",
+          "type": "array"
+        },
+        "representativeness_values": {
+          "items": {
+            "$ref": "#/$defs/Representativeness"
+          },
+          "title": "Representativeness Values",
+          "type": "array"
+        },
+        "participation_roles": {
+          "items": {
+            "$ref": "#/$defs/ParticipationRole"
+          },
+          "title": "Participation Roles",
+          "type": "array"
+        },
+        "components": {
+          "items": {
+            "$ref": "#/$defs/TempoComponent"
+          },
+          "title": "Components",
+          "type": "array"
+        }
+      },
+      "required": [
+        "metadata",
+        "records",
+        "source_term_mappings",
+        "evidence_types",
+        "representativeness_values",
+        "participation_roles",
+        "components"
+      ],
+      "title": "TempoTaxonomy",
+      "type": "object"
+    },
+    "TermMapping": {
+      "additionalProperties": false,
+      "properties": {
+        "source_term": {
+          "minLength": 1,
+          "title": "Source Term",
+          "type": "string"
+        },
+        "evidence_id": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "mapping": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CountingUnit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ambiguity": {
+          "minLength": 1,
+          "title": "Ambiguity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_term",
+        "evidence_id",
+        "mapping",
+        "ambiguity"
+      ],
+      "title": "TermMapping",
+      "type": "object"
+    },
+    "TimeWindow": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "start_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Date"
+        },
+        "end_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Date"
+        },
+        "year": {
+          "anyOf": [
+            {
+              "maximum": 2100,
+              "minimum": 1900,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Year"
+        }
+      },
+      "required": [
+        "description"
+      ],
+      "title": "TimeWindow",
+      "type": "object"
+    },
+    "TrainingContext": {
+      "enum": [
+        "deployment_preparation",
+        "ctc_large_scale_exercise",
+        "routine_home_station",
+        "annual_training",
+        "qualification_certification",
+        "school_instructor_environment",
+        "unknown"
+      ],
+      "title": "TrainingContext",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "sources": {
+      "$ref": "#/$defs/TempoSources"
+    },
+    "evidence": {
+      "$ref": "#/$defs/TempoEvidenceDataset"
+    },
+    "taxonomy": {
+      "$ref": "#/$defs/TempoTaxonomy"
+    }
+  },
+  "required": [
+    "sources",
+    "evidence",
+    "taxonomy"
+  ],
+  "title": "TrainingTempoBundle",
+  "type": "object"
+}

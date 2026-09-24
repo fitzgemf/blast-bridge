@@ -1,0 +1,172 @@
+{
+  "metadata": {
+    "dataset_name": "training_tempo_taxonomy",
+    "dataset_version": "0.2.0",
+    "schema_version": "0.2.0",
+    "source_registry_version": "0.2.0",
+    "generated_at": "2026-09-17T16:54:47.425930Z",
+    "baseline_reference_version": "0.1.0"
+  },
+  "records": [
+    {
+      "counting_unit": "firing_event",
+      "definition": "One discrete weapon discharge, rocket launch, mortar/artillery/tank round, shoulder-fired launch, or explosive detonation.",
+      "boundary": "A salvo, mission or exercise may contain many; a reported round allocation is not proof of firing.",
+      "source_id": "tempo-definitions",
+      "locator": "research/notes/training-tempo-v0.2.md: Scope and counting definitions, firing_event",
+      "provenance_kind": "research_definition"
+    },
+    {
+      "counting_unit": "exposure_event",
+      "definition": "One person's potential presence in one blast-generating event, regardless of who operated the weapon.",
+      "boundary": "Requires person/participation evidence; does not assert measured blast, dose or injury.",
+      "source_id": "tempo-definitions",
+      "locator": "research/notes/training-tempo-v0.2.md: Scope and counting definitions, exposure_event",
+      "provenance_kind": "research_definition"
+    },
+    {
+      "counting_unit": "firing_mission",
+      "definition": "A tactically grouped sequence of one or more firing events.",
+      "boundary": "Source mission counts do not determine round counts.",
+      "source_id": "tempo-definitions",
+      "locator": "research/notes/training-tempo-v0.2.md: Scope and counting definitions, firing_mission",
+      "provenance_kind": "research_definition"
+    },
+    {
+      "counting_unit": "live_fire_session",
+      "definition": "A continuous or logically grouped training period involving live fire.",
+      "boundary": "Session boundaries must be source-defined; not automatically a day or exercise.",
+      "source_id": "tempo-definitions",
+      "locator": "research/notes/training-tempo-v0.2.md: Scope and counting definitions, live_fire_session",
+      "provenance_kind": "research_definition"
+    },
+    {
+      "counting_unit": "training_event",
+      "definition": "A larger training activity that may contain one or more live-fire sessions.",
+      "boundary": "May also contain dry fire, simulation and nonfiring activity.",
+      "source_id": "tempo-definitions",
+      "locator": "research/notes/training-tempo-v0.2.md: Scope and counting definitions, training_event",
+      "provenance_kind": "research_definition"
+    },
+    {
+      "counting_unit": "qualification_cycle",
+      "definition": "A formal qualification or certification requirement spanning one or more tables, sessions or events.",
+      "boundary": "Validity interval and completion requirement do not establish actual live-fire frequency.",
+      "source_id": "tempo-definitions",
+      "locator": "research/notes/training-tempo-v0.2.md: Scope and counting definitions, qualification_cycle",
+      "provenance_kind": "research_definition"
+    },
+    {
+      "counting_unit": "duty_day",
+      "definition": "A calendar/training day during which exposure-producing activity occurs.",
+      "boundary": "Exercise duration alone does not count exposure-producing days.",
+      "source_id": "tempo-definitions",
+      "locator": "research/notes/training-tempo-v0.2.md: Scope and counting definitions, duty_day",
+      "provenance_kind": "research_definition"
+    },
+    {
+      "counting_unit": "annual_training_period",
+      "definition": "A Reserve Component or National Guard training period that may contain multiple training events.",
+      "boundary": "The name does not establish its length, firing days, or each person's attendance.",
+      "source_id": "tempo-definitions",
+      "locator": "research/notes/training-tempo-v0.2.md: Scope and counting definitions, annual_training_period",
+      "provenance_kind": "research_definition"
+    }
+  ],
+  "source_term_mappings": [
+    {
+      "source_term": "event",
+      "evidence_id": "tempo-sme-active-himars",
+      "mapping": "training_event",
+      "ambiguity": "SME period and event boundaries may differ; no multiplication of annual periods by event rockets."
+    },
+    {
+      "source_term": "fire",
+      "evidence_id": "tempo-active-m120-plan",
+      "mapping": "live_fire_session",
+      "ambiguity": "Shooting intention mapped to session; number and boundaries unverified."
+    },
+    {
+      "source_term": "mission",
+      "evidence_id": "tempo-marine-active-himars",
+      "mapping": null,
+      "ambiguity": "Tactical mission wording is not an ammunition or individual-exposure count; no numeric mission count extracted."
+    },
+    {
+      "source_term": "qualification",
+      "evidence_id": "tempo-fa-requirement-active",
+      "mapping": "qualification_cycle",
+      "ambiguity": "Completion requirement is not an observed frequency."
+    },
+    {
+      "source_term": "table",
+      "evidence_id": "tempo-estonia-himars",
+      "mapping": "qualification_cycle",
+      "ambiguity": "Tables include multiple stages; a table is not one launch or one day."
+    },
+    {
+      "source_term": "exercise",
+      "evidence_id": "tempo-western-strike-mlrs",
+      "mapping": "training_event",
+      "ambiguity": "Exercise duration and unit totals do not identify each participant attendance."
+    },
+    {
+      "source_term": "rotation",
+      "evidence_id": "tempo-marine-active-himars",
+      "mapping": "training_event",
+      "ambiguity": "Rotational deployment context exceeds the three-day exercise; the complete rotation is not counted as one firing session."
+    },
+    {
+      "source_term": "certification",
+      "evidence_id": "tempo-guard-himars-at",
+      "mapping": "qualification_cycle",
+      "ambiguity": "Crew certification within AT is not the full annual firing inventory."
+    },
+    {
+      "source_term": "annual training",
+      "evidence_id": "tempo-guard-himars-at",
+      "mapping": "annual_training_period",
+      "ambiguity": "Reserve training period can contain multiple sessions and qualifications."
+    }
+  ],
+  "evidence_types": [
+    "doctrinal_requirement",
+    "qualification_requirement",
+    "official_unit_training_report",
+    "official_after_action_or_summary",
+    "training_calendar_or_schedule",
+    "school_requirement",
+    "range_or_ammunition_record",
+    "peer_reviewed_observation",
+    "government_report",
+    "subject_matter_expert",
+    "assumption"
+  ],
+  "representativeness_values": [
+    "single_unit_example",
+    "single_exercise_example",
+    "multiple_unit_evidence",
+    "service_wide_requirement",
+    "component_wide_requirement",
+    "school_environment",
+    "unknown"
+  ],
+  "participation_roles": [
+    "weapon_operator",
+    "crew_member",
+    "nearby_crew",
+    "section_chief",
+    "safety_personnel",
+    "instructor",
+    "student",
+    "observer",
+    "unknown"
+  ],
+  "components": [
+    "active",
+    "army_national_guard",
+    "army_reserve",
+    "marine_corps_reserve",
+    "unknown"
+  ]
+}

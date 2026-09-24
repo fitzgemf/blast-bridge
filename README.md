@@ -16,6 +16,18 @@ synthetic career generator, training-frequency assumptions, exposure scores,
 or provider-summary generator. Simulation and feature packages are placeholders.
 Synthetic generation requires separate approval.
 
+Research Dataset V0.2 adds **40 training-tempo evidence records**, **31 source
+records** (29 official, one SME recollection and one research-definition source),
+eight counting definitions, a separate schema and a separate release manifest.
+The V0.1 JSON release remains byte-identical to commit
+`0c3ede2dadff3b21dda2c901407a214658f63b9b`, annotated tag `v0.1.0`.
+V0.2 separates requirements, reported activity, plans and retrospective estimates;
+it supplies no fitted priors or individual exposure frequencies. All 29 official
+V0.2 sources lack archived originals and retain explicit retrieval limitations.
+See the [V0.2 review and validation](research/notes/training-tempo-v0.2.md).
+Dataset/schema versions are independent of the Python package version, which
+remains 0.1.0. V0.3 requires separate approval and has not begun.
+
 ## Setup (Windows PowerShell)
 
 Python is restricted to 3.12.x; `.python-version` also records this choice.
@@ -29,6 +41,7 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m mypy
 .\.venv\Scripts\python.exe -m pip check
 .\.venv\Scripts\python.exe -m blastbridge.validation.reference
+.\.venv\Scripts\python.exe -m blastbridge.validation.training_tempo --source-directory research/sources/tempo-downloads
 ```
 
 On other platforms, substitute `python3.12` and `.venv/bin/python`.
@@ -155,6 +168,7 @@ BlastBridge/
     synthetic/    # Empty; ignored except .gitkeep
     reference/    # Sources, weapons, occupations, relationships, taxonomy,
                   # exported schema and release manifest
+                  # plus separately manifested training_tempo* V0.2 files
   research/
     sources/      # Source-register guidance
     notes/        # Decisions needed before dataset work

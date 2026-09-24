@@ -1,4 +1,4 @@
-# Research Dataset V0.1
+# Research Datasets V0.1 and V0.2
 
 All five reference datasets, their source registry and their schema begin at
 version **0.1.0**. Each JSON dataset is an object with `metadata` and `records`.
@@ -104,7 +104,8 @@ seed IDs require human review, not automatic one-to-many expansion.
    before treating the candidate as a release.
 7. Run pytest, Ruff lint/format, mypy, pip check and the reference-validation CLI.
    Commit/tag approved releases and retain their full artifacts. No commit/tag
-   has been fabricated for the initially uncommitted repository.
+   is implied by a version string alone. The V0.1 baseline now exists at annotated
+   tag `v0.1.0`, commit `0c3ede2dadff3b21dda2c901407a214658f63b9b`.
 8. Experiments must retain the exact release files and record the manifest's own
    SHA-256, dataset versions, registry version, schema version/hash, code commit
    (once one exists) and environment lock. A version string or mutable URL alone
@@ -120,3 +121,55 @@ Obtain approved original archives before an experiment requires that guarantee.
 
 See [the evidence review](../../research/notes/reference-v0.1.md) for source scopes,
 uncertainties, conflicts and prerequisites for future frequency/measurement work.
+
+## V0.2 training-tempo extension
+
+V0.2 is an additive research release with independent dataset, source registry
+and schema versions of **0.2.0**. Retain all seven V0.1 JSON files alongside these
+five files; the original reference catalog is a pinned dependency, not regenerated.
+
+| File | Contents |
+| --- | --- |
+| training_tempo_sources.json | 31 sources: 29 official, one SME, one research definition |
+| training_tempo_evidence.json | 40 scoped evidence records, including two SME estimates |
+| training_tempo_taxonomy.json | Eight counting definitions, vocabularies and source-term mappings |
+| training_tempo.schema.json | Exported TrainingTempoBundle JSON Schema |
+| training_tempo_manifest.json | Three dataset hashes, schema hash, V0.1 manifest hash and commit/tag dependency |
+
+```powershell
+.\.venv\Scripts\python.exe -m blastbridge.validation.reference
+.\.venv\Scripts\python.exe -m blastbridge.validation.training_tempo --source-directory research/sources/tempo-downloads
+git diff --check
+git fsck --full
+```
+
+```python
+from blastbridge.data.training_tempo import load_training_tempo, verify_source_originals
+
+tempo = load_training_tempo("data/reference")
+archive = verify_source_originals(tempo, "research/sources/tempo-downloads")
+```
+
+The loader checks duplicate JSON keys, typed claims, source/citation references,
+occupation/weapon IDs, branch/component compatibility, provenance boundaries,
+taxonomy completeness, schema export equality and exact release hashes. The
+reference CLI validates V0.2 when any extension file exists and rejects a partial
+extension. A V0.1-only directory remains supported. The source-archive audit rejects
+missing or changed files claimed as downloads; its current result of zero verified
+downloads and 29 unavailable originals is an explicit limitation, not full source
+reproducibility. The two local provenance records are retained in the release.
+
+For an authorized future V0.2 correction, preserve this release first and review
+the evidence change. `load_training_tempo(path, verify_manifest=False)` bypasses
+only V0.2 byte-hash checks; it still enforces the V0.1 dependency and data joins.
+Export `TrainingTempoBundle.model_json_schema()` with UTF-8/LF and update the
+corresponding manifest hashes only after reviewing an actual change. Run the
+complete verification suite in the root README, both CLIs and source audit before
+release. No manifest or dataset needed regeneration during the September 24
+completion review. Hashes verify bytes, not the truth of the cited passages.
+
+Read the [V0.2 research review](../../research/notes/training-tempo-v0.2.md) before
+interpreting counts. Linked occupations/weapons overlap; records sharing an
+exercise or source are dependent. No automatic annualization, crew allocation,
+SME-to-official promotion, or conversion of qualification validity into observed
+firing frequency is supported.

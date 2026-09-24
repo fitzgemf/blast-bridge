@@ -1,0 +1,31 @@
+{
+  "metadata": {
+    "dataset_name": "training_tempo_release",
+    "dataset_version": "0.2.0",
+    "schema_version": "0.2.0",
+    "source_registry_version": "0.2.0",
+    "generated_at": "2026-09-17T16:54:47.475503+00:00",
+    "baseline_reference_version": "0.1.0"
+  },
+  "files": [
+    {
+      "filename": "training_tempo_sources.json",
+      "dataset_version": "0.2.0",
+      "sha256": "f9b1502ee9aae6e15ff649d6aea353a69201c6e4cd4c01bb48638feda1855556"
+    },
+    {
+      "filename": "training_tempo_evidence.json",
+      "dataset_version": "0.2.0",
+      "sha256": "e239eb20629123b21559c9ee3e2d5b26d9cf3dc11e21bc6ebba257983daf24d7"
+    },
+    {
+      "filename": "training_tempo_taxonomy.json",
+      "dataset_version": "0.2.0",
+      "sha256": "004f83381bf8523bba6ec94637e2de049ab3726b7c136afb24615e4d34c3d3a2"
+    }
+  ],
+  "schema_sha256": "838e8de5caceea9a7357dc1e2f02a58447400e7f018d4f9627c6e32ceb4bb583",
+  "baseline_manifest_sha256": "e424efbce2eb3d7387cf6f4bab3955c9d9ee92448ded543ec0f43011995661c0",
+  "baseline_git_commit": "0c3ede2dadff3b21dda2c901407a214658f63b9b",
+  "baseline_git_tag": "v0.1.0"
+}
