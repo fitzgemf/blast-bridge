@@ -1,0 +1,2802 @@
+{
+  "metadata": {
+    "version": "0.3.0",
+    "baseline_reference_version": "0.1.0",
+    "training_tempo_version": "0.2.0",
+    "purpose": "modeling_assumption_and_prior_design"
+  },
+  "empirical_priors": null,
+  "numerical_scenarios_authorized": false,
+  "records": [
+    {
+      "population_scope": "TC 3-09.8 (2020 Change 1), field artillery formations in the named component",
+      "branch": "army",
+      "component": "active",
+      "occupation_ids": [
+        "army-13b",
+        "army-13m"
+      ],
+      "weapon_system_ids": [
+        "m119",
+        "m777",
+        "m109-paladin",
+        "m142-himars",
+        "m270-mlrs"
+      ],
+      "unit_type": null,
+      "training_context": [
+        "qualification_certification"
+      ],
+      "time_window": {
+        "description": "TC 3-09.8 (2020 Change 1), field artillery formations in the named component",
+        "start_date": null,
+        "end_date": null,
+        "year": 2020
+      },
+      "representativeness": "component_wide_requirement",
+      "prior_id": "design-fa-requirement-active",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "qualification_cycle",
+      "quantity_being_modeled": "requirement_structure",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-fa-requirement-active",
+      "evidence_ids": [
+        "tempo-fa-requirement-active"
+      ],
+      "source_ids": [
+        "tempo-tc-fa-2020"
+      ],
+      "evidence_payload": {
+        "kind": "requirement",
+        "minimum_required_frequency": {
+          "count": {
+            "precision": "exact",
+            "value": 1,
+            "lower": null,
+            "upper": null,
+            "recalled_central": null
+          },
+          "counting_unit": "qualification_cycle",
+          "per": {
+            "value": 6,
+            "unit": "month"
+          },
+          "population_denominator": "unit",
+          "interpretation": "Documented qualification requirement; not observed training frequency."
+        },
+        "qualification_validity": null,
+        "task_sustainment_interval": null,
+        "live_fire_required": true,
+        "conditions": "Table VI qualification interval, with higher-echelon reset and command exceptions; never an observed annual session count."
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "R",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Regular Army ASPT/VI semiannual; Guard annual. Higher-echelon live fire resets subordinate expiration; command exceptions apply. XII/XV/XVIII have separate intervals. Platform families preserve M109A6/A7, M119A2/A3, M777A2 and MLRS/HIMARS scope.",
+      "limitations": [
+        "Historical reviewed edition; supersession/current applicability and detailed credential-restricted appendices not verified.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "TC 3-09.8 (2020 Change 1), field artillery formations in the named component",
+      "branch": "army",
+      "component": "army_national_guard",
+      "occupation_ids": [
+        "army-13b",
+        "army-13m"
+      ],
+      "weapon_system_ids": [
+        "m119",
+        "m777",
+        "m109-paladin",
+        "m142-himars",
+        "m270-mlrs"
+      ],
+      "unit_type": null,
+      "training_context": [
+        "qualification_certification"
+      ],
+      "time_window": {
+        "description": "TC 3-09.8 (2020 Change 1), field artillery formations in the named component",
+        "start_date": null,
+        "end_date": null,
+        "year": 2020
+      },
+      "representativeness": "component_wide_requirement",
+      "prior_id": "design-fa-requirement-army_national_guard",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "qualification_cycle",
+      "quantity_being_modeled": "requirement_structure",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-fa-requirement-army_national_guard",
+      "evidence_ids": [
+        "tempo-fa-requirement-army_national_guard"
+      ],
+      "source_ids": [
+        "tempo-tc-fa-2020"
+      ],
+      "evidence_payload": {
+        "kind": "requirement",
+        "minimum_required_frequency": {
+          "count": {
+            "precision": "exact",
+            "value": 1,
+            "lower": null,
+            "upper": null,
+            "recalled_central": null
+          },
+          "counting_unit": "qualification_cycle",
+          "per": {
+            "value": 12,
+            "unit": "month"
+          },
+          "population_denominator": "unit",
+          "interpretation": "Documented qualification requirement; not observed training frequency."
+        },
+        "qualification_validity": null,
+        "task_sustainment_interval": null,
+        "live_fire_required": true,
+        "conditions": "Table VI qualification interval, with higher-echelon reset and command exceptions; never an observed annual session count."
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "R",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Regular Army ASPT/VI semiannual; Guard annual. Higher-echelon live fire resets subordinate expiration; command exceptions apply. XII/XV/XVIII have separate intervals. Platform families preserve M109A6/A7, M119A2/A3, M777A2 and MLRS/HIMARS scope.",
+      "limitations": [
+        "Historical reviewed edition; supersession/current applicability and detailed credential-restricted appendices not verified.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "2019 IWTS mortar crew qualification validity; active",
+      "branch": "army",
+      "component": "active",
+      "occupation_ids": [
+        "army-11c"
+      ],
+      "weapon_system_ids": [],
+      "unit_type": null,
+      "training_context": [
+        "qualification_certification"
+      ],
+      "time_window": {
+        "description": "2019 IWTS mortar crew qualification validity; active",
+        "start_date": null,
+        "end_date": null,
+        "year": 2019
+      },
+      "representativeness": "service_wide_requirement",
+      "prior_id": "design-mortar-validity-active",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "qualification_cycle",
+      "quantity_being_modeled": "requirement_structure",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-mortar-validity-active",
+      "evidence_ids": [
+        "tempo-mortar-validity-active"
+      ],
+      "source_ids": [
+        "tempo-tc-iwts-2019"
+      ],
+      "evidence_payload": {
+        "kind": "requirement",
+        "minimum_required_frequency": null,
+        "qualification_validity": {
+          "value": 12,
+          "unit": "month"
+        },
+        "task_sustainment_interval": null,
+        "live_fire_required": null,
+        "conditions": "Validity unless condemnation. Active/Guard are separate scoped views of the same service rule, not independent sources."
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "R",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Qualification remains valid for 12 months unless condemnation conditions apply. Validity is not a minimum firing frequency. Generic formation/crew rule; no platform-specific interval asserted.",
+      "limitations": [
+        "Historical edition and generic crew scope. Current supersession and platform-specific requirements remain unverified.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "2019 IWTS mortar crew qualification validity; army_national_guard",
+      "branch": "army",
+      "component": "army_national_guard",
+      "occupation_ids": [
+        "army-11c"
+      ],
+      "weapon_system_ids": [],
+      "unit_type": null,
+      "training_context": [
+        "qualification_certification"
+      ],
+      "time_window": {
+        "description": "2019 IWTS mortar crew qualification validity; army_national_guard",
+        "start_date": null,
+        "end_date": null,
+        "year": 2019
+      },
+      "representativeness": "service_wide_requirement",
+      "prior_id": "design-mortar-validity-army_national_guard",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "qualification_cycle",
+      "quantity_being_modeled": "requirement_structure",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-mortar-validity-army_national_guard",
+      "evidence_ids": [
+        "tempo-mortar-validity-army_national_guard"
+      ],
+      "source_ids": [
+        "tempo-tc-iwts-2019"
+      ],
+      "evidence_payload": {
+        "kind": "requirement",
+        "minimum_required_frequency": null,
+        "qualification_validity": {
+          "value": 12,
+          "unit": "month"
+        },
+        "task_sustainment_interval": null,
+        "live_fire_required": null,
+        "conditions": "Validity unless condemnation. Active/Guard are separate scoped views of the same service rule, not independent sources."
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "R",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Qualification remains valid for 12 months unless condemnation conditions apply. Validity is not a minimum firing frequency. Generic formation/crew rule; no platform-specific interval asserted.",
+      "limitations": [
+        "Historical edition and generic crew scope. Current supersession and platform-specific requirements remain unverified.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "2019 IWTS vehicle crew qualification validity; active",
+      "branch": "army",
+      "component": "active",
+      "occupation_ids": [
+        "army-19k"
+      ],
+      "weapon_system_ids": [],
+      "unit_type": null,
+      "training_context": [
+        "qualification_certification"
+      ],
+      "time_window": {
+        "description": "2019 IWTS vehicle crew qualification validity; active",
+        "start_date": null,
+        "end_date": null,
+        "year": 2019
+      },
+      "representativeness": "service_wide_requirement",
+      "prior_id": "design-vehicle-validity-active",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "qualification_cycle",
+      "quantity_being_modeled": "requirement_structure",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-vehicle-validity-active",
+      "evidence_ids": [
+        "tempo-vehicle-validity-active"
+      ],
+      "source_ids": [
+        "tempo-tc-iwts-2019"
+      ],
+      "evidence_payload": {
+        "kind": "requirement",
+        "minimum_required_frequency": null,
+        "qualification_validity": {
+          "value": 12,
+          "unit": "month"
+        },
+        "task_sustainment_interval": null,
+        "live_fire_required": null,
+        "conditions": "Validity unless condemnation. Active/Guard are separate scoped views of the same service rule, not independent sources."
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "R",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Qualification remains valid for 12 months unless condemnation conditions apply. Validity is not a minimum firing frequency. Generic formation/crew rule; no platform-specific interval asserted.",
+      "limitations": [
+        "Historical edition and generic crew scope. Current supersession and platform-specific requirements remain unverified.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "2019 IWTS vehicle crew qualification validity; army_national_guard",
+      "branch": "army",
+      "component": "army_national_guard",
+      "occupation_ids": [
+        "army-19k"
+      ],
+      "weapon_system_ids": [],
+      "unit_type": null,
+      "training_context": [
+        "qualification_certification"
+      ],
+      "time_window": {
+        "description": "2019 IWTS vehicle crew qualification validity; army_national_guard",
+        "start_date": null,
+        "end_date": null,
+        "year": 2019
+      },
+      "representativeness": "service_wide_requirement",
+      "prior_id": "design-vehicle-validity-army_national_guard",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "qualification_cycle",
+      "quantity_being_modeled": "requirement_structure",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-vehicle-validity-army_national_guard",
+      "evidence_ids": [
+        "tempo-vehicle-validity-army_national_guard"
+      ],
+      "source_ids": [
+        "tempo-tc-iwts-2019"
+      ],
+      "evidence_payload": {
+        "kind": "requirement",
+        "minimum_required_frequency": null,
+        "qualification_validity": {
+          "value": 12,
+          "unit": "month"
+        },
+        "task_sustainment_interval": null,
+        "live_fire_required": null,
+        "conditions": "Validity unless condemnation. Active/Guard are separate scoped views of the same service rule, not independent sources."
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "R",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Qualification remains valid for 12 months unless condemnation conditions apply. Validity is not a minimum firing frequency. Generic formation/crew rule; no platform-specific interval asserted.",
+      "limitations": [
+        "Historical edition and generic crew scope. Current supersession and platform-specific requirements remain unverified.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "MOS 0811 cannoneer task in NAVMC 3500.7C",
+      "branch": "marine_corps",
+      "component": "unknown",
+      "occupation_ids": [
+        "usmc-0811"
+      ],
+      "weapon_system_ids": [
+        "m777"
+      ],
+      "unit_type": null,
+      "training_context": [
+        "qualification_certification"
+      ],
+      "time_window": {
+        "description": "MOS 0811 cannoneer task in NAVMC 3500.7C",
+        "start_date": null,
+        "end_date": null,
+        "year": 2018
+      },
+      "representativeness": "service_wide_requirement",
+      "prior_id": "design-marine-0811-sustainment",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "qualification_cycle",
+      "quantity_being_modeled": "requirement_structure",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-marine-0811-sustainment",
+      "evidence_ids": [
+        "tempo-marine-0811-sustainment"
+      ],
+      "source_ids": [
+        "tempo-usmc-artillery-2018"
+      ],
+      "evidence_payload": {
+        "kind": "requirement",
+        "minimum_required_frequency": null,
+        "qualification_validity": null,
+        "task_sustainment_interval": {
+          "value": 3,
+          "unit": "month"
+        },
+        "live_fire_required": false,
+        "conditions": "Task sustainment; permitted non-live-fire completion prevents conversion to firing frequency."
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "R",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Three-month task sustainment. Dummy/inert mockups permitted in non-live-fire training; sustainment cannot establish quarterly live firing. M777A2 reference mapped to M777 family.",
+      "limitations": [
+        "Reviewed historical task, not verified current manual or component-specific firing requirement.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "MOS 0341 forward-observer task in NAVMC 3500.44D",
+      "branch": "marine_corps",
+      "component": "unknown",
+      "occupation_ids": [
+        "usmc-0341"
+      ],
+      "weapon_system_ids": [],
+      "unit_type": null,
+      "training_context": [
+        "qualification_certification"
+      ],
+      "time_window": {
+        "description": "MOS 0341 forward-observer task in NAVMC 3500.44D",
+        "start_date": null,
+        "end_date": null,
+        "year": 2020
+      },
+      "representativeness": "service_wide_requirement",
+      "prior_id": "design-marine-0341-sustainment",
+      "role_scope": [
+        "observer"
+      ],
+      "counting_unit": "qualification_cycle",
+      "quantity_being_modeled": "requirement_structure",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-marine-0341-sustainment",
+      "evidence_ids": [
+        "tempo-marine-0341-sustainment"
+      ],
+      "source_ids": [
+        "tempo-usmc-infantry-2020"
+      ],
+      "evidence_payload": {
+        "kind": "requirement",
+        "minimum_required_frequency": null,
+        "qualification_validity": null,
+        "task_sustainment_interval": {
+          "value": 6,
+          "unit": "month"
+        },
+        "live_fire_required": null,
+        "conditions": "Observer task sustainment, not individual rounds or necessarily live fire."
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "R",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Six-month task sustainment; live-fire necessity not established from reviewed passage. Simulation table preceding this heading belongs to the preceding task and is not attributed here.",
+      "limitations": [
+        "Historical manual; no current component-specific live-fire frequency established.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "Marine School of Artillery students",
+      "branch": "marine_corps",
+      "component": "unknown",
+      "occupation_ids": [
+        "usmc-0811"
+      ],
+      "weapon_system_ids": [],
+      "unit_type": "Service school",
+      "training_context": [
+        "school_instructor_environment"
+      ],
+      "time_window": {
+        "description": "Marine School of Artillery students",
+        "start_date": null,
+        "end_date": null,
+        "year": null
+      },
+      "representativeness": "school_environment",
+      "prior_id": "design-marine-school-cannoneer",
+      "role_scope": [
+        "student"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "requirement_structure",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-marine-school-cannoneer",
+      "evidence_ids": [
+        "tempo-marine-school-cannoneer"
+      ],
+      "source_ids": [
+        "tempo-marine-artillery-school"
+      ],
+      "evidence_payload": {
+        "kind": "requirement",
+        "minimum_required_frequency": null,
+        "qualification_validity": null,
+        "task_sustainment_interval": null,
+        "live_fire_required": null,
+        "conditions": "Course curriculum/duration only; no frequency or round requirement extracted."
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "R",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Published course duration: five weeks / 25 training days. Course duration is not firing days. HIMARS follow-on instruction serves 0811 students; selected graduates may earn 0814, which is not a V0.1 occupation ID.",
+      "limitations": [
+        "Undated course page; student components and live-fire repetitions unspecified.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "Marine School of Artillery students",
+      "branch": "marine_corps",
+      "component": "unknown",
+      "occupation_ids": [
+        "usmc-0811"
+      ],
+      "weapon_system_ids": [
+        "m142-himars"
+      ],
+      "unit_type": "Service school",
+      "training_context": [
+        "school_instructor_environment"
+      ],
+      "time_window": {
+        "description": "Marine School of Artillery students",
+        "start_date": null,
+        "end_date": null,
+        "year": null
+      },
+      "representativeness": "school_environment",
+      "prior_id": "design-marine-school-himars",
+      "role_scope": [
+        "student"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "requirement_structure",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-marine-school-himars",
+      "evidence_ids": [
+        "tempo-marine-school-himars"
+      ],
+      "source_ids": [
+        "tempo-marine-artillery-school"
+      ],
+      "evidence_payload": {
+        "kind": "requirement",
+        "minimum_required_frequency": null,
+        "qualification_validity": null,
+        "task_sustainment_interval": null,
+        "live_fire_required": null,
+        "conditions": "Course curriculum/duration only; no frequency or round requirement extracted."
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "R",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Published course duration: 2.5 weeks / 13 training days. Course duration is not firing days. HIMARS follow-on instruction serves 0811 students; selected graduates may earn 0814, which is not a V0.1 occupation ID.",
+      "limitations": [
+        "Undated course page; student components and live-fire repetitions unspecified.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "Able Battery, 3-321 FAR, 18th Field Artillery Brigade; Estonia, 27 January 2025",
+      "branch": "army",
+      "component": "active",
+      "occupation_ids": [
+        "army-13m"
+      ],
+      "weapon_system_ids": [
+        "m142-himars"
+      ],
+      "unit_type": "Field artillery battery",
+      "training_context": [
+        "qualification_certification"
+      ],
+      "time_window": {
+        "description": "Able Battery, 3-321 FAR, 18th Field Artillery Brigade; Estonia, 27 January 2025",
+        "start_date": "2025-01-27",
+        "end_date": "2025-01-27",
+        "year": 2025
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-estonia-himars",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-estonia-himars",
+      "evidence_ids": [
+        "tempo-estonia-himars"
+      ],
+      "source_ids": [
+        "tempo-army-himars-estonia-2025"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": {
+          "count": {
+            "precision": "exact",
+            "value": 3,
+            "lower": null,
+            "upper": null,
+            "recalled_central": null
+          },
+          "population_denominator": "unspecified",
+          "scope": "Depicted launch sequence only; not total exercise ammunition."
+        },
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Body describes annual qualification tables while captions describe semiannual validation/certification. Three rockets concern the depicted firing sequence only; no unit-total or per-crew generalization.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "Wisconsin 1-121 Field Artillery, Camp Ripley, June 2021",
+      "branch": "army",
+      "component": "army_national_guard",
+      "occupation_ids": [
+        "army-13m"
+      ],
+      "weapon_system_ids": [
+        "m142-himars"
+      ],
+      "unit_type": "Field artillery battalion",
+      "training_context": [
+        "annual_training",
+        "qualification_certification"
+      ],
+      "time_window": {
+        "description": "Wisconsin 1-121 Field Artillery, Camp Ripley, June 2021",
+        "start_date": null,
+        "end_date": null,
+        "year": 2021
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-guard-himars-at",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "annual_training_period",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-guard-himars-at",
+      "evidence_ids": [
+        "tempo-guard-himars-at"
+      ],
+      "source_ids": [
+        "tempo-guard-himars-2021"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": null,
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Crews certified during annual training; no complete annual exercise inventory or crew rocket count.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "Arkansas 1-142 Field Artillery at Operation Western Strike, Camp Guernsey, June 2018",
+      "branch": "army",
+      "component": "army_national_guard",
+      "occupation_ids": [
+        "army-13m"
+      ],
+      "weapon_system_ids": [
+        "m270-mlrs"
+      ],
+      "unit_type": "Field artillery battalion",
+      "training_context": [
+        "ctc_large_scale_exercise",
+        "annual_training"
+      ],
+      "time_window": {
+        "description": "Arkansas 1-142 Field Artillery at Operation Western Strike, Camp Guernsey, June 2018",
+        "start_date": null,
+        "end_date": null,
+        "year": 2018
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-western-strike-mlrs",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-western-strike-mlrs",
+      "evidence_ids": [
+        "tempo-western-strike-mlrs"
+      ],
+      "source_ids": [
+        "tempo-guard-western-strike-2018"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": {
+          "count": {
+            "precision": "exact",
+            "value": 40,
+            "lower": null,
+            "upper": null,
+            "recalled_central": null
+          },
+          "population_denominator": "unit_total",
+          "scope": "Arkansas 1-142 Field Artillery exercise total"
+        },
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Two-week exercise duration is not firing days. Rocket figures are reduced-range practice rockets. Four records share one report/exercise and are dependent. Nearly 1,300 retains source approximation, not an exact count.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "Tennessee 1-181 Field Artillery at Operation Western Strike, Camp Guernsey, June 2018",
+      "branch": "army",
+      "component": "army_national_guard",
+      "occupation_ids": [
+        "army-13m"
+      ],
+      "weapon_system_ids": [
+        "m142-himars"
+      ],
+      "unit_type": "Field artillery battalion",
+      "training_context": [
+        "ctc_large_scale_exercise",
+        "annual_training"
+      ],
+      "time_window": {
+        "description": "Tennessee 1-181 Field Artillery at Operation Western Strike, Camp Guernsey, June 2018",
+        "start_date": null,
+        "end_date": null,
+        "year": 2018
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-western-strike-himars",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-western-strike-himars",
+      "evidence_ids": [
+        "tempo-western-strike-himars"
+      ],
+      "source_ids": [
+        "tempo-guard-western-strike-2018"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": {
+          "count": {
+            "precision": "greater_than",
+            "value": 65,
+            "lower": null,
+            "upper": null,
+            "recalled_central": null
+          },
+          "population_denominator": "unit_total",
+          "scope": "Tennessee 1-181 Field Artillery exercise total"
+        },
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Two-week exercise duration is not firing days. Rocket figures are reduced-range practice rockets. Four records share one report/exercise and are dependent. Nearly 1,300 retains source approximation, not an exact count.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "Arkansas 2-142 Field Artillery at Operation Western Strike, Camp Guernsey, June 2018",
+      "branch": "army",
+      "component": "army_national_guard",
+      "occupation_ids": [
+        "army-13b"
+      ],
+      "weapon_system_ids": [
+        "m109-paladin"
+      ],
+      "unit_type": "Field artillery battalion",
+      "training_context": [
+        "ctc_large_scale_exercise",
+        "annual_training"
+      ],
+      "time_window": {
+        "description": "Arkansas 2-142 Field Artillery at Operation Western Strike, Camp Guernsey, June 2018",
+        "start_date": null,
+        "end_date": null,
+        "year": 2018
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-western-strike-paladin",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-western-strike-paladin",
+      "evidence_ids": [
+        "tempo-western-strike-paladin"
+      ],
+      "source_ids": [
+        "tempo-guard-western-strike-2018"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": {
+          "count": {
+            "precision": "greater_than",
+            "value": 1100,
+            "lower": null,
+            "upper": null,
+            "recalled_central": null
+          },
+          "population_denominator": "unit_total",
+          "scope": "Arkansas 2-142 Field Artillery exercise total"
+        },
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Two-week exercise duration is not firing days. Rocket figures are reduced-range practice rockets. Four records share one report/exercise and are dependent. Nearly 1,300 retains source approximation, not an exact count.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "Alabama 1-117 Field Artillery at Operation Western Strike, Camp Guernsey, June 2018",
+      "branch": "army",
+      "component": "army_national_guard",
+      "occupation_ids": [
+        "army-13b"
+      ],
+      "weapon_system_ids": [
+        "m777"
+      ],
+      "unit_type": "Field artillery battalion",
+      "training_context": [
+        "ctc_large_scale_exercise",
+        "annual_training"
+      ],
+      "time_window": {
+        "description": "Alabama 1-117 Field Artillery at Operation Western Strike, Camp Guernsey, June 2018",
+        "start_date": null,
+        "end_date": null,
+        "year": 2018
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-western-strike-m777",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-western-strike-m777",
+      "evidence_ids": [
+        "tempo-western-strike-m777"
+      ],
+      "source_ids": [
+        "tempo-guard-western-strike-2018"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": {
+          "count": {
+            "precision": "approximate",
+            "value": 1300,
+            "lower": null,
+            "upper": null,
+            "recalled_central": null
+          },
+          "population_denominator": "unit_total",
+          "scope": "Alabama 1-117 Field Artillery exercise total"
+        },
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Two-week exercise duration is not firing days. Rocket figures are reduced-range practice rockets. Four records share one report/exercise and are dependent. Nearly 1,300 retains source approximation, not an exact count.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "2-4 Field Artillery, 214th Fires Brigade, Fort Sill, 10-14 June 2013",
+      "branch": "army",
+      "component": "active",
+      "occupation_ids": [
+        "army-13m"
+      ],
+      "weapon_system_ids": [
+        "m270-mlrs"
+      ],
+      "unit_type": "Field artillery battalion",
+      "training_context": [
+        "routine_home_station"
+      ],
+      "time_window": {
+        "description": "2-4 Field Artillery, 214th Fires Brigade, Fort Sill, 10-14 June 2013",
+        "start_date": "2013-06-10",
+        "end_date": "2013-06-14",
+        "year": 2013
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-active-mlrs-exercise",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-active-mlrs-exercise",
+      "evidence_ids": [
+        "tempo-active-mlrs-exercise"
+      ],
+      "source_ids": [
+        "tempo-army-mlrs-2013"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": null,
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Documented MLRS exercise. Launcher capacity is not an observed ammunition count.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "2-32 Field Artillery, Operation Diamond Freeze, Fort Sill, January 2011",
+      "branch": "army",
+      "component": "active",
+      "occupation_ids": [
+        "army-13b"
+      ],
+      "weapon_system_ids": [
+        "m119"
+      ],
+      "unit_type": "Field artillery battery with attached guns",
+      "training_context": [
+        "ctc_large_scale_exercise",
+        "qualification_certification"
+      ],
+      "time_window": {
+        "description": "2-32 Field Artillery, Operation Diamond Freeze, Fort Sill, January 2011",
+        "start_date": null,
+        "end_date": null,
+        "year": 2011
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-active-m119-diamond",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-active-m119-diamond",
+      "evidence_ids": [
+        "tempo-active-m119-diamond"
+      ],
+      "source_ids": [
+        "tempo-army-cannon-2011"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": {
+          "count": {
+            "precision": "greater_than",
+            "value": 1600,
+            "lower": null,
+            "upper": null,
+            "recalled_central": null
+          },
+          "population_denominator": "unit_total",
+          "scope": "Reported Diamond Freeze firing total"
+        },
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": {
+          "precision": "exact",
+          "value": 8,
+          "lower": null,
+          "upper": null,
+          "recalled_central": null
+        },
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Bravo Battery plus two Alpha guns; eight gun crews reported trained/certified. Participation/allocation insufficient to divide unit rounds by eight.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "3-8 Cavalry, 3rd ABCT, 1st Cavalry Division; Fort Cavazos, 25 September 2024",
+      "branch": "army",
+      "component": "active",
+      "occupation_ids": [
+        "army-19k"
+      ],
+      "weapon_system_ids": [
+        "m1-abrams-120mm"
+      ],
+      "unit_type": "Cavalry battalion in armored brigade combat team",
+      "training_context": [
+        "qualification_certification"
+      ],
+      "time_window": {
+        "description": "3-8 Cavalry, 3rd ABCT, 1st Cavalry Division; Fort Cavazos, 25 September 2024",
+        "start_date": "2024-09-25",
+        "end_date": "2024-09-25",
+        "year": 2024
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-active-abrams-table6",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-active-abrams-table6",
+      "evidence_ids": [
+        "tempo-active-abrams-table6"
+      ],
+      "source_ids": [
+        "tempo-army-armor-2024"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": null,
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Caption identifies M1A2 SEPv3 main gun and coaxial firing. No numeric main-gun count extracted; mixed weapons cannot become 120mm totals.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "Oregon 3-116 Cavalry, April 2018 M1A2 SEP v2 gunnery",
+      "branch": "army",
+      "component": "army_national_guard",
+      "occupation_ids": [
+        "army-19k"
+      ],
+      "weapon_system_ids": [
+        "m1-abrams-120mm"
+      ],
+      "unit_type": "Cavalry squadron",
+      "training_context": [
+        "qualification_certification"
+      ],
+      "time_window": {
+        "description": "Oregon 3-116 Cavalry, April 2018 M1A2 SEP v2 gunnery",
+        "start_date": null,
+        "end_date": null,
+        "year": 2018
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-guard-abrams-gunnery",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-guard-abrams-gunnery",
+      "evidence_ids": [
+        "tempo-guard-abrams-gunnery"
+      ],
+      "source_ids": [
+        "tempo-guard-armor-2018"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": null,
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Each company had 14-day gunnery; 54 total training days reported for year, 60 planned next year. Neither duration nor all-duty totals establish firing days or per-person participation.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "New York 2-101 Cavalry, Fort Drum annual training/XCTC, July 2015",
+      "branch": "army",
+      "component": "army_national_guard",
+      "occupation_ids": [
+        "army-11c"
+      ],
+      "weapon_system_ids": [
+        "m120",
+        "m224"
+      ],
+      "unit_type": "Cavalry squadron mortar teams",
+      "training_context": [
+        "annual_training",
+        "ctc_large_scale_exercise"
+      ],
+      "time_window": {
+        "description": "New York 2-101 Cavalry, Fort Drum annual training/XCTC, July 2015",
+        "start_date": null,
+        "end_date": null,
+        "year": 2015
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-guard-mortar-at",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "annual_training_period",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-guard-mortar-at",
+      "evidence_ids": [
+        "tempo-guard-mortar-at"
+      ],
+      "source_ids": [
+        "tempo-guard-mortars-2015"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": null,
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Quoted this has ambiguous scope. A unit recollection in official reporting does not establish service frequency; observed_frequency remains null. Gunner, assistant and ammunition roles described.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "HHC 2-34 Armor, 1st ABCT, 1st Infantry Division, July 2013",
+      "branch": "army",
+      "component": "active",
+      "occupation_ids": [
+        "army-11c"
+      ],
+      "weapon_system_ids": [
+        "m120"
+      ],
+      "unit_type": "Headquarters-company mortar platoon in armor battalion",
+      "training_context": [
+        "routine_home_station"
+      ],
+      "time_window": {
+        "description": "HHC 2-34 Armor, 1st ABCT, 1st Infantry Division, July 2013",
+        "start_date": null,
+        "end_date": null,
+        "year": 2013
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-active-m120-training",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-active-m120-training",
+      "evidence_ids": [
+        "tempo-active-m120-training"
+      ],
+      "source_ids": [
+        "tempo-army-mortar-2013"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": null,
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Day one drills, day two live fire, day three cleaning. Three activity days are not three firing days.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "3-67 Armor, 2nd ABCT, 3rd Infantry Division, Fort Stewart, 13-15 September 2021",
+      "branch": "army",
+      "component": "active",
+      "occupation_ids": [
+        "army-11c"
+      ],
+      "weapon_system_ids": [
+        "m121"
+      ],
+      "unit_type": "Armor battalion mortar platoon with field artillery fire-support team",
+      "training_context": [
+        "qualification_certification"
+      ],
+      "time_window": {
+        "description": "3-67 Armor, 2nd ABCT, 3rd Infantry Division, Fort Stewart, 13-15 September 2021",
+        "start_date": "2021-09-13",
+        "end_date": "2021-09-15",
+        "year": 2021
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-active-m121-mortep",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-active-m121-mortep",
+      "evidence_ids": [
+        "tempo-active-m121-mortep"
+      ],
+      "source_ids": [
+        "tempo-army-m121-2021"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": null,
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Body calls mortar ammunition rockets; captions identify 120mm rounds. Numeric count withheld rather than silently correcting the source. Unit describes semiannual MORTEP, which is not normative evidence.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "Vermont 3-172 Infantry, 86th IBCT, Krivolak, Immediate Response 25, May 2025",
+      "branch": "army",
+      "component": "army_national_guard",
+      "occupation_ids": [
+        "army-11c"
+      ],
+      "weapon_system_ids": [
+        "m252"
+      ],
+      "unit_type": "Infantry battalion mortar teams",
+      "training_context": [
+        "ctc_large_scale_exercise"
+      ],
+      "time_window": {
+        "description": "Vermont 3-172 Infantry, 86th IBCT, Krivolak, Immediate Response 25, May 2025",
+        "start_date": null,
+        "end_date": null,
+        "year": 2025
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-guard-m252-ir25",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-guard-m252-ir25",
+      "evidence_ids": [
+        "tempo-guard-m252-ir25"
+      ],
+      "source_ids": [
+        "tempo-guard-m252-2025"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": null,
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Three-day dry/blank/live progression does not establish three live-fire sessions. Soltam K6 also appears but is not silently mapped to M120.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "BLT 1/4, 15th MEU, U.S. 5th Fleet area, 14 February 2021",
+      "branch": "marine_corps",
+      "component": "active",
+      "occupation_ids": [
+        "usmc-0341"
+      ],
+      "weapon_system_ids": [
+        "m224",
+        "m252"
+      ],
+      "unit_type": "Battalion landing team",
+      "training_context": [
+        "ctc_large_scale_exercise"
+      ],
+      "time_window": {
+        "description": "BLT 1/4, 15th MEU, U.S. 5th Fleet area, 14 February 2021",
+        "start_date": "2021-02-14",
+        "end_date": "2021-02-14",
+        "year": 2021
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-marine-active-mortars",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-marine-active-mortars",
+      "evidence_ids": [
+        "tempo-marine-active-mortars"
+      ],
+      "source_ids": [
+        "tempo-marine-mortars-active-2021"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": null,
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Caption supports mortar live fire; syndicating page exercise heading is not event provenance. Deployed rehearsal; no round or annual count.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "2/24 Marines, Camp Atterbury, April 2016",
+      "branch": "marine_corps",
+      "component": "marine_corps_reserve",
+      "occupation_ids": [
+        "usmc-0341"
+      ],
+      "weapon_system_ids": [],
+      "unit_type": "Infantry battalion mortar teams",
+      "training_context": [
+        "unknown"
+      ],
+      "time_window": {
+        "description": "2/24 Marines, Camp Atterbury, April 2016",
+        "start_date": null,
+        "end_date": null,
+        "year": 2016
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-marine-reserve-mortars",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-marine-reserve-mortars",
+      "evidence_ids": [
+        "tempo-marine-reserve-mortars"
+      ],
+      "source_ids": [
+        "tempo-marine-mortar-reserve-2016"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": null,
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Reserve 81mm mortar teams trained before upcoming annual training. Caliber alone does not identify M252. This is a documented opportunity outside AT, not annual frequency.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "2/10 Marines, 2nd Marine Division, Rolling Thunder 1-22, October 2021",
+      "branch": "marine_corps",
+      "component": "active",
+      "occupation_ids": [
+        "usmc-0811"
+      ],
+      "weapon_system_ids": [
+        "m777"
+      ],
+      "unit_type": "Artillery battalion",
+      "training_context": [
+        "ctc_large_scale_exercise"
+      ],
+      "time_window": {
+        "description": "2/10 Marines, 2nd Marine Division, Rolling Thunder 1-22, October 2021",
+        "start_date": null,
+        "end_date": null,
+        "year": 2021
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-marine-active-cannon",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-marine-active-cannon",
+      "evidence_ids": [
+        "tempo-marine-active-cannon"
+      ],
+      "source_ids": [
+        "tempo-marine-cannon-active-2021"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": null,
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Page date October 16 and caption October 19 conflict; exact event day left unresolved. Live firing and drills described; no count.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "Hotel Battery, 3/14 Marines, 4th Marine Division, Dynamic Front 19, 2 March 2019",
+      "branch": "marine_corps",
+      "component": "marine_corps_reserve",
+      "occupation_ids": [
+        "usmc-0811"
+      ],
+      "weapon_system_ids": [
+        "m777"
+      ],
+      "unit_type": "Artillery battery",
+      "training_context": [
+        "ctc_large_scale_exercise"
+      ],
+      "time_window": {
+        "description": "Hotel Battery, 3/14 Marines, 4th Marine Division, Dynamic Front 19, 2 March 2019",
+        "start_date": "2019-03-02",
+        "end_date": "2019-03-02",
+        "year": 2019
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-marine-reserve-cannon",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-marine-reserve-cannon",
+      "evidence_ids": [
+        "tempo-marine-reserve-cannon"
+      ],
+      "source_ids": [
+        "tempo-marine-cannon-reserve-2019"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": null,
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Caption documents M777 firing in multinational exercise; exercise March 2-9 does not establish daily firing.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "3/12 Marines, Marine Rotational Force Darwin, Southern Reach, 13-15 August 2019",
+      "branch": "marine_corps",
+      "component": "active",
+      "occupation_ids": [],
+      "weapon_system_ids": [
+        "m142-himars"
+      ],
+      "unit_type": "Artillery battery supporting rotational force",
+      "training_context": [
+        "ctc_large_scale_exercise"
+      ],
+      "time_window": {
+        "description": "3/12 Marines, Marine Rotational Force Darwin, Southern Reach, 13-15 August 2019",
+        "start_date": "2019-08-13",
+        "end_date": "2019-08-15",
+        "year": 2019
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-marine-active-himars",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-marine-active-himars",
+      "evidence_ids": [
+        "tempo-marine-active-himars"
+      ],
+      "source_ids": [
+        "tempo-marine-himars-active-2019"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": {
+          "count": {
+            "precision": "exact",
+            "value": 2,
+            "lower": null,
+            "upper": null,
+            "recalled_central": null
+          },
+          "population_denominator": "unit_total",
+          "scope": "GMLRS subset only; RRPR count unknown"
+        },
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": {
+          "precision": "exact",
+          "value": 3,
+          "lower": null,
+          "upper": null,
+          "recalled_central": null
+        },
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Two GMLRS plus an unquantified RRPR quantity; three launchers reported. Two is only the GMLRS subset, not all rockets. Body typo M241 is preserved; HIMARS identity supports curator mapping to M142, not a new alias. MOS not established.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "Kilo Battery, 2/14 Marines, Dugway Proving Ground, WTI 2-22, 6 April 2022",
+      "branch": "marine_corps",
+      "component": "marine_corps_reserve",
+      "occupation_ids": [],
+      "weapon_system_ids": [
+        "m142-himars"
+      ],
+      "unit_type": "Artillery battery",
+      "training_context": [
+        "school_instructor_environment",
+        "ctc_large_scale_exercise"
+      ],
+      "time_window": {
+        "description": "Kilo Battery, 2/14 Marines, Dugway Proving Ground, WTI 2-22, 6 April 2022",
+        "start_date": "2022-04-06",
+        "end_date": "2022-04-06",
+        "year": 2022
+      },
+      "representativeness": "single_unit_example",
+      "prior_id": "design-marine-reserve-himars",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-marine-reserve-himars",
+      "evidence_ids": [
+        "tempo-marine-reserve-himars"
+      ],
+      "source_ids": [
+        "tempo-marine-himars-reserve-2022"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": null,
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Reserve HIMARS live-fire support to weapons/tactics training. Exercise duration including transit is not firing duration. School support does not identify crew as instructors; MOS not established.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "166th Regiment RTI instructors, Fort Indiantown Gap, 15 November 2024",
+      "branch": "army",
+      "component": "army_national_guard",
+      "occupation_ids": [
+        "army-13b"
+      ],
+      "weapon_system_ids": [
+        "m119",
+        "m777",
+        "m109-paladin"
+      ],
+      "unit_type": "Regional training institute",
+      "training_context": [
+        "school_instructor_environment"
+      ],
+      "time_window": {
+        "description": "166th Regiment RTI instructors, Fort Indiantown Gap, 15 November 2024",
+        "start_date": "2024-11-15",
+        "end_date": "2024-11-15",
+        "year": 2024
+      },
+      "representativeness": "school_environment",
+      "prior_id": "design-guard-artillery-instructors",
+      "role_scope": [
+        "instructor"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-guard-artillery-instructors",
+      "evidence_ids": [
+        "tempo-guard-artillery-instructors"
+      ],
+      "source_ids": [
+        "tempo-guard-instructors-2024"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": null,
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Guard instructor population is identified. Student components remain unspecified. M119/M777/M109A6 live fire in ALC; no instructor attendance-by-round or annual teaching-load inventory.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "Fort Sill NCO Academy ALC students, December 2016",
+      "branch": "army",
+      "component": "unknown",
+      "occupation_ids": [
+        "army-13b",
+        "army-13m"
+      ],
+      "weapon_system_ids": [
+        "m119",
+        "m777",
+        "m109-paladin"
+      ],
+      "unit_type": "NCO academy",
+      "training_context": [
+        "school_instructor_environment"
+      ],
+      "time_window": {
+        "description": "Fort Sill NCO Academy ALC students, December 2016",
+        "start_date": null,
+        "end_date": null,
+        "year": 2016
+      },
+      "representativeness": "school_environment",
+      "prior_id": "design-army-artillery-students",
+      "role_scope": [
+        "student",
+        "instructor"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-army-artillery-students",
+      "evidence_ids": [
+        "tempo-army-artillery-students"
+      ],
+      "source_ids": [
+        "tempo-army-school-2016"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": null,
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. 13B and 13M are among specialties attending. Listed cannon systems are exercise platforms, not claims that every MOS operated every platform. Live fire follows first five course weeks; duration is not firing days.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "2-30 Infantry, 4th BCT, 10th Mountain Division mentors, Gamberi, 8 January 2014",
+      "branch": "army",
+      "component": "active",
+      "occupation_ids": [
+        "army-11c"
+      ],
+      "weapon_system_ids": [
+        "m224"
+      ],
+      "unit_type": "Infantry battalion mentors",
+      "training_context": [
+        "school_instructor_environment"
+      ],
+      "time_window": {
+        "description": "2-30 Infantry, 4th BCT, 10th Mountain Division mentors, Gamberi, 8 January 2014",
+        "start_date": "2014-01-08",
+        "end_date": "2014-01-08",
+        "year": 2014
+      },
+      "representativeness": "school_environment",
+      "prior_id": "design-army-mortar-instructors",
+      "role_scope": [
+        "instructor"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-army-mortar-instructors",
+      "evidence_ids": [
+        "tempo-army-mortar-instructors"
+      ],
+      "source_ids": [
+        "tempo-army-mortar-instructors-2014"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": null,
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. U.S. instructor/mentor setting; Afghan student numbers are not a U.S. instructor denominator. Month-long course duration does not establish firing days.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "Vermont and Massachusetts National Guard, Joint Base McGuire-Dix-Lakehurst, July 2016",
+      "branch": "army",
+      "component": "army_national_guard",
+      "occupation_ids": [
+        "army-13b"
+      ],
+      "weapon_system_ids": [
+        "m119",
+        "m777"
+      ],
+      "unit_type": "New-equipment training students",
+      "training_context": [
+        "school_instructor_environment"
+      ],
+      "time_window": {
+        "description": "Vermont and Massachusetts National Guard, Joint Base McGuire-Dix-Lakehurst, July 2016",
+        "start_date": null,
+        "end_date": null,
+        "year": 2016
+      },
+      "representativeness": "school_environment",
+      "prior_id": "design-guard-cannon-net",
+      "role_scope": [
+        "student"
+      ],
+      "counting_unit": "training_event",
+      "quantity_being_modeled": "reported_activity",
+      "prior_type": "evidence_constraint",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-guard-cannon-net",
+      "evidence_ids": [
+        "tempo-guard-cannon-net"
+      ],
+      "source_ids": [
+        "tempo-guard-cannon-net-2016"
+      ],
+      "evidence_payload": {
+        "kind": "observation",
+        "observed_frequency": null,
+        "observed_round_count": null,
+        "observed_firing_event_count": null,
+        "observed_training_event_count": null,
+        "reported_crew_count": null,
+        "reported_launcher_count": null,
+        "denominator_linkage": "No supported allocation of rounds to individual crews, launchers or people. Reported counts remain independent quantities.",
+        "live_fire_confirmed": true
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "D",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Live fire concluded 18-day new-equipment training on M119A3/M777A2. Eighteen training days are not eighteen firing days.",
+      "limitations": [
+        "Selected public example without longitudinal attendance or firing logs. No defensible individual or population annual frequency follows.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "One experienced former Army 13M HIMARS crewmember; Active Army experience, years/unit unspecified",
+      "branch": "army",
+      "component": "active",
+      "occupation_ids": [
+        "army-13m"
+      ],
+      "weapon_system_ids": [
+        "m142-himars"
+      ],
+      "unit_type": null,
+      "training_context": [
+        "unknown"
+      ],
+      "time_window": {
+        "description": "One experienced former Army 13M HIMARS crewmember; Active Army experience, years/unit unspecified",
+        "start_date": null,
+        "end_date": null,
+        "year": null
+      },
+      "representativeness": "unknown",
+      "prior_id": "design-sme-active-himars",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "live_fire_session",
+      "quantity_being_modeled": "recalled_tempo",
+      "prior_type": "sme_estimate",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-sme-active-himars",
+      "evidence_ids": [
+        "tempo-sme-active-himars"
+      ],
+      "source_ids": [
+        "tempo-sme-13m"
+      ],
+      "evidence_payload": {
+        "kind": "estimate",
+        "estimated_frequency": {
+          "count": {
+            "precision": "range",
+            "value": null,
+            "lower": 4,
+            "upper": 5,
+            "recalled_central": null
+          },
+          "counting_unit": "live_fire_session",
+          "per": {
+            "value": 1,
+            "unit": "year"
+          },
+          "population_denominator": "unspecified",
+          "interpretation": "Approximate average recollection of live-fire periods; boundaries and participant coverage unverified."
+        },
+        "estimated_rounds_per_event": {
+          "count": {
+            "precision": "range",
+            "value": null,
+            "lower": 3,
+            "upper": 12,
+            "recalled_central": 6
+          },
+          "population_denominator": "crew",
+          "scope": "Recalled launcher-crew rockets during a live-fire training event"
+        },
+        "event_unit": "training_event",
+        "recollection": "Approximately 4\u20135 periods per year; a launcher crew might fire approximately 3\u201312 rockets per live-fire training event, with roughly 6 recalled as a central value.",
+        "uncertainty": "Single retrospective account; no dates, service duration, logs, sampling frame or independent verification. Period and event may have different boundaries."
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "E",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. Retrospective recollection, not an official rate, population truth, prior distribution or medical exposure value.",
+      "limitations": [
+        "No generalization to Army-wide, current Active Army or individual exposure frequency.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "population_scope": "Same former Active Army 13M crewmember expressing an indirect belief about National Guard HIMARS",
+      "branch": "army",
+      "component": "army_national_guard",
+      "occupation_ids": [
+        "army-13m"
+      ],
+      "weapon_system_ids": [
+        "m142-himars"
+      ],
+      "unit_type": null,
+      "training_context": [
+        "unknown"
+      ],
+      "time_window": {
+        "description": "Same former Active Army 13M crewmember expressing an indirect belief about National Guard HIMARS",
+        "start_date": null,
+        "end_date": null,
+        "year": null
+      },
+      "representativeness": "unknown",
+      "prior_id": "design-sme-guard-himars",
+      "role_scope": [
+        "crew_member"
+      ],
+      "counting_unit": "live_fire_session",
+      "quantity_being_modeled": "recalled_tempo",
+      "prior_type": "sme_estimate",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": "tempo-sme-guard-himars",
+      "evidence_ids": [
+        "tempo-sme-guard-himars"
+      ],
+      "source_ids": [
+        "tempo-sme-13m"
+      ],
+      "evidence_payload": {
+        "kind": "estimate",
+        "estimated_frequency": null,
+        "estimated_rounds_per_event": null,
+        "event_unit": null,
+        "recollection": "Guard HIMARS believed to have substantially fewer live fires, perhaps concentrated around annual training.",
+        "uncertainty": "Less certain than the Active recollection; indirect belief, no Guard unit/year, logs or first-hand basis established."
+      },
+      "scope_binding": "source_only",
+      "confidence_class": "unassessed",
+      "support_level": "E",
+      "uncertainty_ids": [
+        "uncertainty-source-reliability"
+      ],
+      "scenario": null,
+      "rationale": "Retain the exact V0.2 claim and population/time scope as a source-bound design input. This is not a fitted distribution or a bound on future population tempo. No numeric Guard estimate is populated; this belief cannot be inferred from the Active Army values.",
+      "limitations": [
+        "No defensible Guard frequency or Active-to-Guard conversion factor.",
+        "V0.3 adds no annualization, allocation, distribution shape or individual exposure inference."
+      ],
+      "version": "0.3.0",
+      "status": "source_bound",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "prior_id": "scenario-active-himars-conservative",
+      "population_scope": "Hypothetical Active Army 13M/M142 scenario; no representative population claim.",
+      "branch": "army",
+      "component": "active",
+      "occupation_ids": [
+        "army-13m"
+      ],
+      "weapon_system_ids": [
+        "m142-himars"
+      ],
+      "unit_type": null,
+      "role_scope": [
+        "unknown"
+      ],
+      "training_context": [
+        "unknown"
+      ],
+      "quantity_being_modeled": "annual_event_count",
+      "counting_unit": "live_fire_session",
+      "time_window": {
+        "description": "Future hypothetical complete assignment-year; not an observed year.",
+        "start_date": null,
+        "end_date": null,
+        "year": null
+      },
+      "prior_type": "scenario_assumption",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": null,
+      "evidence_ids": [
+        "tempo-fa-requirement-active",
+        "tempo-estonia-himars",
+        "tempo-sme-active-himars"
+      ],
+      "source_ids": [
+        "tempo-army-himars-estonia-2025",
+        "tempo-sme-13m",
+        "tempo-tc-fa-2020"
+      ],
+      "evidence_payload": null,
+      "scope_binding": "hypothetical_scenario",
+      "confidence_class": "unassessed",
+      "support_level": "F",
+      "representativeness": "not_applicable",
+      "uncertainty_ids": [
+        "uncertainty-annual-event-count",
+        "uncertainty-rounds-per-event",
+        "uncertainty-crew-participation",
+        "uncertainty-role",
+        "uncertainty-nearby-exposure",
+        "uncertainty-assignment-duration",
+        "uncertainty-missing-years",
+        "uncertainty-source-reliability"
+      ],
+      "scenario": "conservative",
+      "rationale": "Scenario label reserved for a future elicitation and sensitivity process; no shape, parameters or ordering selected.",
+      "limitations": [
+        "Contextual official and SME evidence does not make this assumption empirical.",
+        "Conservative has no safety meaning; central is not a population mean; high-tempo is not a quantile.",
+        "No numeric scenario parameters are authorized in V0.3."
+      ],
+      "version": "0.3.0",
+      "status": "design_only",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "prior_id": "scenario-active-himars-central",
+      "population_scope": "Hypothetical Active Army 13M/M142 scenario; no representative population claim.",
+      "branch": "army",
+      "component": "active",
+      "occupation_ids": [
+        "army-13m"
+      ],
+      "weapon_system_ids": [
+        "m142-himars"
+      ],
+      "unit_type": null,
+      "role_scope": [
+        "unknown"
+      ],
+      "training_context": [
+        "unknown"
+      ],
+      "quantity_being_modeled": "annual_event_count",
+      "counting_unit": "live_fire_session",
+      "time_window": {
+        "description": "Future hypothetical complete assignment-year; not an observed year.",
+        "start_date": null,
+        "end_date": null,
+        "year": null
+      },
+      "prior_type": "scenario_assumption",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": null,
+      "evidence_ids": [
+        "tempo-fa-requirement-active",
+        "tempo-estonia-himars",
+        "tempo-sme-active-himars"
+      ],
+      "source_ids": [
+        "tempo-army-himars-estonia-2025",
+        "tempo-sme-13m",
+        "tempo-tc-fa-2020"
+      ],
+      "evidence_payload": null,
+      "scope_binding": "hypothetical_scenario",
+      "confidence_class": "unassessed",
+      "support_level": "F",
+      "representativeness": "not_applicable",
+      "uncertainty_ids": [
+        "uncertainty-annual-event-count",
+        "uncertainty-rounds-per-event",
+        "uncertainty-crew-participation",
+        "uncertainty-role",
+        "uncertainty-nearby-exposure",
+        "uncertainty-assignment-duration",
+        "uncertainty-missing-years",
+        "uncertainty-source-reliability"
+      ],
+      "scenario": "central",
+      "rationale": "Scenario label reserved for a future elicitation and sensitivity process; no shape, parameters or ordering selected.",
+      "limitations": [
+        "Contextual official and SME evidence does not make this assumption empirical.",
+        "Conservative has no safety meaning; central is not a population mean; high-tempo is not a quantile.",
+        "No numeric scenario parameters are authorized in V0.3."
+      ],
+      "version": "0.3.0",
+      "status": "design_only",
+      "individual_exposure_inference": "not_established"
+    },
+    {
+      "prior_id": "scenario-active-himars-high-tempo",
+      "population_scope": "Hypothetical Active Army 13M/M142 scenario; no representative population claim.",
+      "branch": "army",
+      "component": "active",
+      "occupation_ids": [
+        "army-13m"
+      ],
+      "weapon_system_ids": [
+        "m142-himars"
+      ],
+      "unit_type": null,
+      "role_scope": [
+        "unknown"
+      ],
+      "training_context": [
+        "unknown"
+      ],
+      "quantity_being_modeled": "annual_event_count",
+      "counting_unit": "live_fire_session",
+      "time_window": {
+        "description": "Future hypothetical complete assignment-year; not an observed year.",
+        "start_date": null,
+        "end_date": null,
+        "year": null
+      },
+      "prior_type": "scenario_assumption",
+      "distribution_family": "none",
+      "parameters": null,
+      "lower_bound": null,
+      "upper_bound": null,
+      "anchor_evidence_id": null,
+      "evidence_ids": [
+        "tempo-fa-requirement-active",
+        "tempo-estonia-himars",
+        "tempo-sme-active-himars"
+      ],
+      "source_ids": [
+        "tempo-army-himars-estonia-2025",
+        "tempo-sme-13m",
+        "tempo-tc-fa-2020"
+      ],
+      "evidence_payload": null,
+      "scope_binding": "hypothetical_scenario",
+      "confidence_class": "unassessed",
+      "support_level": "F",
+      "representativeness": "not_applicable",
+      "uncertainty_ids": [
+        "uncertainty-annual-event-count",
+        "uncertainty-rounds-per-event",
+        "uncertainty-crew-participation",
+        "uncertainty-role",
+        "uncertainty-nearby-exposure",
+        "uncertainty-assignment-duration",
+        "uncertainty-missing-years",
+        "uncertainty-source-reliability"
+      ],
+      "scenario": "high-tempo",
+      "rationale": "Scenario label reserved for a future elicitation and sensitivity process; no shape, parameters or ordering selected.",
+      "limitations": [
+        "Contextual official and SME evidence does not make this assumption empirical.",
+        "Conservative has no safety meaning; central is not a population mean; high-tempo is not a quantile.",
+        "No numeric scenario parameters are authorized in V0.3."
+      ],
+      "version": "0.3.0",
+      "status": "design_only",
+      "individual_exposure_inference": "not_established"
+    }
+  ],
+  "uncertainties": [
+    {
+      "uncertainty_id": "uncertainty-annual-event-count",
+      "dimension": "annual_event_count",
+      "uncertainty_type": "unknown_unclassified",
+      "rationale": "A sampling frame and complete years are absent.",
+      "future_aleatory_component": "Variation among comparable unit-years after conditioning on training cycle.",
+      "future_epistemic_component": "Unknown reporting coverage, year completeness and policy applicability.",
+      "propagation_plan": "Keep between-year variation separate from missingness; compare scenario results without pooled truth claims.",
+      "numerical_weight": null
+    },
+    {
+      "uncertainty_id": "uncertainty-rounds-per-event",
+      "dimension": "rounds_per_event",
+      "uncertainty_type": "unknown_unclassified",
+      "rationale": "Exercise totals do not identify person or crew event counts.",
+      "future_aleatory_component": "Variation by ammunition, mission and exercise conditional on shared training cycle.",
+      "future_epistemic_component": "Missing event boundaries and crew allocation.",
+      "propagation_plan": "Retain original totals, strict/approximate qualifiers and joint event context; never divide by assumed crews.",
+      "numerical_weight": null
+    },
+    {
+      "uncertainty_id": "uncertainty-crew-participation",
+      "dimension": "crew_participation",
+      "uncertainty_type": "unknown_unclassified",
+      "rationale": "Attendance and round-by-round participation are unavailable.",
+      "future_aleatory_component": "Rotation and absences within comparable events if empirically documented.",
+      "future_epistemic_component": "Unknown roster-to-event linkage.",
+      "propagation_plan": "Model membership and attendance separately from firing counts only after authorization and denominator review.",
+      "numerical_weight": null
+    },
+    {
+      "uncertainty_id": "uncertainty-role",
+      "dimension": "role",
+      "uncertainty_type": "unknown_unclassified",
+      "rationale": "MOS does not identify a person's role at each event.",
+      "future_aleatory_component": "Within-person role changes if a valid process is established.",
+      "future_epistemic_component": "Unrecorded role and changes across assignments.",
+      "propagation_plan": "Retain categorical unknown; do not default everyone to operator or sample invented role probabilities.",
+      "numerical_weight": null
+    },
+    {
+      "uncertainty_id": "uncertainty-nearby-exposure",
+      "dimension": "nearby_exposure",
+      "uncertainty_type": "unknown_unclassified",
+      "rationale": "Proximity, orientation, attendance and valid measurements are missing.",
+      "future_aleatory_component": "Event-to-event configuration variation, when documented.",
+      "future_epistemic_component": "Unknown proximity and measurement validity.",
+      "propagation_plan": "Keep potential nearby presence separate from counted exposure and pressure; unknown is not zero.",
+      "numerical_weight": null
+    },
+    {
+      "uncertainty_id": "uncertainty-assignment-duration",
+      "dimension": "assignment_duration",
+      "uncertainty_type": "epistemic",
+      "rationale": "No individual assignment histories are curated.",
+      "future_aleatory_component": null,
+      "future_epistemic_component": "Missing start/end dates and transfers.",
+      "propagation_plan": "Preserve date intervals and censoring; never prorate annual activity uniformly without explicit assumptions.",
+      "numerical_weight": null
+    },
+    {
+      "uncertainty_id": "uncertainty-missing-years",
+      "dimension": "missing_years",
+      "uncertainty_type": "epistemic",
+      "rationale": "Absence of a public report is not a zero-event year.",
+      "future_aleatory_component": null,
+      "future_epistemic_component": "Selection and incomplete longitudinal coverage.",
+      "propagation_plan": "Carry observed/unknown/not-applicable years separately; sensitivity to missingness must be explicit.",
+      "numerical_weight": null
+    },
+    {
+      "uncertainty_id": "uncertainty-source-reliability",
+      "dimension": "source_reliability",
+      "uncertainty_type": "epistemic",
+      "rationale": "Indexed originals, recollection and source conflicts limit support.",
+      "future_aleatory_component": null,
+      "future_epistemic_component": "Retrieval, measurement, transcription, recall and selective-reporting uncertainty.",
+      "propagation_plan": "Use source-specific alternatives and exclusion sensitivity; do not invent a universal reliability weight.",
+      "numerical_weight": null
+    }
+  ]
+}

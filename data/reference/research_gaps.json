@@ -1,0 +1,178 @@
+{
+  "metadata": {
+    "version": "0.3.0",
+    "baseline_reference_version": "0.1.0",
+    "training_tempo_version": "0.2.0",
+    "purpose": "modeling_assumption_and_prior_design"
+  },
+  "records": [
+    {
+      "gap_id": "gap-annual-histories",
+      "population": "All scoped occupations and components",
+      "quantity_needed": "Complete annual event histories and sampling frame",
+      "why_needed": "News reports omit unknown or uneventful years.",
+      "current_evidence": [
+        "tempo-estonia-himars",
+        "tempo-guard-himars-at"
+      ],
+      "preferred_future_source": "Representative multi-unit, multi-year training logs including zero-event years and coverage metadata.",
+      "impact_on_modeling": "Blocks empirical annual-frequency priors.",
+      "status": "open"
+    },
+    {
+      "gap_id": "gap-crew-rounds",
+      "population": "13M/HIMARS/MLRS and 13B/cannon crews",
+      "quantity_needed": "Rounds per identified crew per defined event",
+      "why_needed": "Unit totals and crew counts do not establish allocation.",
+      "current_evidence": [
+        "tempo-active-m119-diamond",
+        "tempo-western-strike-himars"
+      ],
+      "preferred_future_source": "Linked ammunition expenditure, crew roster and event records.",
+      "impact_on_modeling": "Blocks per-crew rate inference and multiplication of SME ranges.",
+      "status": "open"
+    },
+    {
+      "gap_id": "gap-attendance",
+      "population": "Operators, crew, observers and safety personnel",
+      "quantity_needed": "Attendance and participation by discharge/session",
+      "why_needed": "Presence cannot be derived from MOS or exercise participation alone.",
+      "current_evidence": [
+        "tempo-marine-active-himars"
+      ],
+      "preferred_future_source": "Deidentified roster-to-range-log linkage with role and time.",
+      "impact_on_modeling": "Blocks individual exposure-event reconstruction.",
+      "status": "open"
+    },
+    {
+      "gap_id": "gap-instructors",
+      "population": "Army and Marine school/instructor populations",
+      "quantity_needed": "Annual teaching load and live-fire attendance",
+      "why_needed": "Course duration does not specify instructor firing opportunities.",
+      "current_evidence": [
+        "tempo-guard-artillery-instructors",
+        "tempo-army-mortar-instructors",
+        "tempo-marine-school-himars"
+      ],
+      "preferred_future_source": "Instructor calendars, rotations and event attendance logs.",
+      "impact_on_modeling": "Blocks instructor-specific scenario parameterization.",
+      "status": "open"
+    },
+    {
+      "gap_id": "gap-manual-applicability",
+      "population": "All requirement-linked populations",
+      "quantity_needed": "Edition applicability, exceptions and qualification execution",
+      "why_needed": "Historical validity and sustainment are not current compliance rates.",
+      "current_evidence": [
+        "tempo-fa-requirement-active",
+        "tempo-mortar-validity-active",
+        "tempo-marine-0811-sustainment"
+      ],
+      "preferred_future_source": "Public current manuals, supersession notices and scoped qualification records.",
+      "impact_on_modeling": "Blocks current-policy constraints and compliance assumptions.",
+      "status": "open"
+    },
+    {
+      "gap_id": "gap-individual-events",
+      "population": "All individuals, including nearby personnel",
+      "quantity_needed": "Person-event links and measurement context",
+      "why_needed": "Rounds fired are not automatically individual exposures.",
+      "current_evidence": [
+        "tempo-active-abrams-table6",
+        "tempo-marine-active-himars"
+      ],
+      "preferred_future_source": "Consented deidentified event rosters, synchronized sensors and configuration logs.",
+      "impact_on_modeling": "Blocks individual counts, pressure and impulse reconstruction.",
+      "status": "open"
+    },
+    {
+      "gap_id": "gap-active-guard",
+      "population": "Army Active and National Guard, especially 13M",
+      "quantity_needed": "Comparable annual histories with common denominators",
+      "why_needed": "The indirect Guard SME recollection has no numeric rate.",
+      "current_evidence": [
+        "tempo-sme-active-himars",
+        "tempo-sme-guard-himars"
+      ],
+      "preferred_future_source": "Matched unit/year logs across components and explicit direct SME elicitation.",
+      "impact_on_modeling": "Blocks Active-to-Guard numeric conversion factors.",
+      "status": "open"
+    },
+    {
+      "gap_id": "gap-marine-components",
+      "population": "Marine Active and Reserve 0811, 0341 and HIMARS",
+      "quantity_needed": "Comparable component histories and exact occupations",
+      "why_needed": "A reserve example does not define all reserve tempo, and HIMARS MOS is unresolved.",
+      "current_evidence": [
+        "tempo-marine-reserve-mortars",
+        "tempo-marine-active-himars",
+        "tempo-marine-reserve-himars"
+      ],
+      "preferred_future_source": "Component-stratified exercise, qualification and occupation records.",
+      "impact_on_modeling": "Blocks component contrasts and assumed 0811/0814 operational mappings.",
+      "status": "open"
+    },
+    {
+      "gap_id": "gap-longitudinal-variation",
+      "population": "Units and people across training cycles",
+      "quantity_needed": "Within/between-unit variation and temporal dependence",
+      "why_needed": "One exercise cannot reveal a yearly joint distribution.",
+      "current_evidence": [
+        "tempo-western-strike-himars",
+        "tempo-western-strike-paladin"
+      ],
+      "preferred_future_source": "Multi-year panels with deployment preparation, unit type and training-cycle identifiers.",
+      "impact_on_modeling": "Blocks empirical variability and independence assumptions.",
+      "status": "open"
+    },
+    {
+      "gap_id": "gap-originals",
+      "population": "All 29 official V0.2 source records",
+      "quantity_needed": "Archived originals, exact passages and retrieval provenance",
+      "why_needed": "Indexed-text review cannot reproduce original source bytes.",
+      "current_evidence": [
+        "tempo-fa-requirement-active",
+        "tempo-active-m121-mortep"
+      ],
+      "preferred_future_source": "Permitted official archived publications and source-owner clarification of conflicts.",
+      "impact_on_modeling": "Limits source verification; does not justify silently repairing contradictions.",
+      "status": "open"
+    },
+    {
+      "gap_id": "gap-event-boundaries",
+      "population": "All firing/training populations",
+      "quantity_needed": "Session, mission, period and event boundaries",
+      "why_needed": "SME period and event wording are not established as interchangeable.",
+      "current_evidence": [
+        "tempo-sme-active-himars",
+        "tempo-active-m120-plan"
+      ],
+      "preferred_future_source": "Source-defined event logs and explicit structured elicitation with examples.",
+      "impact_on_modeling": "Blocks combining annual periods with rockets per event.",
+      "status": "open"
+    },
+    {
+      "gap_id": "gap-assignment-missingness",
+      "population": "Future longitudinal assignment populations",
+      "quantity_needed": "Assignment dates, transfers and unobserved years",
+      "why_needed": "No participant histories are present; missing reports are not zero counts.",
+      "current_evidence": [],
+      "preferred_future_source": "Authorized deidentified assignment intervals and observation-coverage indicators.",
+      "impact_on_modeling": "Blocks duration prorating and missing-year imputation.",
+      "status": "open"
+    },
+    {
+      "gap_id": "gap-sensor-context",
+      "population": "Weapon/variant/ammunition and person-role combinations",
+      "quantity_needed": "Calibrated waveforms, orientation, position and event linkage",
+      "why_needed": "Neither weapon identity nor gauge triggers alone yield validated exposure histories.",
+      "current_evidence": [
+        "tempo-active-abrams-table6",
+        "tempo-marine-active-himars"
+      ],
+      "preferred_future_source": "Releasable synchronized sensor/event datasets with QA, calibration and ammunition metadata.",
+      "impact_on_modeling": "Blocks pressure/impulse attribution; provides no medical risk function.",
+      "status": "open"
+    }
+  ]
+}

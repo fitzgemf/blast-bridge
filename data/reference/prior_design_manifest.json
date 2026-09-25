@@ -1,0 +1,17 @@
+{
+  "version": "0.3.0",
+  "files": [
+    {
+      "filename": "prior_definitions.json",
+      "sha256": "e9732084385208069a7a6852e10000be16726f7fad0317b7d47efa2598e819bf"
+    },
+    {
+      "filename": "research_gaps.json",
+      "sha256": "1fa54a547b9029e5fc091aa4b3f8d190415ecfa73844bdca57f1489d9b607af8"
+    }
+  ],
+  "schema_sha256": "bcb95e7d68050c01d25130573ae4a0a5c8c8be1a8a8fc073319a84dce734f94e",
+  "baseline_tag": "v0.2.0",
+  "baseline_commit": "4182044e57177d77e643b6b273dbee03cc433eeb",
+  "baseline_manifest_sha256": "7f18f8fa64873e908499c7e21ed4f22d7293c03b1034f197d3709b32b6a17e6c"
+}

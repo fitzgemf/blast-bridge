@@ -1,0 +1,1183 @@
+{
+  "$defs": {
+    "Assumption": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "assumption",
+          "title": "Kind",
+          "type": "string"
+        },
+        "assumption": {
+          "minLength": 1,
+          "title": "Assumption",
+          "type": "string"
+        },
+        "justification": {
+          "minLength": 1,
+          "title": "Justification",
+          "type": "string"
+        },
+        "usable_as_evidence": {
+          "const": false,
+          "title": "Usable As Evidence",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "assumption",
+        "justification",
+        "usable_as_evidence"
+      ],
+      "title": "Assumption",
+      "type": "object"
+    },
+    "CountValue": {
+      "additionalProperties": false,
+      "description": "Raw count qualification; bounds/central recollections are not prior parameters.",
+      "properties": {
+        "precision": {
+          "enum": [
+            "exact",
+            "approximate",
+            "greater_than",
+            "less_than",
+            "range"
+          ],
+          "title": "Precision",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "lower": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lower"
+        },
+        "upper": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Upper"
+        },
+        "recalled_central": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recalled Central"
+        }
+      },
+      "required": [
+        "precision"
+      ],
+      "title": "CountValue",
+      "type": "object"
+    },
+    "CountingUnit": {
+      "enum": [
+        "firing_event",
+        "exposure_event",
+        "firing_mission",
+        "live_fire_session",
+        "training_event",
+        "qualification_cycle",
+        "duty_day",
+        "annual_training_period"
+      ],
+      "title": "CountingUnit",
+      "type": "string"
+    },
+    "DesignMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "0.3.0",
+          "title": "Version",
+          "type": "string"
+        },
+        "baseline_reference_version": {
+          "const": "0.1.0",
+          "title": "Baseline Reference Version",
+          "type": "string"
+        },
+        "training_tempo_version": {
+          "const": "0.2.0",
+          "title": "Training Tempo Version",
+          "type": "string"
+        },
+        "purpose": {
+          "const": "modeling_assumption_and_prior_design",
+          "title": "Purpose",
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "baseline_reference_version",
+        "training_tempo_version",
+        "purpose"
+      ],
+      "title": "DesignMetadata",
+      "type": "object"
+    },
+    "DistributionFamily": {
+      "enum": [
+        "fixed",
+        "discrete_uniform",
+        "triangular",
+        "beta",
+        "normal",
+        "lognormal",
+        "poisson",
+        "negative_binomial",
+        "categorical",
+        "empirical",
+        "none"
+      ],
+      "title": "DistributionFamily",
+      "type": "string"
+    },
+    "Estimate": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "estimate",
+          "title": "Kind",
+          "type": "string"
+        },
+        "estimated_frequency": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Frequency"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "estimated_rounds_per_event": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScopedCount"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "event_unit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CountingUnit"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "recollection": {
+          "minLength": 1,
+          "title": "Recollection",
+          "type": "string"
+        },
+        "uncertainty": {
+          "minLength": 1,
+          "title": "Uncertainty",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "recollection",
+        "uncertainty"
+      ],
+      "title": "Estimate",
+      "type": "object"
+    },
+    "Frequency": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "$ref": "#/$defs/CountValue"
+        },
+        "counting_unit": {
+          "$ref": "#/$defs/CountingUnit"
+        },
+        "per": {
+          "$ref": "#/$defs/Interval"
+        },
+        "population_denominator": {
+          "enum": [
+            "unit",
+            "crew",
+            "launcher",
+            "person",
+            "unspecified"
+          ],
+          "title": "Population Denominator",
+          "type": "string"
+        },
+        "interpretation": {
+          "minLength": 1,
+          "title": "Interpretation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "count",
+        "counting_unit",
+        "per",
+        "population_denominator",
+        "interpretation"
+      ],
+      "title": "Frequency",
+      "type": "object"
+    },
+    "Interval": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "exclusiveMinimum": 0,
+          "title": "Value",
+          "type": "integer"
+        },
+        "unit": {
+          "enum": [
+            "day",
+            "week",
+            "month",
+            "year"
+          ],
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "unit"
+      ],
+      "title": "Interval",
+      "type": "object"
+    },
+    "Observation": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "observation",
+          "title": "Kind",
+          "type": "string"
+        },
+        "observed_frequency": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Frequency"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "observed_round_count": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScopedCount"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "observed_firing_event_count": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScopedCount"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "observed_training_event_count": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScopedCount"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reported_crew_count": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CountValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reported_launcher_count": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CountValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "denominator_linkage": {
+          "minLength": 1,
+          "title": "Denominator Linkage",
+          "type": "string"
+        },
+        "live_fire_confirmed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Live Fire Confirmed"
+        }
+      },
+      "required": [
+        "kind",
+        "denominator_linkage",
+        "live_fire_confirmed"
+      ],
+      "title": "Observation",
+      "type": "object"
+    },
+    "ParticipationRole": {
+      "enum": [
+        "weapon_operator",
+        "crew_member",
+        "nearby_crew",
+        "section_chief",
+        "safety_personnel",
+        "instructor",
+        "student",
+        "observer",
+        "unknown"
+      ],
+      "title": "ParticipationRole",
+      "type": "string"
+    },
+    "PriorDefinition": {
+      "additionalProperties": false,
+      "properties": {
+        "prior_id": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Prior Id",
+          "type": "string"
+        },
+        "population_scope": {
+          "minLength": 1,
+          "title": "Population Scope",
+          "type": "string"
+        },
+        "branch": {
+          "enum": [
+            "army",
+            "marine_corps"
+          ],
+          "title": "Branch",
+          "type": "string"
+        },
+        "component": {
+          "$ref": "#/$defs/TempoComponent"
+        },
+        "occupation_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+            "type": "string"
+          },
+          "title": "Occupation Ids",
+          "type": "array"
+        },
+        "weapon_system_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+            "type": "string"
+          },
+          "title": "Weapon System Ids",
+          "type": "array"
+        },
+        "unit_type": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit Type"
+        },
+        "role_scope": {
+          "items": {
+            "$ref": "#/$defs/ParticipationRole"
+          },
+          "minItems": 1,
+          "title": "Role Scope",
+          "type": "array"
+        },
+        "training_context": {
+          "items": {
+            "$ref": "#/$defs/TrainingContext"
+          },
+          "minItems": 1,
+          "title": "Training Context",
+          "type": "array"
+        },
+        "quantity_being_modeled": {
+          "enum": [
+            "requirement_structure",
+            "reported_activity",
+            "recalled_tempo",
+            "annual_event_count"
+          ],
+          "title": "Quantity Being Modeled",
+          "type": "string"
+        },
+        "counting_unit": {
+          "$ref": "#/$defs/CountingUnit"
+        },
+        "time_window": {
+          "$ref": "#/$defs/TimeWindow"
+        },
+        "prior_type": {
+          "$ref": "#/$defs/PriorType"
+        },
+        "distribution_family": {
+          "$ref": "#/$defs/DistributionFamily"
+        },
+        "parameters": {
+          "title": "Parameters",
+          "type": "null"
+        },
+        "lower_bound": {
+          "title": "Lower Bound",
+          "type": "null"
+        },
+        "upper_bound": {
+          "title": "Upper Bound",
+          "type": "null"
+        },
+        "anchor_evidence_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Anchor Evidence Id"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "source_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "evidence_payload": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "assumption": "#/$defs/Assumption",
+                  "estimate": "#/$defs/Estimate",
+                  "observation": "#/$defs/Observation",
+                  "requirement": "#/$defs/Requirement",
+                  "schedule": "#/$defs/Schedule"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/Requirement"
+                },
+                {
+                  "$ref": "#/$defs/Observation"
+                },
+                {
+                  "$ref": "#/$defs/Estimate"
+                },
+                {
+                  "$ref": "#/$defs/Assumption"
+                },
+                {
+                  "$ref": "#/$defs/Schedule"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Evidence Payload"
+        },
+        "scope_binding": {
+          "enum": [
+            "source_only",
+            "hypothetical_scenario"
+          ],
+          "title": "Scope Binding",
+          "type": "string"
+        },
+        "confidence_class": {
+          "const": "unassessed",
+          "title": "Confidence Class",
+          "type": "string"
+        },
+        "support_level": {
+          "$ref": "#/$defs/SupportLevel"
+        },
+        "representativeness": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Representativeness"
+            },
+            {
+              "const": "not_applicable",
+              "type": "string"
+            }
+          ],
+          "title": "Representativeness"
+        },
+        "uncertainty_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Uncertainty Ids",
+          "type": "array"
+        },
+        "scenario": {
+          "anyOf": [
+            {
+              "enum": [
+                "conservative",
+                "central",
+                "high-tempo"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Scenario"
+        },
+        "rationale": {
+          "minLength": 1,
+          "title": "Rationale",
+          "type": "string"
+        },
+        "limitations": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Limitations",
+          "type": "array"
+        },
+        "version": {
+          "const": "0.3.0",
+          "title": "Version",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "source_bound",
+            "design_only"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "individual_exposure_inference": {
+          "const": "not_established",
+          "title": "Individual Exposure Inference",
+          "type": "string"
+        }
+      },
+      "required": [
+        "prior_id",
+        "population_scope",
+        "branch",
+        "component",
+        "occupation_ids",
+        "weapon_system_ids",
+        "unit_type",
+        "role_scope",
+        "training_context",
+        "quantity_being_modeled",
+        "counting_unit",
+        "time_window",
+        "prior_type",
+        "distribution_family",
+        "parameters",
+        "lower_bound",
+        "upper_bound",
+        "anchor_evidence_id",
+        "evidence_ids",
+        "source_ids",
+        "evidence_payload",
+        "scope_binding",
+        "confidence_class",
+        "support_level",
+        "representativeness",
+        "uncertainty_ids",
+        "scenario",
+        "rationale",
+        "limitations",
+        "version",
+        "status",
+        "individual_exposure_inference"
+      ],
+      "title": "PriorDefinition",
+      "type": "object"
+    },
+    "PriorRegistry": {
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/DesignMetadata"
+        },
+        "empirical_priors": {
+          "title": "Empirical Priors",
+          "type": "null"
+        },
+        "numerical_scenarios_authorized": {
+          "const": false,
+          "title": "Numerical Scenarios Authorized",
+          "type": "boolean"
+        },
+        "records": {
+          "items": {
+            "$ref": "#/$defs/PriorDefinition"
+          },
+          "minItems": 1,
+          "title": "Records",
+          "type": "array"
+        },
+        "uncertainties": {
+          "items": {
+            "$ref": "#/$defs/UncertaintyDefinition"
+          },
+          "maxItems": 8,
+          "minItems": 8,
+          "title": "Uncertainties",
+          "type": "array"
+        }
+      },
+      "required": [
+        "metadata",
+        "empirical_priors",
+        "numerical_scenarios_authorized",
+        "records",
+        "uncertainties"
+      ],
+      "title": "PriorRegistry",
+      "type": "object"
+    },
+    "PriorType": {
+      "enum": [
+        "empirical_prior",
+        "evidence_constraint",
+        "sme_estimate",
+        "scenario_assumption"
+      ],
+      "title": "PriorType",
+      "type": "string"
+    },
+    "Representativeness": {
+      "enum": [
+        "single_unit_example",
+        "single_exercise_example",
+        "multiple_unit_evidence",
+        "service_wide_requirement",
+        "component_wide_requirement",
+        "school_environment",
+        "unknown"
+      ],
+      "title": "Representativeness",
+      "type": "string"
+    },
+    "Requirement": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "requirement",
+          "title": "Kind",
+          "type": "string"
+        },
+        "minimum_required_frequency": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Frequency"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "qualification_validity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Interval"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "task_sustainment_interval": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Interval"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "live_fire_required": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Live Fire Required"
+        },
+        "conditions": {
+          "minLength": 1,
+          "title": "Conditions",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "live_fire_required",
+        "conditions"
+      ],
+      "title": "Requirement",
+      "type": "object"
+    },
+    "ResearchGap": {
+      "additionalProperties": false,
+      "properties": {
+        "gap_id": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Gap Id",
+          "type": "string"
+        },
+        "population": {
+          "minLength": 1,
+          "title": "Population",
+          "type": "string"
+        },
+        "quantity_needed": {
+          "minLength": 1,
+          "title": "Quantity Needed",
+          "type": "string"
+        },
+        "why_needed": {
+          "minLength": 1,
+          "title": "Why Needed",
+          "type": "string"
+        },
+        "current_evidence": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+            "type": "string"
+          },
+          "title": "Current Evidence",
+          "type": "array"
+        },
+        "preferred_future_source": {
+          "minLength": 1,
+          "title": "Preferred Future Source",
+          "type": "string"
+        },
+        "impact_on_modeling": {
+          "minLength": 1,
+          "title": "Impact On Modeling",
+          "type": "string"
+        },
+        "status": {
+          "const": "open",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "gap_id",
+        "population",
+        "quantity_needed",
+        "why_needed",
+        "current_evidence",
+        "preferred_future_source",
+        "impact_on_modeling",
+        "status"
+      ],
+      "title": "ResearchGap",
+      "type": "object"
+    },
+    "ResearchGaps": {
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/DesignMetadata"
+        },
+        "records": {
+          "items": {
+            "$ref": "#/$defs/ResearchGap"
+          },
+          "minItems": 1,
+          "title": "Records",
+          "type": "array"
+        }
+      },
+      "required": [
+        "metadata",
+        "records"
+      ],
+      "title": "ResearchGaps",
+      "type": "object"
+    },
+    "Schedule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "schedule",
+          "title": "Kind",
+          "type": "string"
+        },
+        "planned_frequency": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Frequency"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "planned_activity": {
+          "minLength": 1,
+          "title": "Planned Activity",
+          "type": "string"
+        },
+        "completion_verified": {
+          "const": false,
+          "title": "Completion Verified",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "planned_activity",
+        "completion_verified"
+      ],
+      "title": "Schedule",
+      "type": "object"
+    },
+    "ScopedCount": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "$ref": "#/$defs/CountValue"
+        },
+        "population_denominator": {
+          "enum": [
+            "unit_total",
+            "crew",
+            "launcher",
+            "person",
+            "unspecified"
+          ],
+          "title": "Population Denominator",
+          "type": "string"
+        },
+        "scope": {
+          "minLength": 1,
+          "title": "Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "count",
+        "population_denominator",
+        "scope"
+      ],
+      "title": "ScopedCount",
+      "type": "object"
+    },
+    "SupportLevel": {
+      "enum": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "R"
+      ],
+      "title": "SupportLevel",
+      "type": "string"
+    },
+    "TempoComponent": {
+      "enum": [
+        "active",
+        "army_national_guard",
+        "army_reserve",
+        "marine_corps_reserve",
+        "unknown"
+      ],
+      "title": "TempoComponent",
+      "type": "string"
+    },
+    "TimeWindow": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "start_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Date"
+        },
+        "end_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Date"
+        },
+        "year": {
+          "anyOf": [
+            {
+              "maximum": 2100,
+              "minimum": 1900,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Year"
+        }
+      },
+      "required": [
+        "description"
+      ],
+      "title": "TimeWindow",
+      "type": "object"
+    },
+    "TrainingContext": {
+      "enum": [
+        "deployment_preparation",
+        "ctc_large_scale_exercise",
+        "routine_home_station",
+        "annual_training",
+        "qualification_certification",
+        "school_instructor_environment",
+        "unknown"
+      ],
+      "title": "TrainingContext",
+      "type": "string"
+    },
+    "UncertaintyDefinition": {
+      "additionalProperties": false,
+      "properties": {
+        "uncertainty_id": {
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+          "title": "Uncertainty Id",
+          "type": "string"
+        },
+        "dimension": {
+          "$ref": "#/$defs/UncertaintyDimension"
+        },
+        "uncertainty_type": {
+          "$ref": "#/$defs/UncertaintyType"
+        },
+        "rationale": {
+          "minLength": 1,
+          "title": "Rationale",
+          "type": "string"
+        },
+        "future_aleatory_component": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Future Aleatory Component"
+        },
+        "future_epistemic_component": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Future Epistemic Component"
+        },
+        "propagation_plan": {
+          "minLength": 1,
+          "title": "Propagation Plan",
+          "type": "string"
+        },
+        "numerical_weight": {
+          "default": null,
+          "title": "Numerical Weight",
+          "type": "null"
+        }
+      },
+      "required": [
+        "uncertainty_id",
+        "dimension",
+        "uncertainty_type",
+        "rationale",
+        "future_aleatory_component",
+        "future_epistemic_component",
+        "propagation_plan"
+      ],
+      "title": "UncertaintyDefinition",
+      "type": "object"
+    },
+    "UncertaintyDimension": {
+      "enum": [
+        "annual_event_count",
+        "rounds_per_event",
+        "crew_participation",
+        "role",
+        "nearby_exposure",
+        "assignment_duration",
+        "missing_years",
+        "source_reliability"
+      ],
+      "title": "UncertaintyDimension",
+      "type": "string"
+    },
+    "UncertaintyType": {
+      "enum": [
+        "aleatory",
+        "epistemic",
+        "unknown_unclassified"
+      ],
+      "title": "UncertaintyType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "priors": {
+      "$ref": "#/$defs/PriorRegistry"
+    },
+    "gaps": {
+      "$ref": "#/$defs/ResearchGaps"
+    }
+  },
+  "required": [
+    "priors",
+    "gaps"
+  ],
+  "title": "PriorDesignBundle",
+  "type": "object"
+}
