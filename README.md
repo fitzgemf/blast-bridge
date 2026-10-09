@@ -26,7 +26,10 @@ it supplies no fitted priors or individual exposure frequencies. All 29 official
 V0.2 sources lack archived originals and retain explicit retrieval limitations.
 See the [V0.2 review and validation](research/notes/training-tempo-v0.2.md).
 Dataset/schema versions are independent of the Python package version, which
-remains 0.1.0. V0.3 requires separate approval and has not begun.
+remains 0.1.0. V0.3 prior and uncertainty design is complete; no empirical
+population priors were justified. No production synthetic careers have been
+generated, and no ML models have been trained. V0.4 synthetic-career-generator
+architecture has not begun.
 
 ## Setup (Windows PowerShell)
 
