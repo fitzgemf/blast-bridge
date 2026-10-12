@@ -288,3 +288,15 @@ target mappings, categorical codebooks, scheduling and lineage compatibility;
 these are absent from the current contracts. No free-text fallback is acceptable.
 This note intentionally leaves incomplete scenarios non-executable rather than
 making unsupported claims of immediately available generation.
+
+## V5-1b execution contract
+
+The approved [execution mapping contract](execution-mapping-v0.5.md) now supplies
+typed, versioned declarations for the prerequisites above. It validates semantics
+only; the assembler remains pending V5-2. `SimulationConfig.execution_bindings`
+defaults to an empty tuple and participates in configured/scenario reference and
+output-lineage validation. Adding the empty field changes `rng._fingerprint` for
+existing configs because it appears in `model_dump`; this is accepted because no
+golden vectors are pinned before V5-6. Generator and output-schema literals remain
+`0.4.0` until V5-6. The whole mapping's canonical fingerprint must be included in
+seed derivation by V5-2/V5-6 before any generation.

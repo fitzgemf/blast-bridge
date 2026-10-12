@@ -1,7 +1,9 @@
 """V0.4 synthetic-generation contracts; no generator or military parameters."""
 
+import json
 from datetime import date, datetime
 from enum import StrEnum
+from hashlib import sha256
 from math import isclose
 from typing import Annotated, Literal, Self
 
@@ -519,6 +521,7 @@ class SimulationConfig(ResearchModel):
     participation_configuration: ParticipationConfiguration
     missingness_configuration: MissingnessConfiguration
     uncertainty_configuration: UncertaintyConfiguration
+    execution_bindings: tuple[ParameterBinding, ...] = ()
 
     @model_validator(mode="after")
     def dates_and_version(self) -> Self:
@@ -885,6 +888,185 @@ class SyntheticCareerDataset(ResearchModel):
         return self
 
 
+class RecordType(StrEnum):
+    MEMBER = "SyntheticMember"
+    CAREER = "CareerEpisode"
+    ASSIGNMENT = "AssignmentEpisode"
+    TRAINING = "TrainingPeriod"
+    SESSION = "LiveFireSession"
+    MISSION = "FiringMission"
+    EVENT = "FiringEvent"
+    EXPOSURE = "ParticipantExposure"
+
+
+class BindingValueType(StrEnum):
+    INT = "int"
+    FLOAT = "float"
+    DATE = "date"
+    DURATION_HOURS = "duration_hours"
+    DEGREES = "degrees"
+    METERS = "meters"
+    CATEGORICAL = "categorical"
+    IDENTIFIER = "identifier"
+
+
+class ExecutionRounding(StrEnum):
+    FLOOR = "floor"
+    CEIL = "ceil"
+    REJECT = "reject"
+
+
+class CountMeaning(StrEnum):
+    SESSIONS = "sessions"
+    MISSIONS = "missions"
+    PHYSICAL_DISCHARGES = "physical_discharges"
+
+
+class FieldBinding(ResearchModel):
+    parameter_id: Identifier
+    record_type: RecordType
+    field_name: Text
+    value_type: BindingValueType
+    unit: Text | None = None
+    rounding: ExecutionRounding | None = None
+    count_meaning: CountMeaning | None = None
+    counting_interval: Text | None = None
+
+    @property
+    def field_ref(self) -> str:
+        return f"{self.record_type.value}.{self.field_name}"
+
+
+class Codebook(ResearchModel):
+    field_ref: Text
+    permitted_values: tuple[Identifier, ...] | None = None
+    numeric_codes: tuple[tuple[StrictInteger, Identifier], ...] | None = None
+
+    @model_validator(mode="after")
+    def exactly_one_table(self) -> Self:
+        if (self.permitted_values is None) == (self.numeric_codes is None):
+            raise ValueError(
+                "4f: codebook requires exactly one of permitted_values or numeric_codes"
+            )
+        return self
+
+
+class EligibilityRelation(ResearchModel):
+    occupation_id: Identifier
+    eligible_weapon_ids: tuple[Identifier, ...]
+    eligible_platform_ids: tuple[Identifier, ...]
+
+
+class RolePresenceRule(ResearchModel):
+    quantity: Literal["role_participation", "nearby_participation", "instructor_repeated_presence"]
+    parameter_id: Identifier
+    role_id: Identifier
+    participation_type: ParticipationType
+    presence_parameter_id: Identifier
+    presence_semantics: Literal["boolean_code", "probability"]
+    presence_description: Text
+    repetition_scope: Literal["per_event", "per_session"]
+    instructor_status: StrictBool | None
+    student_status: StrictBool | None
+
+
+class PlacementRule(ResearchModel):
+    """Explicit binding references; offsets are relative to the declared parent.
+
+    Dates use day offsets from the configured simulation start; timestamps use
+    hour offsets within the declared parent's UTC span. No default shape exists.
+    """
+
+    record_type: RecordType
+    timezone: Text
+    shape: Literal["binding_offsets", "uniform", "evenly_spaced", "midnight"]
+    shape_parameter_id: Identifier | None = None
+    start_parameter_id: Identifier | None = None
+    end_parameter_id: Identifier | None = None
+    offset_parameter_id: Identifier | None = None
+    duration_parameter_id: Identifier | None = None
+    partition_parameter_id: Identifier | None = None
+    count_parameter_id: Identifier | None = None
+    mission_applicability_parameter_id: Identifier | None = None
+    unit: Literal["days", "hours"]
+    rounding: ExecutionRounding | None = None
+    count_meaning: CountMeaning | None = None
+    counting_interval: Text | None = None
+    containment: Literal["inclusive"]
+    clip: StrictBool
+    resample: StrictBool
+
+
+class MissingnessTarget(ResearchModel):
+    target_quantity: Identifier
+    field_ref: Literal[
+        "AssignmentEpisode.platform_id",
+        "AssignmentEpisode.crew_role",
+        "FiringEvent.ammunition_configuration_id",
+    ]
+    latent_never_none: StrictBool
+    mcar_probability_parameter_id: Identifier | None = None
+
+
+class RecordLineage(ResearchModel):
+    record_type: RecordType
+    parameter_ids: tuple[Identifier, ...] = Field(min_length=1)
+    rng_stream: RngStream
+
+
+class FieldDerivation(ResearchModel):
+    """Closed, explicit field operations; no prose or implicit source discovery."""
+
+    record_type: RecordType
+    field_name: Text
+    operation: Literal[
+        "component_selection",
+        "branch_from_component",
+        "eligibility_weapons",
+        "eligibility_platform",
+        "assignment_weapon",
+        "identifier_codebook",
+        "carry_forward",
+        "assignment_status",
+    ]
+    parameter_ids: tuple[Identifier, ...] = Field(min_length=1)
+    selector_parameter_id: Identifier | None = None
+    source_field_ref: Text | None = None
+    codebook_field_ref: Text | None = None
+    component_codes: tuple[tuple[StrictInteger, Component], ...] = ()
+    status_codes: tuple[tuple[StrictInteger, StrictBool, StrictBool], ...] = ()
+
+    @property
+    def field_ref(self) -> str:
+        return f"{self.record_type.value}.{self.field_name}"
+
+
+class ExecutionMapping(ResearchModel):
+    mapping_id: Identifier
+    mapping_version: SemVer
+    execution_generator_version: SimulationVersion
+    scenario_id: Identifier
+    scenario_version: SemVer
+    field_bindings: tuple[FieldBinding, ...]
+    codebooks: tuple[Codebook, ...]
+    eligibility: tuple[EligibilityRelation, ...]
+    role_presence_rules: tuple[RolePresenceRule, ...]
+    placement_rules: tuple[PlacementRule, ...]
+    missingness_targets: tuple[MissingnessTarget, ...]
+    record_lineage: tuple[RecordLineage, ...]
+    evaluation_order: tuple[Text, ...]
+    derivations: tuple[FieldDerivation, ...] = ()
+
+    def canonical_json(self) -> str:
+        """Whole-contract JSON with stable Python float representation."""
+        return json.dumps(
+            self.model_dump(mode="json"), sort_keys=True, separators=(",", ":"), allow_nan=False
+        )
+
+    def fingerprint(self) -> str:
+        return sha256(self.canonical_json().encode("utf-8")).hexdigest()
+
+
 class FeatureName(StrEnum):
     CAREER_DURATION = "career_duration"
     ASSIGNMENT_DURATION = "assignment_duration"
@@ -986,24 +1168,7 @@ def validate_configuration_references(
         config.assignment_configuration,
         config.participation_configuration,
     )
-    bindings = [
-        config.career_configuration.career_duration,
-        config.career_configuration.career_episode_count,
-        config.career_configuration.branch_component_transition,
-        config.assignment_configuration.assignment_duration,
-        config.assignment_configuration.occupation_selection,
-        config.assignment_configuration.weapon_platform_eligibility,
-        config.training_configuration.cycle_context,
-        config.participation_configuration.role_participation,
-        config.participation_configuration.nearby_participation,
-        config.participation_configuration.instructor_repeated_presence,
-        *(row.population_weight for row in config.population_configuration.components),
-        *(
-            binding
-            for component in config.training_configuration.component_configurations
-            for binding in (component.training_event_frequency, component.rounds_per_event)
-        ),
-    ]
+    bindings = configured_parameter_bindings(config)
     scenario_parameters = {item.parameter_id: item for item in scenario.parameters}
     if len({binding.parameter_id for binding in bindings}) != len(bindings):
         raise ValueError("configuration parameter IDs must be unique across all quantities")
@@ -1160,6 +1325,7 @@ def _all_dependencies(config: SimulationConfig) -> tuple[DependencySpecification
 def configured_parameter_bindings(config: SimulationConfig) -> tuple[ParameterBinding, ...]:
     """Flatten required typed inputs without losing their stable parameter IDs."""
     return (
+        *config.execution_bindings,
         config.career_configuration.career_duration,
         config.career_configuration.career_episode_count,
         config.career_configuration.branch_component_transition,

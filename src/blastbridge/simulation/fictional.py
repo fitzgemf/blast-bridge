@@ -13,6 +13,7 @@ from blastbridge.models.reference import Identifier, SemVer
 from .models import (
     CategoricalDistribution,
     EmpiricalDistribution,
+    ExecutionMapping,
     MissingnessMechanism,
     ParameterBinding,
     ParameterClass,
@@ -178,3 +179,32 @@ def authorize_fictional_generation(
         evidence_ids=set(),
         sme_estimate_ids=set(),
     )
+
+
+def authorize_fictional_execution(
+    config: SimulationConfig,
+    scenario: ScenarioDefinition,
+    approval: FictionalGenerationApproval,
+    mapping: ExecutionMapping,
+) -> None:
+    """Mandatory mapping, with fictional content checked before its semantics."""
+    from .execution import mapping_entity_ids, validate_execution_mapping
+
+    validate_fictional_scenario(config, scenario)
+    if not isinstance(mapping, ExecutionMapping):
+        raise ValueError("fictional execution requires ExecutionMapping")
+    identifiers = list(mapping_entity_ids(mapping))
+    for root in (config, scenario):
+        for model in _models(root):
+            for field in type(model).model_fields:
+                if field == "condition_quantity_ids":
+                    continue
+                if field.endswith("_id") or field.endswith("_ids"):
+                    value = getattr(model, field)
+                    if isinstance(value, str):
+                        identifiers.append(value)
+                    elif isinstance(value, tuple):
+                        identifiers.extend(item for item in value if isinstance(item, str))
+    validate_fictional_entity_ids(tuple(identifiers))
+    authorize_fictional_generation(config, scenario, approval)
+    validate_execution_mapping(config, scenario, mapping)
