@@ -11,7 +11,8 @@ simulation RNG and output validators. Serialized enum values below are exact.
 
 After typed model validation, the FIRST preflight gate is the content-enforced
 `validate_fictional_scenario`: all parameters must be `SCENARIO_ASSUMPTION`,
-scenario-supplied identifiers must use `TEST_` IDs, prior/evidence/SME ID groups
+scenario-supplied Identifier fields must use lowercase `test-` IDs (`TEST_` is
+reserved for free-text/category strings), prior/evidence/SME ID groups
 must be empty, no `EmpiricalDistribution` is permitted, and no reference entities
 may be supplied or resolved. Apply these checks across config, scenario, lineage,
 and the execution mapping, including categorical identifiers and codebooks.
@@ -180,11 +181,11 @@ discharges. Never convert tempo into rounds or infer deployment multipliers.
 `instructor_repeated_presence` must have explicit mappings to role identifiers,
 `ParticipationType`, presence decisions, and repetition scope. `DistributionSpec`
 includes `CategoricalDistribution` with text categories: a categorical binding
-whose categories are valid `TEST_` identifiers for its target identifier field
+whose categories are valid `test-` identifiers for its target identifier field
 maps directly to that field, without a numeric codebook. Validate every category
 at preflight and refuse categories that are not valid identifiers for the target
 field or are absent from the fictional mapping's allowed identifiers. This direct
-mapping does not turn `TEST_` identifiers into booleans or `ParticipationType`
+mapping does not turn `test-` identifiers into booleans or `ParticipationType`
 enum values; those operations still need explicit field-appropriate semantics.
 Only NUMERIC bindings used to select identifier/category fields need a codebook
 translating numeric values into valid field values. Refuse a missing required
@@ -260,7 +261,7 @@ mappings, valid lineage, and the fictional-only gate; it is not existing code.
 
 | Construct | V0.5 decision | Enforcement point |
 | --- | --- | --- |
-| Content-enforced fictional guard | Required: assumption-only parameters, `TEST_` scenario identifiers, empty prior/evidence/SME IDs, no empirical distributions/reference entities | FIRST preflight gate, before fictional reference validation and semantics preflight |
+| Content-enforced fictional guard | Required: assumption-only parameters, `test-` scenario identifiers, empty prior/evidence/SME IDs, no empirical distributions/reference entities | FIRST preflight gate, before fictional reference validation and semantics preflight |
 | Dependency `independent_assumption` | Supported with declared, preserved assumption | Fictional guard, model/reference validation, then execution preflight |
 | Dependency `conditional` | Refused | Execution preflight, before any row/RNG/writer |
 | Dependency `joint` | Refused | Execution preflight, before any row/RNG/writer |

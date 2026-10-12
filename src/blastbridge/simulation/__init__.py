@@ -1,5 +1,11 @@
 """V0.4 architecture contracts; production generation is disabled."""
 
+from .fictional import (
+    FictionalGenerationApproval,
+    authorize_fictional_generation,
+    validate_fictional_entity_ids,
+    validate_fictional_scenario,
+)
 from .models import (
     AssignmentEpisode,
     Branch,
@@ -42,6 +48,7 @@ __all__ = [
     "DependencySpecification",
     "DistributionSpec",
     "FiringEvent",
+    "FictionalGenerationApproval",
     "GenerationProvenance",
     "LiveFireSession",
     "MissingnessMechanism",
@@ -60,6 +67,9 @@ __all__ = [
     "TrainingPeriod",
     "UncertaintyDimension",
     "UncertaintyType",
+    "authorize_fictional_generation",
+    "validate_fictional_entity_ids",
+    "validate_fictional_scenario",
     "serialize_output",
     "stable_synthetic_id",
     "validate_configuration_references",
