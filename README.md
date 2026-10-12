@@ -11,10 +11,12 @@ to an exposure does not establish causation.
 Research Dataset V0.1 contains 18 weapon/category records, 8 occupational
 specialties, 12 supported relationships, 10 taxonomy nodes and 11 official
 sources. Dataset and schema versions begin at **0.1.0**. The original typed
-research records and validation remain available. It contains no web application, trained model, NLP extraction,
-synthetic career generator, training-frequency assumptions, exposure scores,
-or provider-summary generator. Simulation and feature packages are placeholders.
-Synthetic generation requires separate approval.
+research records and validation remain available. The project has no web
+application, trained model, NLP extraction, production synthetic career
+generator, unsupported exposure scores, or provider-summary generator. V0.4
+adds typed synthetic-generation architecture and non-medical feature contracts;
+it does not generate careers or calculate features. Synthetic generation remains
+blocked pending a separately approved, fully parameterized scenario.
 
 Research Dataset V0.2 adds **40 training-tempo evidence records**, **31 source
 records** (29 official, one SME recollection and one research-definition source),
@@ -28,8 +30,10 @@ See the [V0.2 review and validation](research/notes/training-tempo-v0.2.md).
 Dataset/schema versions are independent of the Python package version, which
 remains 0.1.0. V0.3 prior and uncertainty design is complete; no empirical
 population priors were justified. No production synthetic careers have been
-generated, and no ML models have been trained. V0.4 synthetic-career-generator
-architecture has not begun.
+generated, and no ML models have been trained. V0.4 architecture is implemented
+as versioned configuration, scenario, distribution, RNG, provenance, hierarchy,
+validation, and output-schema contracts only. See the
+[V0.4 architecture note](research/notes/synthetic-generator-architecture-v0.4.md).
 
 ## Setup (Windows PowerShell)
 
@@ -45,6 +49,9 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip check
 .\.venv\Scripts\python.exe -m blastbridge.validation.reference
 .\.venv\Scripts\python.exe -m blastbridge.validation.training_tempo --source-directory research/sources/tempo-downloads
+.\.venv\Scripts\python.exe -m blastbridge.validation.priors
+.\.venv\Scripts\python.exe -m blastbridge.validation.simulation
+.\.venv\Scripts\python.exe scripts\verify_release_history.py --source-archive
 ```
 
 On other platforms, substitute `python3.12` and `.venv/bin/python`.
