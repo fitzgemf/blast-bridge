@@ -286,12 +286,27 @@ def test_complete_fictional_mapping_authorizes_without_generation():
     authorize_fictional_execution(config, scenario, approval, mapping)
 
 
-def test_explicit_mcar_mapping_authorizes_but_engine_still_refuses():
+def test_explicit_mcar_mapping_authorizes_and_engine_executes(monkeypatch):
+    from blastbridge.simulation import models, rng
+
+    # Restore real operations only for this positive execution test; the autouse
+    # fixture continues to forbid execution in every other mapping test.
+    for name in (
+        "SyntheticMember",
+        "CareerEpisode",
+        "AssignmentEpisode",
+        "TrainingPeriod",
+        "LiveFireSession",
+        "FiringMission",
+        "FiringEvent",
+        "ParticipantExposure",
+    ):
+        monkeypatch.setattr(engine, name, getattr(models, name))
+    monkeypatch.setattr(engine, "child_rng", rng.child_rng)
     config, scenario, approval, mapping = execution_fixture()
     config, mapping = mcar_mapping(config, mapping)
     authorize_fictional_execution(config, scenario, approval, mapping)
-    with pytest.raises(ValueError, match="mcar refused"):
-        engine.generate(config, scenario, approval, mapping)
+    assert isinstance(engine.generate(config, scenario, approval, mapping), SyntheticCareerDataset)
 
 
 @pytest.mark.parametrize("where", ["mapping_id", "permitted_values", "evaluation_order", "catalog"])

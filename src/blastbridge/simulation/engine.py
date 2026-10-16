@@ -80,13 +80,11 @@ def _preflight(config: SimulationConfig, mapping: ExecutionMapping) -> None:
     operations = {"sample", "place", "mask", *(kind.value for kind in RecordType)}
     for operation in mapping.evaluation_order:
         if operation not in operations:
+            raise ValueError(f"evaluation operation {operation}: no executable algorithm in V5-2")
+    for placement in mapping.placement_rules:
+        if placement.shape != "binding_offsets":
             raise ValueError(
-                f"evaluation operation {operation}: no executable algorithm in V5-2"
-            )
-    for rule in mapping.placement_rules:
-        if rule.shape != "binding_offsets":
-            raise ValueError(
-                f"placement shape {rule.shape} for {rule.record_type}: "
+                f"placement shape {placement.shape} for {placement.record_type}: "
                 "no executable algorithm in V5-2"
             )
     blocks: tuple[ConfigurationBlock | ComponentTrainingConfiguration, ...] = (
@@ -105,23 +103,25 @@ def _preflight(config: SimulationConfig, mapping: ExecutionMapping) -> None:
                 )
 
     targets: set[str] = set()
-    for rule in config.missingness_configuration.rules:
-        if rule.target_quantity in targets:
+    for missingness_rule in config.missingness_configuration.rules:
+        if missingness_rule.target_quantity in targets:
             raise ValueError(
-                f"missingness target {rule.target_quantity}: duplicate/overlapping rules refused"
+                f"missingness target {missingness_rule.target_quantity}: "
+                "duplicate/overlapping rules refused"
             )
-        targets.add(rule.target_quantity)
-        if rule.mechanism not in {
+        targets.add(missingness_rule.target_quantity)
+        if missingness_rule.mechanism not in {
             MissingnessMechanism.MCAR,
             MissingnessMechanism.STRUCTURAL,
             MissingnessMechanism.NOT_COLLECTED,
         }:
             raise ValueError(
-                f"missingness target {rule.target_quantity}: mechanism {rule.mechanism} refused"
+                f"missingness target {missingness_rule.target_quantity}: "
+                f"mechanism {missingness_rule.mechanism} refused"
             )
-        if rule.condition_quantity_ids:
+        if missingness_rule.condition_quantity_ids:
             raise ValueError(
-                f"missingness target {rule.target_quantity}: "
+                f"missingness target {missingness_rule.target_quantity}: "
                 "conditional deterministic scope refused"
             )
 
@@ -157,13 +157,15 @@ class _Assembler:
                 master_seed=config.master_seed,
                 rng_stream=lineage.rng_stream,
                 parameter_ids=ids,
-                scenario_assumption_ids=tuple(dict.fromkeys(
-                    value for b in bindings for value in b.scenario_assumption_ids
-                )),
-                uncertainty_types=tuple(dict.fromkeys(
-                    value for b in bindings for value in b.uncertainty_types
-                )),
-                prior_definition_ids=(), evidence_ids=(), sme_estimate_ids=(),
+                scenario_assumption_ids=tuple(
+                    dict.fromkeys(value for b in bindings for value in b.scenario_assumption_ids)
+                ),
+                uncertainty_types=tuple(
+                    dict.fromkeys(value for b in bindings for value in b.uncertainty_types)
+                ),
+                prior_definition_ids=(),
+                evidence_ids=(),
+                sme_estimate_ids=(),
                 generation_method=GenerationMethod.DISTRIBUTION_SAMPLE,
             )
 
@@ -172,16 +174,28 @@ class _Assembler:
         raise ValueError(f"record path {path}, parameter {parameter}: {reason}")
 
     def rng(
-        self, kind: RecordType, path: tuple[int, ...], operation: str, parameter: str,
-        *, stream: RngStream | None = None,
+        self,
+        kind: RecordType,
+        path: tuple[int, ...],
+        operation: str,
+        parameter: str,
+        *,
+        stream: RngStream | None = None,
     ) -> Random:
         return child_rng(
-            self.config, self.scenario, stream or RECORD_STREAMS[kind],
-            _entity_key(path, operation, parameter), execution_fingerprint=self.fingerprint,
+            self.config,
+            self.scenario,
+            stream or RECORD_STREAMS[kind],
+            _entity_key(path, operation, parameter),
+            execution_fingerprint=self.fingerprint,
         )
 
     def draw(
-        self, kind: RecordType, path: tuple[int, ...], operation: str, parameter: str,
+        self,
+        kind: RecordType,
+        path: tuple[int, ...],
+        operation: str,
+        parameter: str,
     ) -> Any:
         try:
             return distributions.sample(
@@ -191,8 +205,13 @@ class _Assembler:
             self.fail(path, parameter, str(error))
 
     def integer(
-        self, value: Any, rounding: Any, path: tuple[int, ...], parameter: str,
-        *, nonnegative: bool = True,
+        self,
+        value: Any,
+        rounding: Any,
+        path: tuple[int, ...],
+        parameter: str,
+        *,
+        nonnegative: bool = True,
     ) -> int:
         if not isinstance(value, (int, float)) or not math.isfinite(value):
             self.fail(path, parameter, f"expected finite numeric value, got {value!r}")
@@ -205,7 +224,8 @@ class _Assembler:
         if rounding == "ceil":
             return math.ceil(value)
         self.fail(
-            path, parameter,
+            path,
+            parameter,
             f"fractional value {value}: rounding {rounding} has no executable conversion",
         )
 
@@ -233,7 +253,10 @@ class _Assembler:
         return self.integer(value, rule.rounding, parent_path, parameter)
 
     def fields(
-        self, kind: RecordType, path: tuple[int, ...], row: dict[str, Any],
+        self,
+        kind: RecordType,
+        path: tuple[int, ...],
+        row: dict[str, Any],
         ancestors: dict[RecordType, dict[str, Any]],
     ) -> None:
         for field in self.mapping.field_bindings:
@@ -287,15 +310,20 @@ class _Assembler:
                 elif operation == "eligibility_weapons":
                     value = self.eligibility[source_value].eligible_weapon_ids
                 elif operation in {
-                    "identifier_codebook", "eligibility_platform", "assignment_weapon"
+                    "identifier_codebook",
+                    "eligibility_platform",
+                    "assignment_weapon",
                 }:
                     value = self.select(
                         source.codebook_field_ref or source.field_ref,
-                        selector, path, str(parameter),
+                        selector,
+                        path,
+                        str(parameter),
                     )
                     eligible = (
                         self.eligibility[source_value].eligible_platform_ids
-                        if operation == "eligibility_platform" else source_value
+                        if operation == "eligibility_platform"
+                        else source_value
                     )
                     if operation != "identifier_codebook" and value not in eligible:
                         self.fail(path, str(parameter), f"selection {value} outside eligible set")
@@ -303,7 +331,8 @@ class _Assembler:
                     statuses = {code: (i, s) for code, i, s in source.status_codes}
                     if selector not in statuses:
                         self.fail(
-                            path, str(parameter),
+                            path,
+                            str(parameter),
                             f"assignment status code {selector!r} not declared",
                         )
                     row["instructor_status"], row["student_status"] = statuses[selector]
@@ -317,11 +346,17 @@ class _Assembler:
                 progressed = True
             if not progressed:
                 source = pending[0]
-                self.fail(path, ",".join(source.parameter_ids),
-                          f"unresolved derivation source {source.source_field_ref}")
+                self.fail(
+                    path,
+                    ",".join(source.parameter_ids),
+                    f"unresolved derivation source {source.source_field_ref}",
+                )
 
     def place(
-        self, kind: RecordType, path: tuple[int, ...], row: dict[str, Any],
+        self,
+        kind: RecordType,
+        path: tuple[int, ...],
+        row: dict[str, Any],
         parent: dict[str, Any] | None,
     ) -> None:
         rule = self.placements[kind]
@@ -335,10 +370,16 @@ class _Assembler:
                 self.fail(path, reference, f"expected finite hours, got {value!r}")
             return value
 
-        parameter = ",".join(p for p in (
-            rule.start_parameter_id, rule.end_parameter_id,
-            rule.offset_parameter_id, rule.duration_parameter_id,
-        ) if p)
+        parameter = ",".join(
+            p
+            for p in (
+                rule.start_parameter_id,
+                rule.end_parameter_id,
+                rule.offset_parameter_id,
+                rule.duration_parameter_id,
+            )
+            if p
+        )
         try:
             if kind == RecordType.MEMBER:
                 lower, upper = self.config.simulation_start_date, self.config.simulation_end_date
@@ -375,8 +416,12 @@ class _Assembler:
             self.fail(path, parameter, str(error))
 
     def add(
-        self, kind: RecordType, path: tuple[int, ...], ancestors: dict[RecordType, dict[str, Any]],
-        identity: dict[str, Any], parent: dict[str, Any] | None = None,
+        self,
+        kind: RecordType,
+        path: tuple[int, ...],
+        ancestors: dict[RecordType, dict[str, Any]],
+        identity: dict[str, Any],
+        parent: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         row = dict(identity)
         self.fields(kind, path, row, ancestors)
@@ -391,14 +436,17 @@ class _Assembler:
         return row
 
     def participants(
-        self, path: tuple[int, ...], ancestors: dict[RecordType, dict[str, Any]],
+        self,
+        path: tuple[int, ...],
+        ancestors: dict[RecordType, dict[str, Any]],
         session_decisions: dict[str, bool],
     ) -> None:
         assignment = ancestors[RecordType.ASSIGNMENT]
         present = []
         for rule in self.mapping.role_presence_rules:
             if (assignment["instructor_status"], assignment["student_status"]) != (
-                rule.instructor_status, rule.student_status
+                rule.instructor_status,
+                rule.student_status,
             ):
                 continue
             decision_path = path[:-1] if rule.repetition_scope == "per_session" else path
@@ -419,8 +467,11 @@ class _Assembler:
                     decision = self.boolean(value, decision_path, rule.presence_parameter_id)
                 else:
                     if not isinstance(value, (int, float)) or not 0 <= value <= 1:
-                        self.fail(decision_path, rule.presence_parameter_id,
-                                  f"probability {value!r} outside [0,1]")
+                        self.fail(
+                            decision_path,
+                            rule.presence_parameter_id,
+                            f"probability {value!r} outside [0,1]",
+                        )
                     decision = rng.random() < value
                 if rule.repetition_scope == "per_session":
                     session_decisions[rule.quantity] = decision
@@ -430,20 +481,33 @@ class _Assembler:
             conflicts = ", ".join(
                 f"{r.quantity}/{r.role_id}/{r.participation_type}" for r in present
             )
-            self.fail(path, ",".join(r.presence_parameter_id for r in present),
-                      "multiple applicable role/presence rules present for member "
-                      f"{path[:1]} event {path}: {conflicts}")
+            self.fail(
+                path,
+                ",".join(r.presence_parameter_id for r in present),
+                "multiple applicable role/presence rules present for member "
+                f"{path[:1]} event {path}: {conflicts}",
+            )
         for rule in present:
-            self.add(RecordType.EXPOSURE, path, ancestors, {
-                "event_id": ancestors[RecordType.EVENT]["event_id"],
-                "synthetic_member_id": ancestors[RecordType.MEMBER]["member_id"],
-                "assignment_id": assignment["assignment_id"],
-                "role": rule.role_id, "participation_type": rule.participation_type,
-            })
+            self.add(
+                RecordType.EXPOSURE,
+                path,
+                ancestors,
+                {
+                    "event_id": ancestors[RecordType.EVENT]["event_id"],
+                    "synthetic_member_id": ancestors[RecordType.MEMBER]["member_id"],
+                    "assignment_id": assignment["assignment_id"],
+                    "role": rule.role_id,
+                    "participation_type": rule.participation_type,
+                },
+            )
 
     def descend(
-        self, kind: RecordType, path: tuple[int, ...], ancestors: dict[RecordType, dict[str, Any]],
-        identity: dict[str, Any], parent: dict[str, Any] | None = None,
+        self,
+        kind: RecordType,
+        path: tuple[int, ...],
+        ancestors: dict[RecordType, dict[str, Any]],
+        identity: dict[str, Any],
+        parent: dict[str, Any] | None = None,
     ) -> None:
         row = self.add(kind, path, ancestors, identity, parent)
         ancestors = {**ancestors, kind: row}
@@ -470,13 +534,20 @@ class _Assembler:
         )
         count = self.count(RecordType.MISSION, path)
         if count > 1:
-            self.fail(path, str(mission_rule.count_parameter_id),
-                      "multiple missions per session: "
-                      "event-to-mission assignment undefined in V5-2")
+            self.fail(
+                path,
+                str(mission_rule.count_parameter_id),
+                "multiple missions per session: event-to-mission assignment undefined in V5-2",
+            )
         mission = None
         if applicable and count:
-            mission = self.add(RecordType.MISSION, (*path, 1), ancestors,
-                               {"session_id": session["session_id"]}, session)
+            mission = self.add(
+                RecordType.MISSION,
+                (*path, 1),
+                ancestors,
+                {"session_id": session["session_id"]},
+                session,
+            )
         session_decisions: dict[str, bool] = {}
         for ordinal in range(1, self.count(RecordType.EVENT, path) + 1):
             event_path = (*path, ordinal)
@@ -485,25 +556,35 @@ class _Assembler:
             assert parameter is not None
             applicable = self.boolean(
                 self.draw(RecordType.EVENT, event_path, "applicability:event", parameter),
-                event_path, parameter,
+                event_path,
+                parameter,
             )
             if applicable and mission is None:
                 self.fail(
-                    event_path, parameter,
+                    event_path,
+                    parameter,
                     "event applicability requires a mission; session has none",
                 )
             event_ancestors = {**ancestors, **({RecordType.MISSION: mission} if mission else {})}
-            event = self.add(RecordType.EVENT, event_path, event_ancestors, {
-                "session_id": session["session_id"],
-                "mission_id": mission["mission_id"] if applicable and mission else None,
-                "round_or_launch_index": ordinal,
-            }, session)
+            event = self.add(
+                RecordType.EVENT,
+                event_path,
+                event_ancestors,
+                {
+                    "session_id": session["session_id"],
+                    "mission_id": mission["mission_id"] if applicable and mission else None,
+                    "round_or_launch_index": ordinal,
+                },
+                session,
+            )
             if (
-                applicable and mission
+                applicable
+                and mission
                 and not mission["start_time"] <= event["timestamp"] <= mission["end_time"]
             ):
                 self.fail(
-                    event_path, str(event_rule.offset_parameter_id),
+                    event_path,
+                    str(event_rule.offset_parameter_id),
                     "event outside mission containment",
                 )
             self.participants(
@@ -517,8 +598,11 @@ class _Assembler:
             rule = rules[target.target_quantity]
             for path, row in self.rows[RecordType(record)]:
                 if target.latent_never_none and row[name] is None:
-                    self.fail(path, target.target_quantity,
-                              f"latent None in latent_never_none target {target.field_ref}")
+                    self.fail(
+                        path,
+                        target.target_quantity,
+                        f"latent None in latent_never_none target {target.field_ref}",
+                    )
                 masked = True
                 if rule.mechanism == MissingnessMechanism.MCAR:
                     parameter = target.mcar_probability_parameter_id
@@ -526,8 +610,13 @@ class _Assembler:
                     probability = self.parameters[parameter].distribution
                     # Authorization guarantees a fixed binding; no probability sampling operation.
                     p = probability.model_dump()["value"]
-                    rng = self.rng(RecordType(record), path, "mask", target.target_quantity,
-                                   stream=RngStream.MISSINGNESS)
+                    rng = self.rng(
+                        RecordType(record),
+                        path,
+                        "mask",
+                        target.target_quantity,
+                        stream=RngStream.MISSINGNESS,
+                    )
                     masked = rng.random() < p
                 if masked:
                     row[name] = None
@@ -539,10 +628,14 @@ class _Assembler:
         tables: dict[str, Any] = {}
         # Resolve model names through globals here, preserving refusal instrumentation.
         models = {
-            RecordType.MEMBER: SyntheticMember, RecordType.CAREER: CareerEpisode,
-            RecordType.ASSIGNMENT: AssignmentEpisode, RecordType.TRAINING: TrainingPeriod,
-            RecordType.SESSION: LiveFireSession, RecordType.MISSION: FiringMission,
-            RecordType.EVENT: FiringEvent, RecordType.EXPOSURE: ParticipantExposure,
+            RecordType.MEMBER: SyntheticMember,
+            RecordType.CAREER: CareerEpisode,
+            RecordType.ASSIGNMENT: AssignmentEpisode,
+            RecordType.TRAINING: TrainingPeriod,
+            RecordType.SESSION: LiveFireSession,
+            RecordType.MISSION: FiringMission,
+            RecordType.EVENT: FiringEvent,
+            RecordType.EXPOSURE: ParticipantExposure,
         }
         for kind, entries in self.rows.items():
             records = []

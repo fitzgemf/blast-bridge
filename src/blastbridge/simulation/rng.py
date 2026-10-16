@@ -20,7 +20,7 @@ def derive_seed(
     execution_fingerprint: str | None = None,
 ) -> int:
     """Derive a stable 256-bit child seed without randomized ``hash()``."""
-    components = (
+    components: tuple[str, ...] = (
         str(master_seed),
         generator_version,
         scenario_version,
