@@ -20,6 +20,7 @@ packages = ["src/blastbridge"]
 testpaths = ["tests"]
 addopts = "-ra"
 filterwarnings = ["error"]
+markers = ["slow: large deterministic assembly checks"]
 
 [tool.ruff]
 target-version = "py312"

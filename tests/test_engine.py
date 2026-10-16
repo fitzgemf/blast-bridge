@@ -1,7 +1,11 @@
-"""Execution refusal remains atomic; assembly is pending V5-2."""
+"""Execution refusal remains atomic before RNG and record construction."""
 
 import pytest
-from execution_mapping_fixtures import execution_fixture
+from execution_mapping_fixtures import (
+    assembly_fixture,
+    assembly_missingness_fixture,
+    execution_fixture,
+)
 
 from blastbridge.simulation import engine
 from blastbridge.simulation.models import (
@@ -53,7 +57,6 @@ def test_unsupported_dependency_refused_before_execution(mode, forbid_execution)
 @pytest.mark.parametrize(
     "mechanism",
     [
-        MissingnessMechanism.MCAR,
         MissingnessMechanism.MAR,
         MissingnessMechanism.MNAR,
         MissingnessMechanism.UNKNOWN_REASON,
@@ -85,20 +88,21 @@ def test_unsupported_missingness_refused_before_execution(mechanism, forbid_exec
     mapping = mapping.model_copy(
         update={"missingness_targets": (*mapping.missingness_targets, target)}
     )
-    if mechanism == MissingnessMechanism.MCAR:
-        expected = "mcar refused"
-    else:
-        expected = f"missingness target crew-role: mechanism {mechanism} refused"
+    expected = f"missingness target crew-role: mechanism {mechanism} refused"
     with pytest.raises(ValueError, match=expected):
         engine.generate(config, scenario, approval, mapping)
 
 
 @pytest.mark.parametrize("population_size", [1, 10])
-def test_valid_mapping_still_defers_assembly(population_size, forbid_execution):
-    config, scenario, approval, mapping = execution_fixture()
-    config = config.model_copy(update={"population_size": population_size})
-    with pytest.raises(ValueError, match="^assembler pending V5-2$"):
-        engine.generate(config, scenario, approval, mapping)
+def test_valid_mapping_assembles(population_size):
+    dataset = engine.generate(*assembly_fixture(population_size))
+    assert len(dataset.members) == population_size
+
+
+def test_mcar_is_executable():
+    dataset = engine.generate(*assembly_missingness_fixture(MissingnessMechanism.MCAR, 1))
+    assert dataset.assignments
+    assert all(row.platform_id is None for row in dataset.assignments)
 
 
 def test_execution_mapping_is_mandatory(forbid_execution):

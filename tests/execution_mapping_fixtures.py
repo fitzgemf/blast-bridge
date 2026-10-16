@@ -343,3 +343,96 @@ def replace_parameter(config, scenario, parameter_id, distribution):
         SimulationConfig.model_validate(replace(config.model_dump())),
         ScenarioDefinition.model_validate(replace(scenario.model_dump())),
     )
+
+
+def assembly_fixture(population_size=1, event_count=12):
+    """Additive executable fixture: one status-matched role and variable event ownership."""
+    config, scenario, approval, mapping = execution_fixture()
+    additions = []
+    for suffix, distribution in (
+        ("status", {"kind": "fixed", "value": 0}),
+        ("event-applicability", {"kind": "discrete_uniform", "lower": 0, "upper": 1}),
+    ):
+        payload = _binding(f"test-assembly-{suffix}")
+        payload["distribution"] = distribution
+        additions.append(ParameterBinding.model_validate(payload))
+    config = config.model_copy(update={
+        "population_size": population_size,
+        "execution_bindings": (*config.execution_bindings, *additions),
+    })
+    scenario = scenario.model_copy(update={"parameters": (*scenario.parameters, *additions)})
+    for parameter, value in (
+        ("test-career-episode-count", 1),
+        ("test-army-active-event-frequency", 1),
+        ("test-army-active-rounds-per-event", event_count),
+    ):
+        config, scenario = replace_parameter(
+            config, scenario, parameter, {"kind": "fixed", "value": value}
+        )
+    config, scenario = replace_parameter(
+        config, scenario, "test-placement-probability",
+        {"kind": "triangular", "lower": 0, "upper": 0.25, "mode": 0.1},
+    )
+    mapping = mapping.model_copy(update={
+        "role_presence_rules": tuple(
+            rule.model_copy(update={
+                "presence_parameter_id": "test-placement-zero",
+                "presence_semantics": "boolean_code",
+            }) if rule.quantity == "role_participation" else rule
+            for rule in mapping.role_presence_rules
+        ),
+        "derivations": tuple(
+            source.model_copy(update={
+                "selector_parameter_id": "test-assembly-status",
+                "parameter_ids": ("test-assembly-status",),
+            }) if source.operation == "assignment_status" else source
+            for source in mapping.derivations
+        ),
+        "placement_rules": tuple(
+            rule.model_copy(update={
+                "mission_applicability_parameter_id": "test-assembly-event-applicability",
+            }) if rule.record_type == RecordType.EVENT else (
+                rule.model_copy(update={"offset_parameter_id": "test-placement-probability"})
+                if rule.record_type == RecordType.SESSION else rule
+            )
+            for rule in mapping.placement_rules
+        ),
+        "record_lineage": tuple(
+            lineage.model_copy(update={
+                "parameter_ids": (*lineage.parameter_ids, *(p.parameter_id for p in additions)),
+            }) for lineage in mapping.record_lineage
+        ),
+    })
+    return config, scenario, approval, mapping
+
+
+def assembly_missingness_fixture(mechanism, probability=0):
+    """Keep lineage/contract joins intact for all supported platform masks."""
+    config, scenario, approval, mapping = assembly_fixture()
+    config, scenario = replace_parameter(
+        config, scenario, "test-placement-probability", {"kind": "fixed", "value": probability}
+    )
+    # Role presence remains absent regardless of the mask probability.
+    mapping = mapping.model_copy(update={
+        "role_presence_rules": tuple(
+            rule.model_copy(update={
+                "presence_parameter_id": "test-placement-zero",
+                "presence_semantics": "boolean_code",
+            }) if rule.quantity == "role_participation" else rule
+            for rule in mapping.role_presence_rules
+        ),
+        "missingness_targets": tuple(target.model_copy(update={
+            "latent_never_none": True,
+            "mcar_probability_parameter_id": "test-placement-probability"
+            if mechanism == "mcar" else None,
+        }) for target in mapping.missingness_targets),
+    })
+    config = config.model_copy(update={
+        "missingness_configuration": config.missingness_configuration.model_copy(update={
+            "rules": tuple(rule.model_copy(update={
+                "mechanism": mechanism,
+                "scenario_assumption_id": "test-assumption-alpha",
+            }) for rule in config.missingness_configuration.rules),
+        }),
+    })
+    return config, scenario, approval, mapping

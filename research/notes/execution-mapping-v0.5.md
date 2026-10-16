@@ -226,3 +226,117 @@ Each role/presence status pair must occur in the assignment-status `status_codes
 (5e). Presence applies only when the owning assignment's derived status matches
 the rule's pair. A mismatch yields no participant row, never a guessed status or
 presence. These declarations define semantics only; assembly remains pending V5-2.
+
+## V5-2 assembler semantics
+
+S1 Seed. In rng.py, add a keyword-only `execution_fingerprint: str | None = None` to `derive_seed`, `child_rng` and `stream_seeds`.
+- When it is not None, append it as one more "\0"-separated payload component after `entity_key`.
+- When it is None, the payload and seeds must be byte-identical to today's.
+- The engine ALWAYS passes `mapping.fingerprint()`.
+
+S2 Entity keys. Each key is a length-prefixed encoding (`f"{len(s)}:{s}"`, joined with "|") of:
+- the one-based path ordinals: member, then local career/assignment/training/session/mission/event
+- the operation name
+- the parameter id (or the target id for masks)
+
+There is one child RNG per (occurrence path, operation, parameter id). Consume its draws in sampler order and never recreate it mid-operation. Chunk numbers, counters, wall clock and hash() are forbidden.
+
+S3 Streams. Use `RECORD_STREAMS` from execution.py for each record's operations: participation decisions use PARTICIPATION, masks use MISSINGNESS.
+
+S4 Child counts. The number of children of each parent occurrence comes from one draw per parent occurrence:
+- CAREER per member, ASSIGNMENT per career, TRAINING per assignment: `partition_parameter_id`
+- SESSION per training period, MISSION per session, EVENT per session: `count_parameter_id`
+
+Draw with `distributions.sample()`. Do NOT use `sample_count`, which retries negative draws; V5-0 forbids retry-until-valid. Then:
+- integral value: use it
+- fractional value: `floor` or `ceil` per the rule's rounding; `reject` aborts
+- negative value: aborts
+
+Zero is allowed and yields no children.
+
+S5 Shapes. Only `binding_offsets` executes. A rule with shape `uniform`, `evenly_spaced` or `midnight` is refused in `_preflight`, before any RNG, with: `placement shape <shape> for <RecordType>: no executable algorithm in V5-2`.
+
+S6 Dates (unit days). Day values follow the same integral/rounding/negative handling as S4.
+- MEMBER: `service_start = simulation_start_date + start draw`, `service_end = simulation_start_date + end draw`.
+- CAREER, ASSIGNMENT, TRAINING: each child draws its own offset and duration. `start = parent start + offset`, `end = start + duration`.
+- No sibling ordering or non-overlap policy is applied.
+
+S7 Timestamps (unit hours, float, no rounding; all timestamps are UTC-aware).
+- SESSION: anchor is the training period's `start_date` at 00:00 UTC. `start = anchor + offset`, `end = start + duration`.
+- MISSION: `start = session.start_time + offset`, `end = start + duration`.
+- EVENT: `timestamp = session.start_time + offset`.
+
+S8 Missions.
+- One MISSION applicability draw per session (boolean code 0/1). On 0 the session has no missions, but its count draw still occurs so the draw structure stays stable.
+- V5-2 supports at most one mission per session. A count above 1 aborts with: `multiple missions per session: event-to-mission assignment undefined in V5-2`.
+- One EVENT applicability draw per event. On 1, the event's `mission_id` is the session's mission; if the session has no mission, the run aborts. On 0, `mission_id` is None.
+
+S9 `round_or_launch_index` = 1..n within each session, in event order.
+
+S10 Fields.
+- Each `FieldBinding` is sampled once per record occurrence. Ints follow the binding's rounding; identifiers and categoricals go through their codebook (`numeric_codes` lookup or `permitted_values` direct). A value outside the codebook aborts.
+- `FieldDerivation`s use exactly the contract operations.
+- `component_selection`: one selector draw, mapped through `component_codes`. Population weights are lineage only; never use them to re-weight.
+- Refuse in `_preflight` any config with more than one population component, with: `multiple population components: per-component placement selection undefined in V5-2`.
+
+S11 Participation. For each event, evaluate the `RolePresenceRule`s in mapping order. A rule applies only when the owning assignment's derived (instructor_status, student_status) equals the rule's pair; a non-applicable rule makes no draw and no row.
+- `per_event` scope: one decision per event. `per_session` scope: one decision per session, reused for all of its events.
+- `boolean_code`: the sampled value must be 0 or 1, otherwise abort.
+- `probability`: sample p (outside [0,1] aborts), then draw one `random()` u from the same operation RNG; present iff u < p.
+- Present produces exactly one `ParticipantExposure`: the member owning the assignment, `role = rule.role_id`, `participation_type = rule.participation_type`.
+- No other members, no crew size, no proximity rules.
+- S11a (one role per member/event): at most one applicable RolePresenceRule may produce a ParticipantExposure for a given (synthetic_member_id, event_id).
+  - Evaluate every applicable rule's decision for that member/event first (per_session decisions count for each of the session's events).
+  - If more than one is present, abort with: `multiple applicable role/presence rules present for member <member path> event <event path>: <quantity>/<role_id>/<participation_type>, ...`. List every conflicting rule.
+  - Never choose, prioritize or merge roles. Different events may produce different roles.
+  - Note: in tests/execution_mapping_fixtures.py, role_participation and nearby_participation share status pair (False, False), and nearby is always present. So the base `execution_fixture()` hits S11a whenever role presence is true. Do not change that fixture's semantics. Build the positive fixture additively so that at most one rule can be present per member/event (e.g. distinct status pairs, or a boolean_code 0 presence), and use the base co-presence case as the S11a refusal test.
+
+S12 Missingness. Applied after all latent values exist.
+- `structural_missing` and `not_collected`: set None on every occurrence of the target; no draw.
+- `mcar`: one `random()` per eligible occurrence from `child_rng(MISSINGNESS, path|mask|target)`. Mask iff u < p, and draw even when p is 0 or 1.
+- Remove only the MCAR refusal from `_preflight`; keep MAR, MNAR, unknown_reason and the conditional refusals.
+- A latent None in a `latent_never_none` target aborts the run.
+- Masking never renumbers IDs or deletes rows.
+
+S13 Provenance, per record type, from that type's `RecordLineage`:
+- `parameter_ids`: in lineage order, first occurrence wins
+- `scenario_assumption_ids` and `uncertainty_types`: first-occurrence union over those bindings in that order
+- prior, evidence and SME id groups: ()
+- `rng_stream`: the lineage's stream
+- `generation_method`: `distribution_sample`
+- `simulation_id`, `scenario_id`, `scenario_version`, `master_seed` and `generator_version`: from config
+
+It must satisfy `outputs.SyntheticOutput`'s lineage equality.
+
+S14 IDs. Use `stable_synthetic_id(type, ordinal)` with table-wide 1-based ordinals in lexicographic numeric path order (preorder of the unchunked run), assigned before masking.
+- "Lexicographic numeric path order" means Python tuple ordering of TUPLES OF INTEGER path ordinals: (1, 2, ...) sorts before (1, 10, ...).
+- Never sort textual or length-prefixed path renderings (S2 keys are for seeding only, never for ordering).
+- Stable IDs follow that integer-tuple preorder.
+
+S15 Atomicity. Build every row in memory, construct `SyntheticCareerDataset`, then validate `SyntheticOutput(config=..., scenario=..., records=dataset)`, and return the dataset only if both pass. Any abort raises `ValueError` naming the record path, the parameter and the reason. No partial return, clipping or resampling.
+
+### Operation keys used by the assembler
+
+The operation names are `count:<RecordType>` (keyed at the parent path),
+`field:<RecordType>:<field_name>`, `derive:<RecordType>:<field_name>`,
+`place:<RecordType>:start`, `place:<RecordType>:end`,
+`place:<RecordType>:offset`, `place:<RecordType>:duration`,
+`applicability:mission` (session path), `applicability:event` (event path),
+`presence:<quantity>` (event or session path according to repetition scope),
+and `mask` (target occurrence path). `<RecordType>` is its serialized model name.
+The record name disambiguates operations on different tables that share a numeric
+path. Mission and event paths each extend their session path with their own local
+ordinal; events are children of the session, including events associated with its
+optional mission. Presence samples its probability and comparison draw from the
+same RNG. Per-session decisions are evaluated on the first eligible event and
+cached for the rest of that session. With no events there are no presence decisions.
+
+AC0 independence is checked with config held fixed: each dependent output uses
+its own unchanged configured distribution, and its draws can be replayed from its
+operation key. Changing a binding changes the full config/scenario fingerprint
+and therefore is expected to change seeds, as required by S1 and V5-0 §6.
+
+Only the structural evaluation operations (`sample`, the eight record names,
+`place`, and `mask`) execute in V5-2. Additional scenario-named evaluation
+operations are refused before RNG creation because they have no executable
+algorithm.

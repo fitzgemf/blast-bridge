@@ -16,18 +16,21 @@ def derive_seed(
     configuration_fingerprint: str,
     stream: RngStream,
     entity_key: str,
+    *,
+    execution_fingerprint: str | None = None,
 ) -> int:
     """Derive a stable 256-bit child seed without randomized ``hash()``."""
-    payload = "\0".join(
-        (
-            str(master_seed),
-            generator_version,
-            scenario_version,
-            configuration_fingerprint,
-            stream.value,
-            entity_key,
-        )
-    ).encode("utf-8")
+    components = (
+        str(master_seed),
+        generator_version,
+        scenario_version,
+        configuration_fingerprint,
+        stream.value,
+        entity_key,
+    )
+    if execution_fingerprint is not None:
+        components += (execution_fingerprint,)
+    payload = "\0".join(components).encode("utf-8")
     return int.from_bytes(sha256(payload).digest(), "big")
 
 
@@ -36,6 +39,8 @@ def child_rng(
     scenario: ScenarioDefinition,
     stream: RngStream,
     entity_key: str,
+    *,
+    execution_fingerprint: str | None = None,
 ) -> random.Random:
     """Create an isolated stream keyed by run version, domain stream and entity."""
     if not entity_key:
@@ -52,6 +57,7 @@ def child_rng(
         _fingerprint(config, scenario),
         stream,
         entity_key,
+        execution_fingerprint=execution_fingerprint,
     )
     rng = random.Random()
     rng.seed(seed, version=2)
@@ -62,6 +68,8 @@ def stream_seeds(
     config: SimulationConfig,
     scenario: ScenarioDefinition,
     entity_key: str,
+    *,
+    execution_fingerprint: str | None = None,
 ) -> dict[RngStream, int]:
     """Return deterministic seeds for every isolated generation concern."""
     if (scenario.scenario_id, scenario.scenario_version) != (
@@ -77,6 +85,7 @@ def stream_seeds(
             _fingerprint(config, scenario),
             stream,
             entity_key,
+            execution_fingerprint=execution_fingerprint,
         )
         for stream in RngStream
     }
