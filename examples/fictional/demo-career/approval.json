@@ -1,0 +1,7 @@
+{
+  "approved_scenario_version": "0.5.0",
+  "fictional_acknowledgement": true,
+  "population_scope": "TEST FICTIONAL DEMO: one invented member.",
+  "scenario_id": "test-demo-scenario",
+  "simulation_purpose": "TEST FICTIONAL DEMO for software demonstration only."
+}

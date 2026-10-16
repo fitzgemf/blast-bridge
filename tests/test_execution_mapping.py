@@ -525,7 +525,7 @@ def test_documented_bounded_role_probability_can_be_variable():
 
 def test_wrong_execution_generator_version_is_refused():
     config, scenario, _, mapping = execution_fixture()
-    mapping = mapping.model_copy(update={"execution_generator_version": "0.5.0"})
+    mapping = mapping.model_copy(update={"execution_generator_version": "0.4.0"})
     with pytest.raises(ValueError, match=f"^{re.escape(MESSAGES['9b'])}$"):
         validate_execution_mapping(config, scenario, mapping)
 

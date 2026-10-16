@@ -12,11 +12,12 @@ Research Dataset V0.1 contains 18 weapon/category records, 8 occupational
 specialties, 12 supported relationships, 10 taxonomy nodes and 11 official
 sources. Dataset and schema versions begin at **0.1.0**. The original typed
 research records and validation remain available. The project has no web
-application, trained model, NLP extraction, production synthetic career
-generator, unsupported exposure scores, or provider-summary generator. V0.4
-adds typed synthetic-generation architecture and non-medical feature contracts;
-it does not generate careers or calculate features. Synthetic generation remains
-blocked pending a separately approved, fully parameterized scenario.
+application, trained model, NLP extraction, unsupported exposure scores, or
+provider-summary generator. V0.5 is the fictional synthetic-engine foundation:
+an in-memory assembler, ExecutionMapping, minimal JSON persistence, and one
+committed fictional demo career, using generator 0.5.0 and unchanged output
+schema 0.4.0. Only a fictional, content-gated engine exists; real generation
+remains unauthorized. It makes no medical inference. Exposure is not injury.
 
 Research Dataset V0.2 adds **40 training-tempo evidence records**, **31 source
 records** (29 official, one SME recollection and one research-definition source),
@@ -30,9 +31,10 @@ See the [V0.2 review and validation](research/notes/training-tempo-v0.2.md).
 Dataset/schema versions are independent of the Python package version, which
 remains 0.1.0. V0.3 prior and uncertainty design is complete; no empirical
 population priors were justified. No production synthetic careers have been
-generated, and no ML models have been trained. V0.4 architecture is implemented
-as versioned configuration, scenario, distribution, RNG, provenance, hierarchy,
-validation, and output-schema contracts only. See the
+generated, and no ML models have been trained. The V0.5 fictional foundation
+builds on the V0.4 configuration, scenario, distribution, RNG, provenance,
+hierarchy, validation, and output-schema contracts. Scale, chunking, manifests,
+and golden-vector work are deferred. See the
 [V0.4 architecture note](research/notes/synthetic-generator-architecture-v0.4.md).
 
 ## Setup (Windows PowerShell)
@@ -191,7 +193,9 @@ synchronization; it does not approve the repository for PHI, PII, controlled
 military information or actual participant records. During development use only
 public references and explicitly fictional/synthetic demonstration records.
 Do not store actual medical records, SSNs, DoD IDs, EDIPI, names, addresses or
-exact birth dates. No synthetic career generator is authorized or implemented.
+exact birth dates. Only the fictional, content-gated synthetic engine is
+implemented; real generation remains unauthorized, and no medical inference
+is supported. Exposure is not injury.
 See [data governance](research/notes/data-governance.md) and the
 [migration record](research/notes/repository-migration.md).
 

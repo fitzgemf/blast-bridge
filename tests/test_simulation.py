@@ -148,7 +148,7 @@ def _config(master_seed: int = 17) -> SimulationConfig:
         simulation_version="0.4.0",
         scenario_id="test-scenario-alpha",
         scenario_version="0.4.0",
-        generator_version="0.4.0",
+        generator_version="0.5.0",
         rng_algorithm="python-mt19937-random-v1",
         master_seed=master_seed,
         population_size=2,
@@ -219,7 +219,7 @@ def _provenance(
         simulation_id="test-simulation-alpha",
         scenario_id="test-scenario-alpha",
         scenario_version="0.4.0",
-        generator_version="0.4.0",
+        generator_version="0.5.0",
         rng_algorithm="python-mt19937-random-v1",
         master_seed=17,
         rng_stream=stream,
@@ -498,8 +498,8 @@ def test_config_has_required_fields_and_deterministic_child_streams():
     assert stream_seeds(first, scenario, "run-root") != stream_seeds(
         changed_reference, scenario, "run-root"
     )
-    assert derive_seed(17, "0.4.0", "0.4.0", "config-a", RngStream.POPULATION, "x") != derive_seed(
-        18, "0.4.0", "0.4.0", "config-a", RngStream.POPULATION, "x"
+    assert derive_seed(17, "0.5.0", "0.4.0", "config-a", RngStream.POPULATION, "x") != derive_seed(
+        18, "0.5.0", "0.4.0", "config-a", RngStream.POPULATION, "x"
     )
     with pytest.raises(ValidationError):
         SimulationConfig.model_validate({"simulation_id": "missing-everything"})

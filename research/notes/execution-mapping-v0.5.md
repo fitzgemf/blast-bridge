@@ -148,7 +148,8 @@ nested value participate. V5-2/V5-6 must incorporate this fingerprint into RNG s
 derivation before generating any data; the current RNG API is unchanged here.
 
 `execution_generator_version` matches `EXECUTION_GENERATOR_VERSION`, currently
-`0.4.0`. Config/provenance and output-schema literals stay `0.4.0` until V5-6.
+`0.5.0` as of V5-F. Config/provenance use generator `0.5.0`; the output
+schema is unchanged at `0.4.0`.
 Mapping version is independently versioned and is included in its fingerprint.
 
 `authorize_fictional_execution(config, scenario, approval, mapping)` requires the

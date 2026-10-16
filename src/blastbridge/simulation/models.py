@@ -12,7 +12,7 @@ from pydantic import Field, StrictBool, StringConstraints, model_validator
 from blastbridge.models.core import NonNegative, ResearchModel, Text
 from blastbridge.models.reference import Identifier, SemVer
 
-SimulationVersion = Literal["0.4.0"]
+SimulationVersion = Literal["0.5.0"]
 SyntheticIdentifier = Annotated[
     str,
     StringConstraints(
@@ -527,7 +527,7 @@ class SimulationConfig(ResearchModel):
     def dates_and_version(self) -> Self:
         if self.simulation_end_date < self.simulation_start_date:
             raise ValueError("simulation dates must be ordered")
-        if self.generator_version != "0.4.0":
+        if self.generator_version != "0.5.0":
             raise ValueError("generator version must be explicit and supported")
         population_components = {row.component for row in self.population_configuration.components}
         training_components = {

@@ -42,7 +42,7 @@ from .models import (
     validate_configuration_references,
 )
 
-EXECUTION_GENERATOR_VERSION = "0.4.0"
+EXECUTION_GENERATOR_VERSION = "0.5.0"
 RECORD_MODELS: dict[RecordType, type[ResearchModel]] = {
     RecordType.MEMBER: SyntheticMember,
     RecordType.CAREER: CareerEpisode,

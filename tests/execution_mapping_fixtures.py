@@ -293,7 +293,7 @@ def execution_fixture():
     mapping = ExecutionMapping(
         mapping_id="test-mapping-alpha",
         mapping_version="0.5.0",
-        execution_generator_version="0.4.0",
+        execution_generator_version="0.5.0",
         scenario_id=scenario.scenario_id,
         scenario_version=scenario.scenario_version,
         field_bindings=fields,

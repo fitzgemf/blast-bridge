@@ -40,6 +40,7 @@ from .models import (
     validate_scenario_registry,
 )
 from .outputs import OUTPUT_TABLES, SyntheticOutput, serialize_output
+from .persistence import load_career, save_career
 
 __all__ = [
     "AssignmentEpisode",
@@ -75,6 +76,8 @@ __all__ = [
     "authorize_fictional_generation",
     "validate_fictional_entity_ids",
     "validate_fictional_scenario",
+    "load_career",
+    "save_career",
     "serialize_output",
     "stable_synthetic_id",
     "validate_configuration_references",

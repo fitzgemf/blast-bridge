@@ -250,9 +250,9 @@ canonical complete config/scenario fingerprint, stream and entity key. Retain
 runtime must produce identical canonical output. Mapping changes must change
 fingerprinted inputs/version; sampler or draw-order changes require a version
 change and new golden vectors. Cross-runtime floating-point equality is not
-promised. Current models pin generator/provenance version to `0.4.0`; a later
-reviewed implementation task must resolve V0.5 versioning, not label new engine
-behavior as the unchanged V0.4 generator.
+promised. As of V5-F, models pin generator/provenance version to `0.5.0`;
+the new engine is identified as generator `0.5.0`, and the output schema is
+unchanged at `0.4.0`.
 
 ## 7. Support and refusal summary
 
@@ -297,6 +297,6 @@ only; the assembler remains pending V5-2. `SimulationConfig.execution_bindings`
 defaults to an empty tuple and participates in configured/scenario reference and
 output-lineage validation. Adding the empty field changes `rng._fingerprint` for
 existing configs because it appears in `model_dump`; this is accepted because no
-golden vectors are pinned before V5-6. Generator and output-schema literals remain
-`0.4.0` until V5-6. The whole mapping's canonical fingerprint must be included in
-seed derivation by V5-2/V5-6 before any generation.
+golden vectors are pinned before V5-6. As of V5-F, the generator is `0.5.0`;
+the output schema is unchanged at `0.4.0`. The whole mapping's canonical
+fingerprint must be included in seed derivation by V5-2/V5-6 before any generation.
