@@ -3,6 +3,8 @@
 Status: approved V5-1b execution contract. This defines declarations and refusal
 checks only. It samples no values and generates no career data. The assembler is
 pending V5-2; serialization, chunking, CLI, and golden vectors are separate tasks.
+This historical V5-1b assembler status is superseded by the V5-2 assembler
+semantics section below.
 See [executable semantics](synthetic-generation-semantics-v0.5.md),
 [models](../../src/blastbridge/simulation/models.py), and
 [validator](../../src/blastbridge/simulation/execution.py).
@@ -155,6 +157,8 @@ approval/reference checks, then validates execution semantics. The original
 `authorize_fictional_generation` and real future-generation gate are unchanged.
 `generate` requires and authorizes a mapping, preserves dependency/MCAR refusal,
 and otherwise raises `assembler pending V5-2`. No career data is generated here.
+This historical V5-1b stub behavior, including its MCAR refusal, is superseded
+by the V5-2 assembler semantics section below.
 
 ## Field-source coverage hardening (V5-1b correction 2)
 
@@ -266,6 +270,10 @@ S7 Timestamps (unit hours, float, no rounding; all timestamps are UTC-aware).
 - MISSION: `start = session.start_time + offset`, `end = start + duration`.
 - EVENT: `timestamp = session.start_time + offset`.
 
+A session must lie within its training period's inclusive UTC calendar days,
+i.e. up to `end_date` at `time.max` UTC, as specified in
+synthetic-generation-semantics-v0.5.md §5.
+
 S8 Missions.
 - One MISSION applicability draw per session (boolean code 0/1). On 0 the session has no missions, but its count draw still occurs so the draw structure stays stable.
 - V5-2 supports at most one mission per session. A count above 1 aborts with: `multiple missions per session: event-to-mission assignment undefined in V5-2`.
@@ -340,3 +348,35 @@ Only the structural evaluation operations (`sample`, the eight record names,
 `place`, and `mask`) execute in V5-2. Additional scenario-named evaluation
 operations are refused before RNG creation because they have no executable
 algorithm.
+
+### Unused placement references (V5-2 review R1)
+
+Preflight refuses each non-null reference not consumed by that record's
+`binding_offsets` algorithm with
+`placement <RecordType>: unused reference <field> refused in V5-2`.
+The consumed references are exactly:
+
+| Record | Consumed parameter references |
+| --- | --- |
+| MEMBER | `start_parameter_id`, `end_parameter_id` |
+| CAREER, ASSIGNMENT, TRAINING | `offset_parameter_id`, `duration_parameter_id`, `partition_parameter_id` |
+| SESSION | `offset_parameter_id`, `duration_parameter_id`, `count_parameter_id` |
+| MISSION | `offset_parameter_id`, `duration_parameter_id`, `count_parameter_id`, `mission_applicability_parameter_id` |
+| EVENT | `offset_parameter_id`, `count_parameter_id`, `mission_applicability_parameter_id` |
+
+Thus `shape_parameter_id` is always refused; start/end references on non-MEMBER
+rules, offset/duration/partition/count/applicability references on MEMBER,
+count references on CAREER/ASSIGNMENT/TRAINING, partition references on
+SESSION/MISSION/EVENT, applicability on CAREER/ASSIGNMENT/TRAINING/SESSION,
+and duration on EVENT are refused. Existing authorization may reject an invalid
+reference earlier; for example, count references on date-record rules cannot
+satisfy execution rule 3d's record/count-meaning pairing (or fail 3c first).
+The engine preflight remains a fail-closed backstop for these declarations.
+
+The multiple-population-component S10 refusal is also an unreachable backstop
+under the current authorization contract with distinct parameter IDs: rule 1a
+requires consumption of every component's frequency and rounds bindings, rule
+3d confines these bindings to the corresponding SESSION and EVENT count slots,
+and rule 6a permits only one placement rule of each type. MCAR rule 7d additionally
+requires an execution binding; configuration parameter-ID uniqueness prevents
+using a component binding in that slot. Lineage citations do not satisfy 1a.

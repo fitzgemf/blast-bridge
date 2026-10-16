@@ -14,6 +14,7 @@ from execution_mapping_fixtures import (
 
 from blastbridge.simulation import distributions, engine
 from blastbridge.simulation.execution import RECORD_STREAMS
+from blastbridge.simulation.fictional import authorize_fictional_execution
 from blastbridge.simulation.models import (
     Component,
     ComponentPopulationConfiguration,
@@ -191,7 +192,9 @@ def test_deterministic_masks(mechanism, monkeypatch):
 
 @pytest.mark.parametrize("p", [0, 1])
 def test_mcar_exactly_one_draw_per_occurrence_including_endpoints(p, monkeypatch):
-    inputs = assembly_missingness_fixture(MissingnessMechanism.MCAR, p)
+    config, scenario, approval, mapping = assembly_missingness_fixture(MissingnessMechanism.MCAR, p)
+    config = config.model_copy(update={"population_size": 2})
+    inputs = config, scenario, approval, mapping
     original = engine.child_rng
     draws = Counter()
     creations = Counter()
@@ -214,11 +217,18 @@ def test_mcar_exactly_one_draw_per_occurrence_including_endpoints(p, monkeypatch
 
     monkeypatch.setattr(engine, "child_rng", observed)
     dataset = engine.generate(*inputs)
-    assert len(draws) == len(dataset.assignments)
+    assert len(draws) == len(creations) == len(dataset.assignments) == 2
     assert set(draws.values()) == set(creations.values()) == {1}
     assert all((row.platform_id is None) == bool(p) for row in dataset.assignments)
-    assert list(draws) == [key((1, 1, 1), "mask", "platform-id")]
-    assert [row.assignment_id for row in dataset.assignments] == ["SYN-ASSIGNMENT-000001"]
+    expected_keys = [
+        key((1, 1, 1), "mask", "platform-id"),
+        key((2, 1, 1), "mask", "platform-id"),
+    ]
+    assert list(draws) == list(creations) == expected_keys
+    assert [row.assignment_id for row in dataset.assignments] == [
+        "SYN-ASSIGNMENT-000001",
+        "SYN-ASSIGNMENT-000002",
+    ]
 
 
 def test_independent_bindings_use_own_distributions_and_reproducible_keys(monkeypatch):
@@ -343,9 +353,15 @@ def forbid_operations(monkeypatch):
         "ParticipantExposure",
     ):
         monkeypatch.setattr(engine, name, unexpected)
+    assert all(operation is unexpected for operation in engine._execution_operations())
 
 
 def test_multiple_components_before_execution(monkeypatch):
+    """S10 is an unreachable backstop: rule 1a requires every component binding
+    to be consumed, but 3d restricts distinct frequency/rounds bindings to the
+    single SESSION/EVENT count slots permitted by rule 6a (and MCAR rule 7d
+    requires execution bindings, whose IDs cannot duplicate component bindings).
+    """
     config, scenario, approval, mapping = assembly_fixture()
     population = config.population_configuration.components[0]
     training = config.training_configuration.component_configurations[0]
@@ -719,3 +735,112 @@ def test_unknown_evaluation_operation_refused_before_execution(monkeypatch):
         match="evaluation operation test-undefined-operation: no executable algorithm",
     ):
         engine.generate(config, scenario, approval, mapping)
+
+
+@pytest.mark.parametrize(
+    "kind,reference",
+    [
+        (kind, reference)
+        for kinds, references in (
+            (
+                (RecordType.MEMBER,),
+                (
+                    "shape_parameter_id",
+                    "offset_parameter_id",
+                    "duration_parameter_id",
+                    "partition_parameter_id",
+                    "count_parameter_id",
+                    "mission_applicability_parameter_id",
+                ),
+            ),
+            (
+                (RecordType.CAREER, RecordType.ASSIGNMENT, RecordType.TRAINING),
+                (
+                    "shape_parameter_id",
+                    "start_parameter_id",
+                    "end_parameter_id",
+                    "count_parameter_id",
+                    "mission_applicability_parameter_id",
+                ),
+            ),
+            (
+                (RecordType.SESSION,),
+                (
+                    "shape_parameter_id",
+                    "start_parameter_id",
+                    "end_parameter_id",
+                    "partition_parameter_id",
+                    "mission_applicability_parameter_id",
+                ),
+            ),
+            (
+                (RecordType.MISSION,),
+                (
+                    "shape_parameter_id",
+                    "start_parameter_id",
+                    "end_parameter_id",
+                    "partition_parameter_id",
+                ),
+            ),
+            (
+                (RecordType.EVENT,),
+                (
+                    "shape_parameter_id",
+                    "start_parameter_id",
+                    "end_parameter_id",
+                    "duration_parameter_id",
+                    "partition_parameter_id",
+                ),
+            ),
+        )
+        for kind in kinds
+        for reference in references
+    ],
+)
+def test_unused_placement_references_refused_before_execution(kind, reference, monkeypatch):
+    config, scenario, approval, mapping = assembly_fixture()
+    mapping = placements(mapping, kind, **{reference: "test-placement-one"})
+    forbid_operations(monkeypatch)
+    expected = f"^placement {kind}: unused reference {reference} refused in V5-2$"
+    # Exercise every engine backstop, including invalid count/record pairings
+    # which authorization already refuses before the engine preflight runs.
+    with pytest.raises(ValueError, match=expected):
+        engine._preflight(config, mapping)
+    if reference == "count_parameter_id":
+        with pytest.raises(ValueError, match="^3c: count binding requires count meaning"):
+            engine.generate(config, scenario, approval, mapping)
+    else:
+        authorize_fictional_execution(config, scenario, approval, mapping)
+        with pytest.raises(ValueError, match=expected):
+            engine.generate(config, scenario, approval, mapping)
+
+
+@pytest.mark.parametrize(
+    "kind,reference,unused_reference",
+    [
+        (RecordType.CAREER, "partition_parameter_id", "count_parameter_id"),
+        (RecordType.ASSIGNMENT, "partition_parameter_id", "count_parameter_id"),
+        (RecordType.TRAINING, "partition_parameter_id", "count_parameter_id"),
+        (RecordType.SESSION, "count_parameter_id", "partition_parameter_id"),
+        (RecordType.MISSION, "count_parameter_id", "partition_parameter_id"),
+        (RecordType.EVENT, "count_parameter_id", "partition_parameter_id"),
+    ],
+)
+def test_child_count_selects_reference_by_record_type(
+    kind, reference, unused_reference, monkeypatch
+):
+    config, scenario, _, mapping = assembly_fixture()
+    mapping = placements(mapping, kind, **{unused_reference: "test-placement-end"})
+    assembler = engine._Assembler(config, scenario, mapping)
+    rule = next(rule for rule in mapping.placement_rules if rule.record_type == kind)
+    sampled = []
+
+    def observed(record, path, operation, parameter):
+        sampled.append((record, path, operation, parameter))
+        return 1
+
+    # Isolate selection from preflight: an unused reference can never override
+    # the parameter chosen by S4, even when count() is inspected on its own.
+    monkeypatch.setattr(assembler, "draw", observed)
+    assert assembler.count(kind, (1,)) == 1
+    assert sampled == [(kind, (1,), f"count:{kind.value}", getattr(rule, reference))]

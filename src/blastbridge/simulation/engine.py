@@ -7,7 +7,7 @@ from typing import Any, NoReturn
 
 from . import distributions
 from .execution import EXECUTION_GENERATOR_VERSION as EXECUTION_GENERATOR_VERSION
-from .execution import RECORD_STREAMS
+from .execution import PLACEMENT_REFERENCES, RECORD_STREAMS
 from .fictional import FictionalGenerationApproval, authorize_fictional_execution
 from .models import (
     AssignmentEpisode,
@@ -81,12 +81,55 @@ def _preflight(config: SimulationConfig, mapping: ExecutionMapping) -> None:
     for operation in mapping.evaluation_order:
         if operation not in operations:
             raise ValueError(f"evaluation operation {operation}: no executable algorithm in V5-2")
+    consumed_references = {
+        RecordType.MEMBER: {"start_parameter_id", "end_parameter_id"},
+        RecordType.CAREER: {
+            "offset_parameter_id",
+            "duration_parameter_id",
+            "partition_parameter_id",
+        },
+        RecordType.ASSIGNMENT: {
+            "offset_parameter_id",
+            "duration_parameter_id",
+            "partition_parameter_id",
+        },
+        RecordType.TRAINING: {
+            "offset_parameter_id",
+            "duration_parameter_id",
+            "partition_parameter_id",
+        },
+        RecordType.SESSION: {
+            "offset_parameter_id",
+            "duration_parameter_id",
+            "count_parameter_id",
+        },
+        RecordType.MISSION: {
+            "offset_parameter_id",
+            "duration_parameter_id",
+            "count_parameter_id",
+            "mission_applicability_parameter_id",
+        },
+        RecordType.EVENT: {
+            "offset_parameter_id",
+            "count_parameter_id",
+            "mission_applicability_parameter_id",
+        },
+    }
     for placement in mapping.placement_rules:
         if placement.shape != "binding_offsets":
             raise ValueError(
                 f"placement shape {placement.shape} for {placement.record_type}: "
                 "no executable algorithm in V5-2"
             )
+        for reference in PLACEMENT_REFERENCES:
+            if (
+                getattr(placement, reference) is not None
+                and reference not in consumed_references[placement.record_type]
+            ):
+                raise ValueError(
+                    f"placement {placement.record_type}: unused reference {reference} "
+                    "refused in V5-2"
+                )
     blocks: tuple[ConfigurationBlock | ComponentTrainingConfiguration, ...] = (
         config.career_configuration,
         config.assignment_configuration,
@@ -247,7 +290,10 @@ class _Assembler:
 
     def count(self, kind: RecordType, parent_path: tuple[int, ...]) -> int:
         rule = self.placements[kind]
-        parameter = rule.partition_parameter_id or rule.count_parameter_id
+        if kind in {RecordType.CAREER, RecordType.ASSIGNMENT, RecordType.TRAINING}:
+            parameter = rule.partition_parameter_id
+        else:
+            parameter = rule.count_parameter_id
         assert parameter is not None  # Authorized complete placement contract.
         value = self.draw(kind, parent_path, f"count:{kind.value}", parameter)
         return self.integer(value, rule.rounding, parent_path, parameter)
