@@ -2,7 +2,7 @@
 
 import importlib.util
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -138,7 +138,7 @@ def test_noncanonical_date_refused(saved_career, representation):
         value = member["service_start"]
         if representation == "integer":
             member["service_start"] = int(
-                datetime.fromisoformat(value).replace(tzinfo=timezone.utc).timestamp()
+                datetime.fromisoformat(value).replace(tzinfo=UTC).timestamp()
             )
         else:
             member["service_start"] = value + "T00:00:00"
