@@ -260,8 +260,7 @@ def build_inputs(
             ScenarioAssumption(
                 assumption_id=_ASSUMPTION,
                 statement=(
-                    "TEST FICTIONAL DEMO: every value is invented "
-                    "for software demonstration."
+                    "TEST FICTIONAL DEMO: every value is invented for software demonstration."
                 ),
                 scope="No actual member, unit, deployment or clinical record is represented.",
             ),
