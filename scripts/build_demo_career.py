@@ -4,6 +4,7 @@ import argparse
 import json
 from collections import Counter
 from datetime import date
+from itertools import pairwise
 from pathlib import Path
 
 from blastbridge.models.core import ResearchModel
@@ -50,7 +51,8 @@ from blastbridge.simulation.models import (
 from blastbridge.simulation.outputs import SyntheticOutput
 from blastbridge.simulation.persistence import save_career
 
-# Frozen 2026-10-16 by one-time curation (first passing seed in 0..999), selected for demo readability.
+# Frozen 2026-10-16 by one-time curation (first passing seed in 0..999),
+# selected for demo readability.
 DEMO_SEED: int | None = 0
 _DEMO_DIRECTORY = Path(__file__).resolve().parents[1] / "examples" / "fictional" / "demo-career"
 _ASSUMPTION = "test-demo-assumption"
@@ -257,7 +259,10 @@ def build_inputs(
         assumptions=(
             ScenarioAssumption(
                 assumption_id=_ASSUMPTION,
-                statement="TEST FICTIONAL DEMO: every value is invented for software demonstration.",
+                statement=(
+                    "TEST FICTIONAL DEMO: every value is invented "
+                    "for software demonstration."
+                ),
                 scope="No actual member, unit, deployment or clinical record is represented.",
             ),
         ),
@@ -557,7 +562,7 @@ def build_inputs(
 
 def _overlap(spans: list[tuple[date, date]]) -> bool:
     ordered = sorted(spans)
-    return any(right[0] <= left[1] for left, right in zip(ordered, ordered[1:]))
+    return any(right[0] <= left[1] for left, right in pairwise(ordered))
 
 
 def demo_quality(dataset: SyntheticCareerDataset) -> list[str]:
