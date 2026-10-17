@@ -2,6 +2,7 @@
 
 import importlib.util
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -127,6 +128,32 @@ def test_tampered_foreign_key_refused(saved_career):
         payload["tables"]["synthetic_assignments"][0]["career_episode_id"] = "SYN-CAREER-999999"
 
     with pytest.raises(ValueError, match="career validation failed"):
+        load_career(*_tamper(saved_career, change))
+
+
+@pytest.mark.parametrize("representation", ["integer", "datetime"])
+def test_noncanonical_date_refused(saved_career, representation):
+    def change(payload):
+        member = payload["tables"]["synthetic_members"][0]
+        value = member["service_start"]
+        if representation == "integer":
+            member["service_start"] = int(
+                datetime.fromisoformat(value).replace(tzinfo=timezone.utc).timestamp()
+            )
+        else:
+            member["service_start"] = value + "T00:00:00"
+
+    with pytest.raises(ValueError, match="career tables are not in canonical serialized form"):
+        load_career(*_tamper(saved_career, change))
+
+
+def test_noncanonical_timestamp_offset_refused(saved_career):
+    def change(payload):
+        event = payload["tables"]["synthetic_firing_events"][0]
+        timestamp = datetime.fromisoformat(event["timestamp"])
+        event["timestamp"] = timestamp.astimezone(timezone(timedelta(hours=1))).isoformat()
+
+    with pytest.raises(ValueError):
         load_career(*_tamper(saved_career, change))
 
 

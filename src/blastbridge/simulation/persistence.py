@@ -3,6 +3,7 @@
 import json
 import os
 import tempfile
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -135,7 +136,16 @@ def load_career(
         dataset = SyntheticCareerDataset.model_validate(
             {field: tables[name] for name, field in _TABLE_FIELDS.items()}
         )
-        SyntheticOutput(config=config, scenario=scenario, records=dataset)
+        output = SyntheticOutput(config=config, scenario=scenario, records=dataset)
     except ValueError as error:
         raise ValueError(f"career validation failed: {error}") from error
+    if {name: list(rows) for name, rows in serialize_output(output).items()} != tables:
+        raise ValueError("career tables are not in canonical serialized form")
+    timestamps = (
+        *(value for row in dataset.live_fire_sessions for value in (row.start_time, row.end_time)),
+        *(value for row in dataset.firing_missions for value in (row.start_time, row.end_time)),
+        *(row.timestamp for row in dataset.firing_events),
+    )
+    if any(value.utcoffset() != timedelta(0) for value in timestamps):
+        raise ValueError("career timestamps must be UTC")
     return dataset
