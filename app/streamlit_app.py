@@ -1,6 +1,7 @@
 """BlastBridge recorder demo. FICTIONAL data only. Run: streamlit run app/streamlit_app.py"""
 
 import os
+import sqlite3
 from datetime import date
 from enum import StrEnum
 from pathlib import Path
@@ -120,8 +121,8 @@ def form_values(d: TrainingEventDraft | None = None) -> dict[str, object]:
             "f_weapon": "m142-himars" if "m142-himars" in weapons() else next(iter(weapons())),
             "f_location": "",
             "f_crew": "Launcher 1",
-            "f_known": "Known",
-            "f_count": 6,
+            "f_known": None,
+            "f_count": None,
             **{f"f_{pos}": None for pos in POSITIONS},
         }
     crew = d.crews[0]
@@ -134,7 +135,7 @@ def form_values(d: TrainingEventDraft | None = None) -> dict[str, object]:
         "f_location": d.location_unit or "",
         "f_crew": crew.crew_name,
         "f_known": "Unknown" if crew.physical_event_count is None else "Known",
-        "f_count": crew.physical_event_count or 6,
+        "f_count": crew.physical_event_count,
         **{f"f_{pos}": by_position.get(pos) for pos in POSITIONS},
     }
 
@@ -142,11 +143,13 @@ def form_values(d: TrainingEventDraft | None = None) -> dict[str, object]:
 def open_form(event: TrainingEvent | None = None) -> None:
     st.session_state["form_init"] = form_values(event.draft if event else None)
     st.session_state["editing_event_id"] = event.event_id if event else None
+    st.session_state["editing_revision"] = event.revision if event else None
     st.switch_page(PAGES["new"])
 
 
 def open_review(event_id: str) -> None:
     st.session_state["review_event_id"] = event_id
+    st.session_state["last_decided"] = None
     st.switch_page(PAGES["review"])
 
 
@@ -240,7 +243,7 @@ def new_event() -> None:
         )
         if st.session_state["f_known"] == "Known":
             st.number_input("Number of physical launches", min_value=1, step=1, key="f_count")
-        else:
+        elif st.session_state["f_known"] == "Unknown":
             st.caption("Recorded as **Unknown**. It will not be treated as zero.")
 
     with st.container(border=True):
@@ -268,6 +271,12 @@ def new_event() -> None:
     if missing:
         st.error(f"Select a person for: {', '.join(missing)}.")
         return
+    if s["f_known"] is None:
+        st.error("Choose whether the launch count is Known or Unknown.")
+        return
+    if s["f_known"] == "Known" and s.get("f_count") is None:
+        st.error("Enter the number of physical launches, or choose Unknown.")
+        return
     try:
         draft = TrainingEventDraft(
             event_date=s["f_date"],
@@ -289,22 +298,81 @@ def new_event() -> None:
     except ValidationError as exc:
         st.error(" ".join(e["msg"].removeprefix("Value error, ") for e in exc.errors()))
         return
-    if editing:
-        store.update_draft(CONN, editing, draft)
-        event_id = editing
-    else:
-        event_id = store.save_draft(CONN, draft)
+    try:
+        if editing:
+            store.update_draft(CONN, editing, draft, s["editing_revision"])
+            event_id = editing
+        else:
+            event_id = store.save_draft(CONN, draft)
+    except (store.StoreError, sqlite3.Error) as exc:
+        st.error(f"Could not save this draft: {exc}")
+        return
     st.session_state["editing_event_id"] = None
     open_review(event_id)
 
 
+def status_pill(event: TrainingEvent) -> str:
+    return {
+        EventStatus.DRAFT: '<span class="bb-pill draft">Draft · awaiting approval</span>',
+        EventStatus.APPROVED: (
+            '<span class="bb-pill approved">Approved · in personnel history</span>'
+        ),
+        EventStatus.REJECTED: '<span class="bb-pill">Rejected · not in history</span>',
+    }[event.status]
+
+
+def decide(action: str, event: TrainingEvent) -> None:
+    try:
+        if action == "approve":
+            store.approve_event(CONN, event.event_id, event.revision)
+        else:
+            store.reject_event(CONN, event.event_id, event.revision)
+    except (store.StoreError, sqlite3.Error) as exc:
+        st.session_state["review_notice"] = f"Not recorded: {exc}"
+    else:
+        st.session_state["last_decided"] = event.event_id
+    st.session_state["review_event_id"] = None
+    st.rerun()
+
+
+def show_decision(event_id: str) -> None:
+    try:
+        event = store.get_event(CONN, event_id)
+    except store.StoreError:
+        st.session_state["last_decided"] = None
+        return
+    d = event.draft
+    with st.container(border=True):
+        st.markdown(
+            f"{status_pill(event)} &nbsp; **{d.weapon_name}** · {d.event_date:%d %b %Y} · "
+            f"<small>{event.event_id}</small>",
+            unsafe_allow_html=True,
+        )
+        if event.status is not EventStatus.APPROVED:
+            st.caption("This event was not added to anyone's history.")
+            return
+        st.success("Approved. Each participant's history now includes this event.")
+        members = [m for crew in d.crews for m in crew.members]
+        for col, m in zip(st.columns(len(members)), members, strict=True):
+            if col.button(f"View {PEOPLE[m.person_id].display_name}", key=f"h-{m.person_id}"):
+                open_history(m.person_id)
+
+
 def review() -> None:
     header("Review training event", "Nothing enters personnel history until you approve it.")
+    notice = st.session_state.pop("review_notice", None)
+    if notice:
+        st.error(notice)
+    decided = st.session_state.get("last_decided")
+    if decided:
+        show_decision(decided)
+
     drafts = store.list_events(CONN, EventStatus.DRAFT, limit=50)
     event_id = st.session_state.get("review_event_id")
     if event_id is None:
         if not drafts:
-            st.info("No drafts are awaiting review.")
+            if not decided:
+                st.info("No drafts are awaiting review.")
             if st.button("+ Record Training Event", type="primary"):
                 open_form()
             return
@@ -317,17 +385,26 @@ def review() -> None:
                 if e.event_id == i
             ),
         )
-    event = store.get_event(CONN, event_id)
+    try:
+        event = store.get_event(CONN, event_id)
+    except store.StoreError:
+        st.session_state["review_event_id"] = None
+        st.session_state["review_notice"] = f"Event {event_id} no longer exists."
+        st.rerun()
+    if event.status is not EventStatus.DRAFT:
+        # Decided elsewhere (another session or tab): show the outcome, not a stale draft.
+        st.session_state["review_event_id"] = None
+        st.session_state["last_decided"] = event.event_id
+        st.rerun()
     d = event.draft
+    shown = st.session_state.get("review_shown")
+    if shown and shown[0] == event.event_id and shown[1] != event.revision:
+        st.warning("This draft changed since you opened it. Check the updated details below.")
+    st.session_state["review_shown"] = (event.event_id, event.revision)
 
-    pill = {
-        EventStatus.DRAFT: '<span class="bb-pill draft">Draft · awaiting approval</span>',
-        EventStatus.APPROVED: (
-            '<span class="bb-pill approved">Approved · in personnel history</span>'
-        ),
-        EventStatus.REJECTED: '<span class="bb-pill">Rejected · not in history</span>',
-    }[event.status]
-    st.markdown(f"{pill} &nbsp; <small>{event.event_id}</small>", unsafe_allow_html=True)
+    st.markdown(
+        f"{status_pill(event)} &nbsp; <small>{event.event_id}</small>", unsafe_allow_html=True
+    )
     st.write("")
 
     with st.container(border=True):
@@ -367,36 +444,30 @@ def review() -> None:
         a.metric("Physical events (launches)", count_text(n))
         b.metric("Participants", p)
         c.metric("Participant-event associations", count_text(links))
-        if n is None:
-            st.caption(
-                f"The launch count is **Unknown**. Each of the {p} participants will be linked to "
-                "this event with an Unknown count. It will not be treated as zero."
-            )
-        else:
-            st.caption(
-                f"{n} physical events × {p} participants = {links} participant-event "
-                f"associations. This records **{n} launches**, not {links}."
-            )
+        for crew in d.crews:
+            k, size = crew.physical_event_count, len(crew.members)
+            if k is None:
+                st.caption(
+                    f"{crew.crew_name}: the launch count is **Unknown**. Each of the {size} "
+                    "participants will be linked to this event with an Unknown count. "
+                    "It will not be treated as zero."
+                )
+            else:
+                st.caption(
+                    f"{crew.crew_name}: {k} physical events × {size} participants = "
+                    f"{k * size} participant-event associations. This records "
+                    f"**{k} launches**, not {k * size}."
+                )
 
-    if event.status is EventStatus.DRAFT:
-        a, b, c, _ = st.columns([1.3, 1, 1, 3])
-        if a.button("Approve Event", type="primary"):
-            store.approve_event(CONN, event.event_id)
-            st.rerun()
-        if b.button("Edit"):
-            open_form(event)
-        if c.button("Reject"):
-            store.reject_event(CONN, event.event_id)
-            st.rerun()
-    elif event.status is EventStatus.APPROVED:
-        st.success("Approved. Each participant's history now includes this event.")
-        cols = st.columns(len(d.crews[0].members) + 1)
-        for col, m in zip(cols, (m for crew in d.crews for m in crew.members), strict=False):
-            if col.button(f"View {PEOPLE[m.person_id].display_name}", key=f"h-{m.person_id}"):
-                open_history(m.person_id)
-    if event.status is not EventStatus.DRAFT and st.button("Back to dashboard"):
-        st.session_state["review_event_id"] = None
-        st.switch_page(PAGES["dashboard"])
+    # Keys carry the revision on screen: a click made on an older revision does not fire here.
+    key = f"{event.event_id}-r{event.revision}"
+    a, b, c, _ = st.columns([1.3, 1, 1, 3])
+    if a.button("Approve Event", type="primary", key=f"approve-{key}"):
+        decide("approve", event)
+    if b.button("Edit", key=f"edit-{key}"):
+        open_form(event)
+    if c.button("Reject", key=f"reject-{key}"):
+        decide("reject", event)
 
 
 def history() -> None:
@@ -425,7 +496,10 @@ def history() -> None:
     known = [e.physical_event_count for e in entries if e.physical_event_count is not None]
     a, b, c = st.columns(3)
     a.metric("Approved training events", len(entries))
-    b.metric("Physical events (known counts)", sum(known))
+    b.metric(
+        "Physical events (known counts)",
+        "Unknown" if entries and not known else sum(known),
+    )
     c.metric("Events with unknown count", len(entries) - len(known))
     st.caption(
         "Totals use known counts only. Events with an unknown count are listed and are never "

@@ -116,6 +116,7 @@ class TrainingEventDraft(ProductModel):
 class TrainingEvent(ProductModel):
     event_id: Text
     status: EventStatus
+    revision: Annotated[int, Field(ge=1, strict=True)]
     draft: TrainingEventDraft
 
 

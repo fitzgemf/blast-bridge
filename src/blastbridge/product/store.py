@@ -41,7 +41,8 @@ CREATE TABLE IF NOT EXISTS training_events (
     weapon_name TEXT NOT NULL,
     location_unit TEXT,
     created_at TEXT NOT NULL,
-    decided_at TEXT
+    decided_at TEXT,
+    revision INTEGER NOT NULL CHECK (revision >= 1)
 );
 CREATE TABLE IF NOT EXISTS crews (
     crew_id TEXT PRIMARY KEY,
@@ -87,10 +88,11 @@ def _transaction(conn: sqlite3.Connection) -> Iterator[None]:
     conn.execute("BEGIN IMMEDIATE")
     try:
         yield
+        conn.execute("COMMIT")
     except BaseException:
-        conn.execute("ROLLBACK")
+        if conn.in_transaction:
+            conn.execute("ROLLBACK")
         raise
-    conn.execute("COMMIT")
 
 
 def _now() -> str:
@@ -150,30 +152,41 @@ def _event_columns(draft: TrainingEventDraft) -> tuple[str, str, str, str, str, 
     )
 
 
-def _status(conn: sqlite3.Connection, event_id: str) -> EventStatus:
+def _reviewed_state(conn: sqlite3.Connection, event_id: str, revision: int) -> EventStatus:
+    """Status of the event, refusing if it changed since the caller's copy (revision)."""
     row = conn.execute(
-        "SELECT status FROM training_events WHERE event_id = ?", (event_id,)
+        "SELECT status, revision FROM training_events WHERE event_id = ?", (event_id,)
     ).fetchone()
     if row is None:
         raise StoreError(f"unknown event {event_id}")
+    if row["revision"] != revision:
+        raise StoreError(f"{event_id} changed since it was reviewed; review it again")
     return EventStatus(row["status"])
+
+
+def _require_draft(conn: sqlite3.Connection, event_id: str, revision: int) -> None:
+    status = _reviewed_state(conn, event_id, revision)
+    if status is not EventStatus.DRAFT:
+        raise StoreError(f"{event_id} is {status}, no longer a draft")
 
 
 def save_draft(conn: sqlite3.Connection, draft: TrainingEventDraft) -> str:
     event_id = f"EVT-{uuid4().hex[:8].upper()}"
     with _transaction(conn):
         conn.execute(
-            "INSERT INTO training_events VALUES (?, 'draft', ?, ?, ?, ?, ?, ?, ?, NULL)",
+            "INSERT INTO training_events VALUES (?, 'draft', ?, ?, ?, ?, ?, ?, ?, NULL, 1)",
             (event_id, *_event_columns(draft), _now()),
         )
         _write_draft(conn, event_id, draft)
     return event_id
 
 
-def update_draft(conn: sqlite3.Connection, event_id: str, draft: TrainingEventDraft) -> None:
+def update_draft(
+    conn: sqlite3.Connection, event_id: str, draft: TrainingEventDraft, revision: int
+) -> None:
+    """Replace a draft's content and crews; the revision advances so stale reviews are refused."""
     with _transaction(conn):
-        if _status(conn, event_id) is not EventStatus.DRAFT:
-            raise StoreError(f"{event_id} is no longer a draft")
+        _require_draft(conn, event_id, revision)
         conn.execute(
             "DELETE FROM crew_members WHERE crew_id IN "
             "(SELECT crew_id FROM crews WHERE event_id = ?)",
@@ -182,26 +195,29 @@ def update_draft(conn: sqlite3.Connection, event_id: str, draft: TrainingEventDr
         conn.execute("DELETE FROM crews WHERE event_id = ?", (event_id,))
         conn.execute(
             "UPDATE training_events SET event_date = ?, event_type = ?, training_context = ?, "
-            "weapon_system_id = ?, weapon_name = ?, location_unit = ? WHERE event_id = ?",
+            "weapon_system_id = ?, weapon_name = ?, location_unit = ?, revision = revision + 1 "
+            "WHERE event_id = ?",
             (*_event_columns(draft), event_id),
         )
         _write_draft(conn, event_id, draft)
 
 
-def reject_event(conn: sqlite3.Connection, event_id: str) -> None:
+def reject_event(conn: sqlite3.Connection, event_id: str, revision: int) -> None:
     with _transaction(conn):
-        if _status(conn, event_id) is not EventStatus.DRAFT:
-            raise StoreError(f"{event_id} is no longer a draft")
+        _require_draft(conn, event_id, revision)
         conn.execute(
             "UPDATE training_events SET status = 'rejected', decided_at = ? WHERE event_id = ?",
             (_now(), event_id),
         )
 
 
-def approve_event(conn: sqlite3.Connection, event_id: str) -> bool:
-    """Approve a draft atomically. Returns False if it was already approved (no new history)."""
+def approve_event(conn: sqlite3.Connection, event_id: str, revision: int) -> bool:
+    """Approve exactly the reviewed revision of a draft, atomically.
+
+    Returns False if that revision was already approved (no new history).
+    """
     with _transaction(conn):
-        status = _status(conn, event_id)
+        status = _reviewed_state(conn, event_id, revision)
         if status is EventStatus.APPROVED:
             return False
         if status is not EventStatus.DRAFT:
@@ -261,7 +277,9 @@ def get_event(conn: sqlite3.Connection, event_id: str) -> TrainingEvent:
         location_unit=row["location_unit"],
         crews=tuple(crews),
     )
-    return TrainingEvent(event_id=event_id, status=row["status"], draft=draft)
+    return TrainingEvent(
+        event_id=event_id, status=row["status"], revision=row["revision"], draft=draft
+    )
 
 
 def list_events(

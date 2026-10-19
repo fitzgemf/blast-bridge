@@ -23,7 +23,7 @@ def conn(tmp_path):
     connection.close()
 
 
-def draft(count: int | None) -> TrainingEventDraft:
+def draft(count: int | None, crew: tuple[str, ...] = CREW) -> TrainingEventDraft:
     positions = (CrewPosition.CHIEF, CrewPosition.GUNNER, CrewPosition.DRIVER)
     return TrainingEventDraft(
         event_date=date(2026, 10, 14),
@@ -36,7 +36,7 @@ def draft(count: int | None) -> TrainingEventDraft:
                 crew_name="Launcher 1",
                 members=tuple(
                     CrewMember(person_id=p, position=pos)
-                    for p, pos in zip(CREW, positions, strict=True)
+                    for p, pos in zip(crew, positions, strict=True)
                 ),
                 physical_event_count=count,
             ),
@@ -56,7 +56,7 @@ def test_draft_is_not_in_history(conn):
 
 def test_approval_adds_history_for_crew_only(conn):
     event_id = store.save_draft(conn, draft(6))
-    assert store.approve_event(conn, event_id) is True
+    assert store.approve_event(conn, event_id, 1) is True
     roles = {p: store.member_history(conn, p) for p in CREW}
     assert [len(h) for h in roles.values()] == [1, 1, 1]
     assert roles["FIC-001"][0].position is CrewPosition.CHIEF
@@ -66,7 +66,7 @@ def test_approval_adds_history_for_crew_only(conn):
 
 def test_launch_count_is_not_multiplied_by_crew_size(conn):
     event_id = store.save_draft(conn, draft(6))
-    store.approve_event(conn, event_id)
+    store.approve_event(conn, event_id, 1)
     event = store.get_event(conn, event_id).draft
     assert (event.physical_event_count, event.participant_count) == (6, 3)
     assert event.association_count == 18
@@ -76,7 +76,7 @@ def test_launch_count_is_not_multiplied_by_crew_size(conn):
 
 def test_unknown_count_stays_unknown(conn):
     event_id = store.save_draft(conn, draft(None))
-    store.approve_event(conn, event_id)
+    store.approve_event(conn, event_id, 1)
     event = store.get_event(conn, event_id).draft
     assert event.physical_event_count is None
     assert event.association_count is None
@@ -87,7 +87,27 @@ def test_unknown_count_stays_unknown(conn):
 
 def test_second_approval_does_not_duplicate_history(conn):
     event_id = store.save_draft(conn, draft(6))
-    assert store.approve_event(conn, event_id) is True
-    assert store.approve_event(conn, event_id) is False
+    assert store.approve_event(conn, event_id, 1) is True
+    assert store.approve_event(conn, event_id, 1) is False
     assert exposure_rows(conn) == 3
     assert len(store.member_history(conn, "FIC-001")) == 1
+
+
+def test_only_the_reviewed_draft_can_be_approved(conn):
+    event_id = store.save_draft(conn, draft(6))
+    store.update_draft(conn, event_id, draft(4), revision=1)
+    with pytest.raises(store.StoreError):
+        store.approve_event(conn, event_id, 1)
+    store.reject_event(conn, event_id, 2)
+    with pytest.raises(store.StoreError):
+        store.approve_event(conn, event_id, 2)
+    assert exposure_rows(conn) == 0
+
+
+def test_edit_replaces_the_crew(conn):
+    event_id = store.save_draft(conn, draft(6))
+    store.update_draft(conn, event_id, draft(6, crew=("FIC-004", "FIC-002", "FIC-003")), 1)
+    assert store.approve_event(conn, event_id, 2) is True
+    assert store.member_history(conn, "FIC-001") == []
+    assert len(store.member_history(conn, "FIC-004")) == 1
+    assert exposure_rows(conn) == 3
