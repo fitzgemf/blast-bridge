@@ -99,8 +99,22 @@ def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
 
 
+_SCHEMA_VERSION = 2
+
+
 def init_db(conn: sqlite3.Connection) -> None:
+    """Create the schema; refuse a database written by an older build instead of misreading it."""
+    version = conn.execute("PRAGMA user_version").fetchone()[0]
+    existing = conn.execute(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'training_events'"
+    ).fetchone()[0]
+    if existing and version != _SCHEMA_VERSION:
+        raise StoreError(
+            "this database was created by an older BlastBridge build; "
+            "delete the demo database file and restart"
+        )
     conn.executescript(_SCHEMA)
+    conn.execute(f"PRAGMA user_version = {_SCHEMA_VERSION}")
 
 
 def seed_people(conn: sqlite3.Connection, people: Iterable[Person]) -> None:

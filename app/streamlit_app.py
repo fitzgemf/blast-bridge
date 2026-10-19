@@ -150,6 +150,7 @@ def open_form(event: TrainingEvent | None = None) -> None:
 def open_review(event_id: str) -> None:
     st.session_state["review_event_id"] = event_id
     st.session_state["last_decided"] = None
+    st.session_state["review_shown"] = None
     st.switch_page(PAGES["review"])
 
 
@@ -242,6 +243,8 @@ def new_event() -> None:
             "Launch / firing-event count", ["Known", "Unknown"], horizontal=True, key="f_known"
         )
         if st.session_state["f_known"] == "Known":
+            # Re-shown after Unknown: start empty rather than at min_value, which would invent 1.
+            st.session_state.setdefault("f_count", None)
             st.number_input("Number of physical launches", min_value=1, step=1, key="f_count")
         elif st.session_state["f_known"] == "Unknown":
             st.caption("Recorded as **Unknown**. It will not be treated as zero.")
@@ -305,8 +308,13 @@ def new_event() -> None:
         else:
             event_id = store.save_draft(CONN, draft)
     except (store.StoreError, sqlite3.Error) as exc:
-        st.error(f"Could not save this draft: {exc}")
-        return
+        if not editing:
+            st.error(f"Could not save this draft: {exc}")
+            return
+        # The draft changed or was decided elsewhere: show its current state instead of retrying.
+        st.session_state["editing_event_id"] = None
+        st.session_state["review_notice"] = f"Your edits were not saved: {exc}"
+        open_review(editing)
     st.session_state["editing_event_id"] = None
     open_review(event_id)
 
