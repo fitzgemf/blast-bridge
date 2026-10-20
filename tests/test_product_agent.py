@@ -49,7 +49,7 @@ def text_turn(text):
     return ProviderTurn("end_turn", blocks, blocks, "stub-model")
 
 
-def proposal_provider(proposal, queries=(), name="stub"):
+def proposal_provider(proposal, queries=(("search_weapon_catalog", "HIMARS"),), name="stub"):
     turns = []
     if queries:
         blocks = [
@@ -101,6 +101,9 @@ def test_golden_run_stays_in_memory(conn, catalog, golden):
     trace = " ".join(step.text for step in result.trace)
     assert "weapon catalog" in trace and "fictional roster" in trace
     assert result.origins["Weapon"] == "weapon catalog"
+    assert result.origins["Activity"] == "AI interpretation"
+    assert result.origins["Training context"] == "AI interpretation"
+    assert result.origins["Date"] == "narrative"
     assert result.origins["Launcher 1 · Gunner"] == "fictional roster"
     assert before == [
         conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] for table in tables
@@ -123,6 +126,7 @@ def test_gate_refuses_bad_output(catalog, golden):
     proposals.append(future)
     duplicate = deepcopy(golden["stub_proposal"])
     duplicate["crews"][1]["members"][0]["person_id"] = "FIC-001"
+    duplicate["crews"][1]["members"][0]["name_text"] = "Avery Kestrel"
     proposals.append(duplicate)
     approximate = deepcopy(golden["stub_proposal"])
     approximate["crews"][0].update(
@@ -144,9 +148,38 @@ def test_gate_refuses_bad_output(catalog, golden):
     assert result.form_values["f_c0_known"] is None
 
 
+def test_gate_refuses_name_id_mismatch_and_missing_weapon_lookup(catalog, golden):
+    proposal = deepcopy(golden["stub_proposal"])
+    proposal["crews"][0]["members"][2].update(name_text="Alex", person_id="FIC-008")
+    result = run_intake(
+        GOLDEN_NARRATIVE,
+        proposal_provider(proposal),
+        catalog,
+        DEMO_PEOPLE,
+        TODAY,
+    )
+    assert result.draft is None and any(issue.blocking for issue in result.issues)
+    assert result.form_values["f_c0_driver"] is None
+    assert any("'Alex'" in issue.message for issue in result.issues)
+    no_lookup = run_intake(
+        GOLDEN_NARRATIVE,
+        proposal_provider(golden["stub_proposal"], queries=()),
+        catalog,
+        DEMO_PEOPLE,
+        TODAY,
+    )
+    assert no_lookup.draft is None and no_lookup.form_values["f_weapon"] is None
+    assert any("not returned by a catalog lookup" in issue.message for issue in no_lookup.issues)
+
+
 def test_bounds_and_provider_failures(catalog, golden):
     blocks = [
-        {"type": "tool_use", "id": "again", "name": "search_roster", "input": {"query": "Pike"}}
+        {
+            "type": "tool_use",
+            "id": "again",
+            "name": "search_weapon_catalog",
+            "input": {"query": "HIMARS"},
+        }
     ]
     repeated = ScriptedProvider([ProviderTurn("tool_use", blocks, blocks, "stub")] * 5)
     result = run_intake(GOLDEN_NARRATIVE, repeated, catalog, DEMO_PEOPLE, TODAY)
@@ -163,12 +196,13 @@ def test_bounds_and_provider_failures(catalog, golden):
     assert failed.narrative == GOLDEN_NARRATIVE
     fixed = ScriptedProvider(
         [
+            ProviderTurn("tool_use", blocks, blocks, "stub"),
             text_turn("not JSON"),
             text_turn(json.dumps(golden["stub_proposal"])),
         ]
     )
     result = run_intake(GOLDEN_NARRATIVE, fixed, catalog, DEMO_PEOPLE, TODAY)
-    assert result.model_calls == 2 and result.draft is not None
+    assert result.model_calls == 3 and result.draft is not None
     invalid = ScriptedProvider([text_turn("not JSON")] * 4)
     result = run_intake(GOLDEN_NARRATIVE, invalid, catalog, DEMO_PEOPLE, TODAY)
     assert result.error and result.model_calls == 2

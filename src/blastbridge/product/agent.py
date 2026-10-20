@@ -13,7 +13,7 @@ from blastbridge.models.enums import EventType
 from blastbridge.models.reference import CanonicalWeapon
 from blastbridge.models.training_tempo import TrainingContext
 
-from .agent_tools import TOOL_DEFINITIONS, search_roster, search_weapon_catalog
+from .agent_tools import TOOL_DEFINITIONS, normalize, search_roster, search_weapon_catalog
 from .models import Crew, CrewMember, CrewPosition, Person, TrainingEventDraft
 
 
@@ -155,12 +155,14 @@ def _gate(
     catalog: Sequence[CanonicalWeapon],
     people: Sequence[Person],
     today: date,
+    lookup_weapon_ids: set[str],
 ) -> None:
     result.proposal = proposal
     weapons = {weapon.weapon_system_id: weapon for weapon in catalog}
     roster = {person.person_id: person for person in people}
     values = result.form_values
     origins = result.origins
+    normalized_narrative = normalize(result.narrative)
 
     def issue(label: str, message: str, blocking: bool = True) -> None:
         result.issues.append(Issue(label, message, blocking))
@@ -180,20 +182,28 @@ def _gate(
         issue("Date", "Event date cannot be in the future")
         event_date = None
     values["f_date"] = event_date
-    origins["Date"] = "narrative" if event_date else "unresolved"
+    date_in_narrative = bool(
+        proposal.event_date and normalize(proposal.event_date) in normalized_narrative
+    ) or bool({"today", "yesterday"} & set(normalized_narrative.split()))
+    origins["Date"] = (
+        ("narrative" if date_in_narrative else "AI interpretation") if event_date else "unresolved"
+    )
     for label, key, value in (
         ("Activity", "f_type", proposal.event_type),
         ("Training context", "f_context", proposal.training_context),
     ):
         values[key] = value
-        origins[label] = "narrative" if value else "unresolved"
+        origins[label] = "AI interpretation" if value else "unresolved"
         if value is None:
             issue(label, f"{label} is not stated → needs review")
     weapon = weapons.get(proposal.weapon_system_id or "")
-    values["f_weapon"] = weapon.weapon_system_id if weapon else None
-    origins["Weapon"] = "weapon catalog" if weapon else "unresolved"
     if weapon is None:
         issue("Weapon", "Weapon is not resolved in the catalog → needs review")
+    if proposal.weapon_system_id not in lookup_weapon_ids:
+        issue("Weapon", "Weapon was not returned by a catalog lookup in this run")
+        weapon = None
+    values["f_weapon"] = weapon.weapon_system_id if weapon else None
+    origins["Weapon"] = "weapon catalog" if weapon else "unresolved"
     location = proposal.location_unit
     if location and location not in result.narrative:
         issue("Location / unit", "Location / unit is not verbatim narrative text → needs review")
@@ -231,11 +241,25 @@ def _gate(
             candidates = [member for member in proposed.members if member.position is position]
             person_id = candidates[0].person_id if len(candidates) == 1 else None
             person = roster.get(person_id or "")
+            name_text = candidates[0].name_text if len(candidates) == 1 else ""
+            normalized_name = normalize(name_text)
+            matches = search_roster(name_text, people)
+            if not (
+                normalized_name
+                and normalized_name in normalized_narrative
+                and len(matches) == 1
+                and matches[0]["person_id"] == person_id
+            ):
+                person = None
             values[prefix + position] = person.person_id if person else None
             label = f"{name} · {position.label}"
             origins[label] = "fictional roster" if person else "unresolved"
             if person is None:
-                issue(label, f"{label} is unresolved; select exactly one fictional person")
+                issue(
+                    label,
+                    f"{label}: {name_text!r} does not match exactly one fictional person; "
+                    "select the person",
+                )
             else:
                 members.append(CrewMember(person_id=person.person_id, position=position))
         if known is not None and len(members) == 3:
@@ -284,6 +308,7 @@ def run_intake(
         }
     ]
     retry = False
+    lookup_weapon_ids: set[str] = set()
     # Three ordinary calls, with a fourth available only to repair final JSON validation.
     for call in range(1, MAX_MODEL_CALLS + 2):
         if call > MAX_MODEL_CALLS and not retry:
@@ -329,6 +354,10 @@ def run_intake(
                     query = arguments["query"]
                     if name == "search_weapon_catalog":
                         rows = search_weapon_catalog(query, catalog)
+                        for row in rows:
+                            weapon_id = row["weapon_system_id"]
+                            if isinstance(weapon_id, str):
+                                lookup_weapon_ids.add(weapon_id)
                         summary = (
                             ", ".join(
                                 f"{row['canonical_name']} ({row['weapon_system_id']})"
@@ -381,7 +410,7 @@ def run_intake(
             )
             continue
         result.trace.append(TraceStep(True, "Model returned a structured proposal"))
-        _gate(result, proposal, catalog, people, today)
+        _gate(result, proposal, catalog, people, today, lookup_weapon_ids)
         return result
     result.error = "The model reached the intake call limit. Please use manual entry."
     return result

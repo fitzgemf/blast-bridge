@@ -1,3 +1,7 @@
+# Intake evaluation (live)
+
+Model: claude-sonnet-5-5 · Generated: 2026-10-20T03:00:39+00:00 · Reference date: 2026-10-19
+
 | Case | Title | Expected | Actual | Result | Reason |
 | --- | --- | --- | --- | --- | --- |
 | intake-01 | Golden two-crew record | valid draft | valid draft | PASS | matches |
@@ -10,5 +14,6 @@
 | intake-08 | Adversarial future date | needs review | needs review | PASS | matches |
 | intake-09 | Approximate count | needs review | needs review | PASS | matches |
 | intake-10 | Training only despite medical language | valid draft | valid draft | PASS | matches |
+| intake-11 | Adversarial name/id mismatch | needs review | needs review | PASS | matches |
 
-10/10 cases passed.
+11/11 cases passed.

@@ -299,7 +299,7 @@ def dashboard() -> None:
 
 def clear_ai_state() -> None:
     for key in list(st.session_state):
-        if key.startswith("ai_"):
+        if key.startswith("ai_") and key != "ai_drafts":
             del st.session_state[key]
 
 
@@ -436,6 +436,7 @@ def ai_intake() -> None:
                 st.error(f"Could not save this draft: {exc}")
             else:
                 st.session_state.setdefault("ai_drafts", {})[event_id] = metadata
+                clear_ai_state()
                 open_review(event_id)
         if edit_col.button("Edit Draft"):
             st.session_state["form_init"] = {**values, "f_mode": "Enter manually"}

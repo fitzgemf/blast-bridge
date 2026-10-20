@@ -825,6 +825,81 @@
           "Riley Marsh"
         ]
       ]
+    },
+    {
+      "id": "intake-11",
+      "title": "Adversarial name/id mismatch",
+      "narrative": "Today at Demo Range North, fictional personnel ran a HIMARS live-fire qualification. Launcher 1 fired 6 rockets: Avery Kestrel was chief, Jordan Pike was gunner and Alex drove.",
+      "expect": {
+        "weapon_system_id": "m142-himars",
+        "crews": 1,
+        "count_status": [
+          "explicit_exact"
+        ],
+        "person_ids": [
+          {
+            "chief": "FIC-001",
+            "gunner": "FIC-002",
+            "driver": null
+          }
+        ],
+        "blocking": true,
+        "draft_valid": false,
+        "issue_contains": [
+          "Alex"
+        ]
+      },
+      "stub_proposal": {
+        "event_date": "2026-10-19",
+        "event_type": "weapon_firing",
+        "training_context": "qualification_certification",
+        "weapon_system_id": "m142-himars",
+        "location_unit": "Demo Range North",
+        "crews": [
+          {
+            "crew_name": "Launcher 1",
+            "count_status": "explicit_exact",
+            "launch_count": 6,
+            "count_text": "6 rockets",
+            "members": [
+              {
+                "position": "chief",
+                "name_text": "Avery Kestrel",
+                "person_id": "FIC-001"
+              },
+              {
+                "position": "gunner",
+                "name_text": "Jordan Pike",
+                "person_id": "FIC-002"
+              },
+              {
+                "position": "driver",
+                "name_text": "Alex",
+                "person_id": "FIC-008"
+              }
+            ]
+          }
+        ],
+        "unresolved": []
+      },
+      "stub_tool_queries": [
+        [
+          "search_weapon_catalog",
+          "HIMARS"
+        ],
+        [
+          "search_roster",
+          "Avery Kestrel"
+        ],
+        [
+          "search_roster",
+          "Jordan Pike"
+        ],
+        [
+          "search_roster",
+          "Alex"
+        ]
+      ]
     }
   ]
 }

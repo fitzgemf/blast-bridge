@@ -2,7 +2,7 @@
 
 import argparse
 import json
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -96,6 +96,7 @@ def main() -> None:
         REPLAY_PATH.write_text(
             json.dumps(replay_record(result, today), indent=2) + "\n",
             encoding="utf-8",
+            newline="\n",
         )
         print("Recorded the validated fictional golden replay.")
         return
@@ -105,9 +106,12 @@ def main() -> None:
         "| --- | --- | --- | --- | --- | --- |",
     ]
     passed = 0
+    model = "claude-sonnet-5-5" if live else "deterministic-stub"
     for case in cases:
         provider = AnthropicProvider() if live else scripted(case)
         result = run_intake(case["narrative"], provider, catalog, DEMO_PEOPLE, today)
+        if live and result.model:
+            model = result.model
         reasons = check(case, result)
         passed += not reasons
         expected = "valid draft" if case["expect"]["draft_valid"] else "needs review"
@@ -122,11 +126,26 @@ def main() -> None:
             f"{'FAIL' if reasons else 'PASS'} | {reason} |"
         )
     lines.append(f"\n{passed}/{len(cases)} cases passed.")
-    report = "\n".join(lines) + "\n"
+    header = [
+        f"# Intake evaluation ({args.mode})",
+        "",
+        f"Model: {model} · Generated: {datetime.now(UTC).isoformat(timespec='seconds')} "
+        f"· Reference date: {today.isoformat()}",
+        "",
+    ]
+    if not live:
+        header.extend(
+            [
+                "Deterministic mode scripts each model proposal (including adversarial ones) "
+                "to test the Python gate; it does not measure the model.",
+                "",
+            ]
+        )
+    report = "\n".join([*header, *lines]) + "\n"
     print(report)
     if args.write:
         path = CASE_PATH.parent / f"eval_report_{args.mode}.md"
-        path.write_text(report, encoding="utf-8")
+        path.write_text(report, encoding="utf-8", newline="\n")
 
 
 if __name__ == "__main__":

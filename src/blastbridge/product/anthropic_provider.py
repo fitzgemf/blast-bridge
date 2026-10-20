@@ -50,6 +50,8 @@ class AnthropicProvider:
             raise ProviderError(f"API error {exc.status_code}") from None
         except self._sdk.APIConnectionError:
             raise ProviderError("network unavailable") from None
+        except self._sdk.AnthropicError:
+            raise ProviderError("AI request failed") from None
         if response.stop_reason == "refusal":
             raise ProviderError("The model declined this request.")
         if response.stop_reason == "max_tokens":
