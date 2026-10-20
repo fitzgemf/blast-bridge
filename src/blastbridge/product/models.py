@@ -160,6 +160,7 @@ class HistoryEntry(ProductModel):
     event_date: date
     event_type: EventType
     training_context: TrainingContext
+    weapon_system_id: Text
     weapon_name: Text
     location_unit: Text | None
     crew_name: Text

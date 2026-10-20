@@ -1,4 +1,4 @@
-"""Compare occupational event days with a fictional simulation baseline."""
+"""Compare recorded HIMARS cadence with an SME-informed fictional scenario reference."""
 
 from __future__ import annotations
 
@@ -40,28 +40,37 @@ DAYS_CAP = 730
 ANOMALY_PERCENTILE = 5.0
 MODEL_PARAMS = {"n_estimators": 100, "random_state": 20261019}
 BASELINE_DIR = Path(__file__).resolve().parents[3] / "examples/fictional/ml-baseline"
+REFERENCE_DIR = Path(__file__).resolve().parents[3] / "examples/fictional/ml-reference-himars"
+REFERENCE_LABEL = "SME-informed fictional HIMARS scenario reference"
+HIMARS_SCOPE = {"m142-himars"}
+COVERAGE_RULE = (
+    "A comparison requires HIMARS-scope records beginning at least 365 days before analysis_as_of "
+    "and at least one HIMARS event day in (analysis_as_of - 365 days, analysis_as_of]. "
+    "This is an analytic coverage rule, not a medical threshold."
+)
 DELIBERATELY_EXCLUDED = {
     "unknown-count fraction": (
-        "The fictional simulation baseline has no count missingness, so any unknown would look "
-        "atypical by construction. It is reported as a data-quality note instead."
+        "The fictional HIMARS scenario reference models dates only, with no count missingness. "
+        "Unknown activity counts are reported as data-quality notes instead."
     ),
     "distinct weapon families": (
-        "The fictional simulation baseline has one fictional family, so the feature is constant."
+        "The fictional HIMARS scenario reference covers HIMARS only, so the feature is constant."
     ),
     "physical-event counts": (
-        "Not comparable across families, and the fictional simulation baseline family is fictional."
+        "Not comparable across weapon families; the fictional reference contains dates only."
     ),
     "symptoms, medical and demographic fields": "Excluded by design.",
 }
 PATTERN_DISCLAIMER = (
-    "This compares recorded occupational activity with a fictional simulation baseline. "
+    "This compares recorded HIMARS occupational cadence with an SME-informed fictional "
+    "HIMARS scenario reference. "
     "It is not a medical risk score."
 )
 CONTEXT_NOTE = (
     "These values provide context for the pattern result. They are not medical risk factors "
     "and do not establish injury."
 )
-DIFFERING_HEADING = "Features that differ from the fictional baseline"
+DIFFERING_HEADING = "Features that differ from the fictional HIMARS scenario reference"
 BASELINE_LABEL = "FICTIONAL SIMULATION BASELINE — NOT CLINICAL DATA"
 
 
@@ -95,12 +104,23 @@ def unknown_count_fraction(entries: Sequence[HistoryEntry], analysis_as_of: date
 
 
 def load_baseline() -> tuple[NDArray[np.float64], dict[str, Any]]:
+    """Load the V0.5 sparse demo scenario for secondary stress testing only."""
     with (BASELINE_DIR / "baseline_features.csv").open(encoding="utf-8", newline="") as handle:
         reader = csv.reader(handle)
         if tuple(next(reader, ())) != FEATURE_NAMES:
             raise ValueError("fictional simulation baseline feature header does not match")
         rows = np.asarray([[float(value) for value in row] for row in reader], dtype=np.float64)
     metadata = json.loads((BASELINE_DIR / "metadata.json").read_text(encoding="utf-8"))
+    return rows, metadata
+
+
+def load_reference() -> tuple[NDArray[np.float64], dict[str, Any]]:
+    with (REFERENCE_DIR / "reference_features.csv").open(encoding="utf-8", newline="") as handle:
+        reader = csv.reader(handle)
+        if tuple(next(reader, ())) != FEATURE_NAMES:
+            raise ValueError("fictional HIMARS scenario reference feature header does not match")
+        rows = np.asarray([[float(value) for value in row] for row in reader], dtype=np.float64)
+    metadata = json.loads((REFERENCE_DIR / "metadata.json").read_text(encoding="utf-8"))
     return rows, metadata
 
 
@@ -117,9 +137,9 @@ def fit_pattern_model(rows: NDArray[np.float64], metadata: dict[str, Any]) -> Pa
     from sklearn.ensemble import IsolationForest
 
     if rows.ndim != 2 or rows.shape[1] != len(FEATURE_NAMES) or rows.shape[0] == 0:
-        raise ValueError("fictional simulation baseline must contain six-feature rows")
+        raise ValueError("fictional HIMARS scenario reference must contain six-feature rows")
     if not np.isfinite(rows).all():
-        raise ValueError("fictional simulation baseline features must be finite")
+        raise ValueError("fictional HIMARS scenario reference features must be finite")
     forest = IsolationForest(**MODEL_PARAMS)
     forest.fit(rows)
     scores = np.asarray(forest.score_samples(rows), dtype=np.float64)
@@ -143,12 +163,16 @@ def fit_pattern_model(rows: NDArray[np.float64], metadata: dict[str, Any]) -> Pa
 class PatternStatus(StrEnum):
     TYPICAL_RECORDED_PATTERN = "typical_recorded_pattern"
     ATYPICAL_OCCUPATIONAL_PATTERN = "atypical_occupational_pattern"
+    PATTERN_NOT_AVAILABLE = "pattern_not_available"
 
     @property
     def label(self) -> str:
         return {
             self.TYPICAL_RECORDED_PATTERN: "Typical recorded pattern",
             self.ATYPICAL_OCCUPATIONAL_PATTERN: "Atypical occupational pattern",
+            self.PATTERN_NOT_AVAILABLE: (
+                "Not enough applicable recorded history for this prototype comparison."
+            ),
         }[self]
 
 
@@ -166,17 +190,44 @@ class FeatureComparison:
 @dataclass(frozen=True)
 class PatternResult:
     status: PatternStatus
-    score: float
-    threshold: float
+    score: float | None
+    threshold: float | None
     analysis_as_of: date
     comparisons: tuple[FeatureComparison, ...]
     differing: tuple[FeatureComparison, ...]
+    reason: str | None = None
+    excluded_non_scope_records: int = 0
 
 
 def assess_pattern(
-    model: PatternModel, event_days: Iterable[date], analysis_as_of: date
+    model: PatternModel | None, entries: Sequence[HistoryEntry], analysis_as_of: date
 ) -> PatternResult:
-    features = occupational_features(event_days, analysis_as_of)
+    visible = [entry for entry in entries if entry.event_date <= analysis_as_of]
+    days = sorted({entry.event_date for entry in visible if entry.weapon_system_id in HIMARS_SCOPE})
+    excluded = sum(entry.weapon_system_id not in HIMARS_SCOPE for entry in visible)
+    lower = analysis_as_of - timedelta(days=365)
+    reason = None
+    if model is None:
+        reason = "pattern reference unavailable"
+    elif not days:
+        reason = "outside the HIMARS prototype scope"
+    elif days[0] > lower:
+        reason = "recorded history shorter than the 365-day comparison window"
+    elif not any(day > lower for day in days):
+        reason = "no HIMARS record in the prior 365 days"
+    if reason is not None:
+        return PatternResult(
+            status=PatternStatus.PATTERN_NOT_AVAILABLE,
+            score=None,
+            threshold=None,
+            analysis_as_of=analysis_as_of,
+            comparisons=(),
+            differing=(),
+            reason=reason,
+            excluded_non_scope_records=excluded,
+        )
+    assert model is not None
+    features = occupational_features(days, analysis_as_of)
     score = float(model.forest.score_samples(np.asarray([features], dtype=np.float64))[0])
     comparisons = tuple(
         FeatureComparison(
@@ -214,4 +265,5 @@ def assess_pattern(
         analysis_as_of=analysis_as_of,
         comparisons=comparisons,
         differing=tuple(differing),
+        excluded_non_scope_records=excluded,
     )

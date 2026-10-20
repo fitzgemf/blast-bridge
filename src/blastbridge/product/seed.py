@@ -78,6 +78,42 @@ def _demo_draft(
 
 
 DEMO_EVENTS: tuple[tuple[str, TrainingEventDraft], ...] = (
+    # Fictional backfill makes history coverage visible, not evidence about actual training.
+    # FIC-004/FIC-008 retain shorter histories; FIC-012 remains outside the HIMARS scope.
+    (
+        "EVT-DEMO-B1",
+        _demo_draft(
+            "2025-10-07",
+            TrainingContext.HOME_STATION,
+            (
+                ("Launcher 1", (1, 2, 3), 6),
+                ("Launcher 2", (5, 6, 7), 6),
+                ("Launcher 3", (9, 10, 11), None),
+            ),
+        ),
+    ),
+    (
+        "EVT-DEMO-B2",
+        _demo_draft(
+            "2026-01-21",
+            TrainingContext.ANNUAL_TRAINING,
+            (
+                ("Launcher 2", (5, 6, 8), 8),
+                ("Launcher 3", (9, 10, 11), 8),
+            ),
+        ),
+    ),
+    (
+        "EVT-DEMO-B3",
+        _demo_draft(
+            "2026-03-10",
+            TrainingContext.QUALIFICATION,
+            (
+                ("Launcher 2", (5, 6, 7), 4),
+                ("Launcher 3", (9, 10, 11), 4),
+            ),
+        ),
+    ),
     (
         "EVT-DEMO-01",
         _demo_draft(

@@ -19,7 +19,7 @@ from blastbridge.product.models import (
     IntakeSource,
     TrainingEvent,
 )
-from blastbridge.product.patterns import assess_pattern, fit_pattern_model, load_baseline
+from blastbridge.product.patterns import assess_pattern, fit_pattern_model, load_reference
 from blastbridge.product.readiness import ReadinessAssessment, ReadinessStatus, assess_readiness
 from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE, DEMO_SYMPTOMS
 from blastbridge.product.symptoms import (
@@ -90,6 +90,7 @@ def test_person_marks_separate_records_and_report_guidance():
         event_type=EventType.WEAPON_FIRING,
         training_context=TrainingContext.QUALIFICATION,
         weapon_name="Fictional demo system",
+        weapon_system_id="m142-himars",
         location_unit=None,
         crew_name="Fictional crew",
         position=CrewPosition.CHIEF,
@@ -156,7 +157,7 @@ def test_month_weeks_are_sunday_first_and_future_days_cannot_record():
 
 
 def test_demo_reset_reproduces_calendar_and_readiness():
-    rows, metadata = load_baseline()
+    rows, metadata = load_reference()
     model = fit_pattern_model(rows, metadata)
     conn = store.connect(":memory:")
     try:
@@ -170,7 +171,7 @@ def test_demo_reset_reproduces_calendar_and_readiness():
                 reports = store.list_symptom_reports(conn, person.person_id)
                 pattern = assess_pattern(
                     model,
-                    (entry.event_date for entry in entries),
+                    entries,
                     DEMO_STORY_DATE,
                 )
                 assessments[person.person_id] = assess_readiness(

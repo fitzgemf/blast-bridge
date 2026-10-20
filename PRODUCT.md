@@ -58,10 +58,11 @@ Evidence lines identify their sources separately; routine monitoring is not medi
 
 ## Occupational-pattern model
 
-The question is: “Does this person's recent recorded occupational activity pattern differ
-substantially from patterns in the fictional simulation baseline?”
-One attended session day in the simulation maps to one occupational event day; in the product,
-one approved training event day for a person maps to one occupational event day.
+The question is: “Does this person's recorded HIMARS occupational cadence differ substantially
+from the SME-informed fictional HIMARS scenario reference?” Only approved HIMARS records
+(`m142-himars`) enter this comparison. Other weapon records remain visible but are excluded,
+with their number reported. One fictional live-fire period/session maps to one occupational event
+day as a prototype scenario assumption, not evidence establishing equivalent event boundaries.
 Dates are distinct, later dates are ignored, and windows exclude their lower endpoint and include
 their upper endpoint. The six features are:
 
@@ -77,32 +78,58 @@ their upper endpoint. The six features are:
 
 Deliberately excluded:
 
-- Unknown-count fraction: the fictional simulation baseline has no count missingness, so unknowns
-  would appear atypical by construction. Show a data-quality note instead.
-- Distinct weapon families: the fictional simulation baseline has one fictional family; constant.
-- Physical-event counts: not comparable across weapon families; the reference family is fictional.
+- Unknown-count fraction: the date-only fictional reference has no count missingness; adding it
+  would make unknowns atypical by construction. Show a data-quality note instead.
+- Distinct weapon families: constant within this HIMARS-only prototype comparison.
+- Physical-event counts: not comparable across weapon families; the fictional reference uses dates.
 - Symptoms, medical and demographic fields: excluded by design.
 
 IsolationForest uses `n_estimators=100` and `random_state=20261019`, with scikit-learn 1.6.1.
-The prototype analytic threshold is the 5th percentile of fictional simulation baseline
+The prototype analytic threshold is the 5th percentile of fictional HIMARS scenario reference
 `score_samples`; lower values yield “Atypical occupational pattern.” This is not a clinical,
 blast or injury threshold. The score is never presented as a medical probability.
 Feature medians, IQRs and differing features explain comparison context, not medical risk factors.
 
-## Fictional simulation baseline provenance
+### Reference provenance and coverage
 
-The fictional simulation baseline is sparse: about 8 live-fire sessions per fictional career,
-clustered across 2012–2024, so regular monthly training can read as atypical relative to it;
-that is a property of the fictional simulation baseline, not a finding about the person.
+Evidence `tempo-sme-active-himars` says “approximately 4–5 live-fire training periods per year.”
+It is one retrospective SME recollection, with representativeness unknown, no verified logs or
+sampling frame, and unverified period/event boundaries and participant coverage. It does not
+establish Army-wide frequency, individual exposure frequency, a prior distribution or medical
+truth. Prior design `design-sme-active-himars` remains support level E, `source_only`, with
+`distribution_family none` and null parameters. The two rate endpoints are source-bound;
+their equal representation and all date-placement choices are prototype assumptions, not evidence.
 
-The V0.5 fictional generator runs the existing demo scenario with population 30 and seed 20261019.
-Analysis windows begin at service start +365 days, advance every 45 days and end at the bounded
-service end, producing 2910 windows. The build preserves the original simulation/scenario logic.
-Metadata records configuration fingerprint, mapping, versions, feature semantics and model settings.
-The fictional generator is NOT an empirical military population model and is NOT medical ground
-truth.
-The same inputs produce the same generated files; the baseline never includes the product roster's
-symptoms, health outcomes or demographic data.
+The tiny deterministic fixture builder outputs fictional occupational dates only. V5-2 executes
+independent `binding_offsets` placement and refuses `evenly_spaced` because it has no executable
+algorithm. That engine cannot express this career-wide scenario unchanged, so it is not used.
+No simulation semantics or evidence/prior records are changed.
+
+The scenario uses seed 20261020, 60 fictional careers at each endpoint (120 independent fictional
+careers), six 365-day years per career, starts at 1 Jan 2015 plus a deterministic 0–364-day offset,
+k distinct days drawn uniformly within each fictional year (least-informative placement given
+only a per-year count), using deterministic per-career/year seeds.
+Version 2 replaces only version 1's even spacing and ±20-day jitter, which made clustering
+unrepresentable and failed the pre-registered clustered/increase gates; those gates and the
+5th-percentile threshold remain unchanged.
+Windows begin at career start +365 days and advance every 45 days through career end.
+These are repeated observations of the same fictional careers, not independent subjects.
+Metadata retains assumptions, verbatim source limitations, rate summaries, zero shares, feature
+medians/IQRs and SHA256 fingerprints of the CSV bytes and canonical builder constants.
+The reference is fictional and is not an empirical military model or medical ground truth.
+
+The analytic coverage rule requires HIMARS records beginning at least 365 days before the analysis
+date and at least one HIMARS day in the prior 365-day window. This avoids treating absent records
+as absent activity. It is not a medical threshold. Available results are “Typical recorded pattern”
+or “Atypical occupational pattern”; neither establishes injury or its absence.
+The third state is “Not enough applicable recorded history for this prototype comparison.”
+Its reason identifies out-of-scope history, a shorter recording window, no recent HIMARS record,
+or an unavailable reference. It contributes no ML readiness signal and is not reassurance.
+
+Three earlier, explicitly fictional demo events (7 Oct 2025, 21 Jan 2026 and 10 Mar 2026) backfill
+the demo's recorded-history window. Some people intentionally retain short or M270-only history
+to demonstrate the unavailable state honestly. The original events and symptom reports are retained.
+The V0.5 sparse demo scenario is now only a secondary stress test.
 
 ## Research → product mapping
 
@@ -145,10 +172,7 @@ identifies atypical recorded occupational patterns only
 
 - [Live intake report](examples/fictional/intake/eval_report_live.md).
 - [Deterministic intake report](examples/fictional/intake/eval_report_deterministic.md).
-- [Occupational-pattern report](examples/fictional/ml-baseline/eval_report.md).
-
-The evaluation's roster table compares against the sparse fictional simulation baseline; regular
-monthly training can read as atypical because of that reference, not as a finding about the person.
+- [Occupational-pattern report](examples/fictional/ml-reference-himars/reference_report.md).
 
 Intake reports distinguish model performance from scripted tests of the Python gate.
 Pattern hypotheses are fixed before evaluation; mismatches are retained rather than tuned away.

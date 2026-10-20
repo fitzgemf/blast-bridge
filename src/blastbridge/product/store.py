@@ -400,6 +400,7 @@ def member_history(conn: sqlite3.Connection, person_id: str) -> list[HistoryEntr
     """Approved participation only, newest first."""
     rows = conn.execute(
         "SELECT e.event_id, e.event_date, e.event_type, e.training_context, e.weapon_name, "
+        "e.weapon_system_id, "
         "e.location_unit, e.intake_source, c.crew_name, x.position, x.participation_role, "
         "c.physical_event_count "
         "FROM participant_exposures x "

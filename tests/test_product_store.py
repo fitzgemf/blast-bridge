@@ -143,11 +143,11 @@ def test_multi_crew_counts_stay_with_their_own_people(conn):
 
 
 def test_demo_events_are_idempotent(conn):
-    assert store.seed_demo_events(conn, DEMO_EVENTS) == 6
+    assert store.seed_demo_events(conn, DEMO_EVENTS) == 9
     before = [tuple(row) for row in conn.execute("SELECT * FROM participant_exposures")]
     assert store.seed_demo_events(conn, DEMO_EVENTS) == 0
     assert [tuple(row) for row in conn.execute("SELECT * FROM participant_exposures")] == before
-    assert len(store.list_events(conn, EventStatus.APPROVED)) == 6
+    assert len(store.list_events(conn, EventStatus.APPROVED)) == 9
     assert all(
         store.get_event(conn, event_id).status is EventStatus.APPROVED
         for event_id, _ in DEMO_EVENTS

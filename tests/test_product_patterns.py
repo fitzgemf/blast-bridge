@@ -12,11 +12,12 @@ from blastbridge.product.followup import FollowUpState
 from blastbridge.product.models import CrewPosition, HistoryEntry, IntakeSource
 from blastbridge.product.patterns import (
     FEATURE_NAMES,
+    REFERENCE_DIR,
     PatternResult,
     PatternStatus,
     assess_pattern,
     fit_pattern_model,
-    load_baseline,
+    load_reference,
     occupational_features,
     unknown_count_fraction,
 )
@@ -31,6 +32,12 @@ from blastbridge.product.symptoms import (
     SymptomSource,
     TemporalRelationship,
 )
+from scripts.build_himars_reference import (
+    build_reference_rows,
+    reference_csv,
+    reference_fingerprint,
+)
+from scripts.eval_patterns import sanity_histories
 
 AS_OF = date(2026, 10, 19)
 PERSON_ID = "FIC-001"
@@ -48,6 +55,7 @@ def history_entry(day, count):
         event_type=EventType.WEAPON_FIRING,
         training_context=TrainingContext.QUALIFICATION,
         weapon_name="Fictional demo system",
+        weapon_system_id="m142-himars",
         location_unit="Fictional demo location",
         crew_name="Fictional crew",
         position=CrewPosition.CHIEF,
@@ -76,11 +84,16 @@ def report(day=AS_OF, danger=False):
 def pattern(status):
     return PatternResult(
         status=status,
-        score=-0.7 if status is PatternStatus.ATYPICAL_OCCUPATIONAL_PATTERN else -0.2,
-        threshold=-0.5,
+        score=None if status is PatternStatus.PATTERN_NOT_AVAILABLE else -0.7,
+        threshold=None if status is PatternStatus.PATTERN_NOT_AVAILABLE else -0.5,
         analysis_as_of=AS_OF,
         comparisons=(),
         differing=(),
+        reason=(
+            "pattern reference unavailable"
+            if status is PatternStatus.PATTERN_NOT_AVAILABLE
+            else None
+        ),
     )
 
 
@@ -117,17 +130,60 @@ def test_unknown_counts_are_data_quality_only():
     assert any("1 of 2 records" in note for note in readiness.data_quality_notes)
 
 
-def test_committed_fictional_simulation_baseline_is_reproducible():
-    rows, metadata = load_baseline()
+def test_committed_fictional_himars_reference_is_reproducible():
+    built = build_reference_rows()
+    assert built == build_reference_rows()
+    csv_bytes = reference_csv(built).encode("utf-8")
+    assert (REFERENCE_DIR / "reference_features.csv").read_bytes() == csv_bytes
+    rows, metadata = load_reference()
+    assert metadata["fingerprint"] == reference_fingerprint(csv_bytes)
     first = fit_pattern_model(rows, metadata)
     second = fit_pattern_model(rows, metadata)
     assert first.threshold == second.threshold
-    for days in (days_before(300, 180, 60), days_before(11, 8, 5, 3, 1), []):
-        assert assess_pattern(first, days, AS_OF).score == assess_pattern(second, days, AS_OF).score
+    for days in (days_before(500, 300, 180, 60), days_before(500, 11, 8, 5, 3, 1), []):
+        entries = [history_entry(day, None) for day in days]
+        assert assess_pattern(first, entries, AS_OF).score == (
+            assess_pattern(second, entries, AS_OF).score
+        )
     first_scores = first.forest.score_samples(rows)
     assert np.array_equal(first_scores, second.forest.score_samples(rows))
     flagged_share = float(np.mean(first_scores < first.threshold))
     assert 0.04 <= flagged_share <= 0.06
+
+
+def test_pre_registered_sanity_gates_and_scope_coverage():
+    rows, metadata = load_reference()
+    model = fit_pattern_model(rows, metadata)
+    for name, entries, expected in sanity_histories():
+        result = assess_pattern(model, entries, AS_OF)
+        assert result.status is expected, (name, result)
+        if expected is PatternStatus.PATTERN_NOT_AVAILABLE:
+            assert result.score is None and result.threshold is None
+            assert result.comparisons == () and result.differing == ()
+    _, applicable, _ = sanity_histories()[0]
+    unavailable = assess_pattern(None, applicable, AS_OF)
+    assert unavailable.reason == "pattern reference unavailable"
+    assert unavailable.status is PatternStatus.PATTERN_NOT_AVAILABLE
+    for offsets, weapon, reason in (
+        ((200, 10), "m142-himars", "recorded history shorter than the 365-day comparison window"),
+        ((600, 400), "m142-himars", "no HIMARS record in the prior 365 days"),
+        ((600, 10), "m270-mlrs", "outside the HIMARS prototype scope"),
+    ):
+        entries = [
+            history_entry(day, None).model_copy(update={"weapon_system_id": weapon})
+            for day in days_before(*offsets)
+        ]
+        result = assess_pattern(model, entries, AS_OF)
+        assert result.reason == reason
+        assert result.status is PatternStatus.PATTERN_NOT_AVAILABLE
+    other = history_entry(AS_OF, 999).model_copy(update={"weapon_system_id": "m270-mlrs"})
+    original = assess_pattern(model, applicable, AS_OF)
+    mixed = assess_pattern(model, applicable + [other], AS_OF)
+    assert mixed.excluded_non_scope_records == 1
+    assert mixed.comparisons == original.comparisons
+    assert mixed.score == original.score
+    future = history_entry(AS_OF + timedelta(days=1), 1)
+    assert assess_pattern(model, applicable + [future], AS_OF) == original
 
 
 def test_readiness_precedence_and_future_reports():
@@ -139,6 +195,9 @@ def test_readiness_precedence_and_future_reports():
     assert followup.symptom_followup_status is FollowUpState.FOLLOW_UP_SUGGESTED
     for status in PatternStatus:
         result = assess_readiness(PERSON_ID, [], [], pattern(status), AS_OF)
+        if status is PatternStatus.PATTERN_NOT_AVAILABLE:
+            assert result.overall_readiness_status is ReadinessStatus.ROUTINE_MONITORING
+            assert any("comparison not available" in line for line in result.evidence_lines)
         assert result.overall_readiness_status not in (
             ReadinessStatus.MEDICAL_FOLLOWUP_RECOMMENDED,
             ReadinessStatus.URGENT_EVALUATION,

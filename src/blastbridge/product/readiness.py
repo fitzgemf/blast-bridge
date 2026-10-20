@@ -87,11 +87,22 @@ def assess_readiness(
 
     atypical = pattern is not None and pattern.status is PatternStatus.ATYPICAL_OCCUPATIONAL_PATTERN
     if pattern is not None:
-        evidence.append(
-            "Occupational pattern (ML): atypical vs fictional simulation baseline"
-            if atypical
-            else "Occupational pattern (ML): typical recorded pattern"
-        )
+        if pattern.status is PatternStatus.PATTERN_NOT_AVAILABLE:
+            evidence.append(
+                f"Occupational pattern (ML): comparison not available — {pattern.reason}"
+            )
+        else:
+            evidence.append(
+                "Occupational pattern (ML): atypical vs SME-informed fictional HIMARS "
+                "scenario reference"
+                if atypical
+                else "Occupational pattern (ML): typical recorded pattern"
+            )
+        if pattern.excluded_non_scope_records:
+            notes.append(
+                f"{pattern.excluded_non_scope_records} non-HIMARS records excluded from "
+                "the prototype occupational-pattern comparison"
+            )
     urgent = FollowUpState.URGENT_EVALUATION_RECOMMENDED in states
     followup: FollowUpState | None
     if urgent:

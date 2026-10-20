@@ -62,7 +62,7 @@ from blastbridge.product.patterns import (
     PatternStatus,
     assess_pattern,
     fit_pattern_model,
-    load_baseline,
+    load_reference,
     occupational_features,
 )
 from blastbridge.product.readiness import ReadinessAssessment, ReadinessStatus, assess_readiness
@@ -152,7 +152,7 @@ st.sidebar.caption("Readiness and the occupational-pattern result are computed a
 @st.cache_resource
 def pattern_model() -> PatternModel | None:
     try:
-        rows, metadata = load_baseline()
+        rows, metadata = load_reference()
     except FileNotFoundError:
         return None
     return fit_pattern_model(rows, metadata)
@@ -162,9 +162,7 @@ def readiness_for(person_id: str, as_of: date) -> ReadinessAssessment:
     entries = store.member_history(CONN, person_id)
     reports = store.list_symptom_reports(CONN, person_id)
     model = pattern_model()
-    pattern = (
-        assess_pattern(model, (entry.event_date for entry in entries), as_of) if model else None
-    )
+    pattern = assess_pattern(model, entries, as_of)
     return assess_readiness(person_id, entries, reports, pattern, as_of)
 
 
@@ -394,7 +392,7 @@ def dashboard() -> None:
     c3.metric("Medical follow-up", statuses[ReadinessStatus.MEDICAL_FOLLOWUP_RECOMMENDED])
     c4.metric("Urgent", statuses[ReadinessStatus.URGENT_EVALUATION])
     if pattern_model() is None:
-        st.info("Occupational-pattern model unavailable (baseline not built)")
+        st.info("Occupational-pattern model unavailable (reference not built)")
     marks = organization_marks(approved, assessments, ANALYSIS_AS_OF)
     calendar, detail = st.columns([2, 1])
     with calendar:
@@ -472,7 +470,7 @@ def dashboard() -> None:
                 + (
                     assessment.ml_pattern.status.label
                     if assessment.ml_pattern
-                    else "unavailable (baseline not built)"
+                    else "unavailable (reference not built)"
                 )
             )
             if st.button("Review history", key=f"priority-{assessment.person_id}"):
@@ -1447,7 +1445,10 @@ def history() -> None:
             st.caption(note)
         pattern = assessment.ml_pattern
         if pattern is None:
-            st.info("Occupational-pattern model unavailable (baseline not built)")
+            st.info("Occupational-pattern model unavailable (reference not built)")
+        elif pattern.status is PatternStatus.PATTERN_NOT_AVAILABLE:
+            st.write(pattern.status.label)
+            st.caption(pattern.reason)
         else:
             style = (
                 "review"
@@ -1463,7 +1464,7 @@ def history() -> None:
                     {
                         "Feature": item.label,
                         "Recorded": item.value,
-                        "Fictional baseline median": item.median,
+                        "Fictional HIMARS scenario reference median": item.median,
                         "IQR q25–q75": f"{item.q25:g}–{item.q75:g}",
                     }
                     for item in pattern.comparisons
@@ -1475,16 +1476,16 @@ def history() -> None:
             for item in pattern.differing:
                 st.write(
                     f"{item.label}: {item.value:g} "
-                    f"(fictional simulation baseline median {item.median:g})"
+                    f"(fictional HIMARS scenario reference median {item.median:g})"
                 )
             if not pattern.differing:
                 st.caption(
-                    "No features outside the fictional simulation baseline's percentile ranges."
+                    "No features outside the fictional HIMARS scenario reference's percentile ranges."
                 )
             model = pattern_model()
             st.caption(
-                f"Model: IsolationForest on {model.baseline_rows} fictional simulation baseline "
-                "windows · prototype analytic threshold: 5th percentile"
+                f"Model: IsolationForest on {model.baseline_rows} SME-informed fictional HIMARS "
+                "scenario reference windows · prototype analytic threshold: 5th percentile"
             )
         st.caption(PATTERN_DISCLAIMER)
         st.caption(CONTEXT_NOTE)
