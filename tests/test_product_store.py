@@ -235,6 +235,19 @@ def test_followup_rule():
         FollowUpState.URGENT_EVALUATION_RECOMMENDED,
         FollowUpState.URGENT_EVALUATION_RECOMMENDED,
     ]
+    negative_cases = (
+        report_draft(
+            "EVT-FICTIONAL", temporal_relationship=TemporalRelationship.RELATIONSHIP_UNKNOWN
+        ),
+        report_draft("EVT-FICTIONAL", persistence=Persistence.RESOLVED),
+        report_draft("EVT-FICTIONAL", functional_impact=FunctionalImpact.NO),
+        report_draft("EVT-FICTIONAL", symptoms=(), note="Fictional demo note."),
+    )
+    for report in negative_cases:
+        result = evaluate(report)
+        assert result.state is FollowUpState.NO_FOLLOWUP_RULE_TRIGGERED
+        results.append(result)
+    assert "inform their command and medical provider" in results[4].explanation
     missing = " ".join(results[1].missing).lower()
     assert "persistence" in missing and "functional impact" in missing
     for result in results:

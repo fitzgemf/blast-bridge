@@ -1,4 +1,7 @@
-"""Deterministic guidance for fictional reports. Follow-up is not a diagnosis."""
+"""Deterministic guidance for fictional reports. Follow-up is not a diagnosis.
+
+Background: Low-level blast exposure does not typically result in mild TBI.
+"""
 
 from dataclasses import dataclass
 from enum import StrEnum
@@ -33,8 +36,7 @@ SOURCES: tuple[GuidanceSource, ...] = (
         "https://health.mil/Reference-Center/Fact-Sheets/2025/09/16/Blast-Overpressure-Service-Member-Fact-Sheet",
         _ARCHIVE,
         "Follow-up rule: 'If your symptoms persist and impact your daily function, inform your "
-        "command and medical provider.' Low-level blast exposure does not typically "
-        "result in mild TBI.",
+        "command and medical provider.'",
     ),
     GuidanceSource(
         "tbicoe_provider_tool",
@@ -152,10 +154,23 @@ def evaluate(report: SymptomReportDraft) -> FollowUp:
             missing,
             ("tbicoe_service_member",),
         )
+    explanation = "This does not determine whether an injury is present or absent."
+    if (
+        report.symptoms
+        and report.persistence is Persistence.STILL_PRESENT
+        and report.functional_impact is FunctionalImpact.YES
+    ):
+        explanation = (
+            "Symptoms were reported as persistent and affecting daily function. The BlastBridge "
+            "follow-up rule also requires the report to be linked as occurring after a recorded "
+            "training event, so it is not triggered. Current TBICoE guidance advises service "
+            "members whose symptoms persist and impact daily function to inform their command "
+            "and medical provider. This does not determine whether an injury is present or absent."
+        )
     return FollowUp(
         FollowUpState.NO_FOLLOWUP_RULE_TRIGGERED,
         "No rule-based follow-up signal from the currently recorded information.",
-        "This does not determine whether an injury is present or absent.",
+        explanation,
         missing,
         ("tbicoe_service_member",),
     )
@@ -182,3 +197,7 @@ DANGER_SIGN_LABEL = (
 )
 EMPTY_FOLLOWUP = "No reports currently match a follow-up rule."
 ABSENCE_NOTE = "This does not determine whether an injury is present or absent."
+NOTE_RULE_CAPTION = (
+    "Notes are not evaluated by the follow-up rule. "
+    "Record any danger sign with the danger-sign checkboxes above."
+)

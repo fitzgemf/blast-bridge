@@ -20,6 +20,7 @@ from blastbridge.product.followup import (
     DANGER_SIGN_LABEL,
     EMPTY_FOLLOWUP,
     GOVERNANCE_NOTE,
+    NOTE_RULE_CAPTION,
     PRIVACY_NOTE,
     SOURCES,
     SYMPTOM_LIST_LABEL,
@@ -685,6 +686,8 @@ def symptom_form(person_id: str) -> None:
         with st.container(border=True):
             st.subheader("Review report")
             report_fields(pending)
+            if pending.note:
+                st.caption(NOTE_RULE_CAPTION)
             followup_card(evaluate(pending))
             confirm, edit, discard = st.columns(3)
             if confirm.button("Confirm", key="sym_confirm"):
@@ -772,6 +775,7 @@ def symptom_form(person_id: str) -> None:
             key="sym_w_source",
         )
         note = st.text_area("Note (optional)", max_chars=500, key="sym_w_note")
+        st.caption(NOTE_RULE_CAPTION)
         if st.button("Discard", key="sym_form_discard"):
             clear_symptom_state()
             st.rerun()
