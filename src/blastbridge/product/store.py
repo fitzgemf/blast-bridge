@@ -184,8 +184,11 @@ def _require_draft(conn: sqlite3.Connection, event_id: str, revision: int) -> No
         raise StoreError(f"{event_id} is {status}, no longer a draft")
 
 
-def save_draft(conn: sqlite3.Connection, draft: TrainingEventDraft) -> str:
-    event_id = f"EVT-{uuid4().hex[:8].upper()}"
+def save_draft(
+    conn: sqlite3.Connection, draft: TrainingEventDraft, event_id: str | None = None
+) -> str:
+    if event_id is None:
+        event_id = f"EVT-{uuid4().hex[:8].upper()}"
     with _transaction(conn):
         conn.execute(
             "INSERT INTO training_events VALUES (?, 'draft', ?, ?, ?, ?, ?, ?, ?, NULL, 1)",
@@ -193,6 +196,33 @@ def save_draft(conn: sqlite3.Connection, draft: TrainingEventDraft) -> str:
         )
         _write_draft(conn, event_id, draft)
     return event_id
+
+
+def seed_demo_events(
+    conn: sqlite3.Connection, events: Iterable[tuple[str, TrainingEventDraft]]
+) -> int:
+    added = 0
+    for event_id, draft in events:
+        if conn.execute("SELECT 1 FROM training_events WHERE event_id = ?", (event_id,)).fetchone():
+            continue
+        save_draft(conn, draft, event_id)
+        approve_event(conn, event_id, 1)
+        added += 1
+    return added
+
+
+def reset_demo(
+    conn: sqlite3.Connection,
+    people: Iterable[Person],
+    events: Iterable[tuple[str, TrainingEventDraft]],
+) -> None:
+    with _transaction(conn):
+        conn.execute("DELETE FROM participant_exposures")
+        conn.execute("DELETE FROM crew_members")
+        conn.execute("DELETE FROM crews")
+        conn.execute("DELETE FROM training_events")
+    seed_people(conn, people)
+    seed_demo_events(conn, events)
 
 
 def update_draft(

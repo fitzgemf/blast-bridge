@@ -2,6 +2,7 @@
 
 import os
 import sqlite3
+from collections import Counter
 from datetime import date
 from enum import StrEnum
 from pathlib import Path
@@ -22,7 +23,7 @@ from blastbridge.product.models import (
     TrainingEvent,
     TrainingEventDraft,
 )
-from blastbridge.product.seed import DEMO_PEOPLE
+from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE
 
 ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = Path(
@@ -36,13 +37,14 @@ st.markdown(
 <style>
 .block-container {max-width: 1100px; padding-top: 2.2rem;}
 .bb-sub {opacity: .72; margin: -.6rem 0 1rem 0;}
-.bb-banner {background: rgba(70,120,180,.10); border: 1px solid rgba(70,120,180,.35);
+.bb-banner {background: rgba(128,128,128,.10); border: 1px solid rgba(128,128,128,.35);
   padding: .55rem .9rem; border-radius: 8px; font-size: .9rem; margin-bottom: 1.2rem;}
 .bb-banner b {letter-spacing: .06em;}
 .bb-pill {display: inline-block; padding: .12rem .65rem; border-radius: 999px;
   font-size: .8rem; font-weight: 600; border: 1px solid rgba(128,128,128,.35);}
-.bb-pill.approved {background: rgba(40,140,120,.14); border-color: rgba(40,140,120,.45);}
-.bb-pill.draft {background: rgba(70,120,180,.12); border-color: rgba(70,120,180,.45);}
+.bb-pill.approved, .bb-pill.draft {background: rgba(128,128,128,.12);}
+[data-testid="stMetric"] {border: 1px solid rgba(128,128,128,.25);
+  border-radius: 8px; padding: .8rem;}
 .bb-label {font-size: .78rem; opacity: .65; text-transform: uppercase; letter-spacing: .05em;}
 .bb-value {font-size: 1.02rem; margin-bottom: .55rem;}
 .bb-name {font-size: 1.45rem; font-weight: 600; margin-bottom: .1rem;}
@@ -57,6 +59,7 @@ def _initialized(path: str) -> str:
     conn = store.connect(path)
     store.init_db(conn)
     store.seed_people(conn, DEMO_PEOPLE)
+    store.seed_demo_events(conn, DEMO_EVENTS)
     conn.close()
     return path
 
@@ -92,8 +95,8 @@ def header(title: str, subtitle: str) -> None:
     st.title(title)
     st.markdown(f'<div class="bb-sub">{subtitle}</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="bb-banner"><b>FICTIONAL DEMO DATA</b> · Every person, unit and event shown '
-        "here is invented. BlastBridge records training activity; exposure is not injury.</div>",
+        '<div class="bb-banner">FICTIONAL DEMO — All people and events are invented. '
+        "BlastBridge records occupational exposure; exposure does not imply injury.</div>",
         unsafe_allow_html=True,
     )
 
@@ -113,31 +116,55 @@ def crew_names(event: TrainingEvent) -> str:
 
 
 def form_values(d: TrainingEventDraft | None = None) -> dict[str, object]:
-    if d is None:
-        return {
-            "f_date": date.today(),
-            "f_type": EventType.WEAPON_FIRING,
-            "f_context": TrainingContext.HOME_STATION,
-            "f_weapon": "m142-himars" if "m142-himars" in weapons() else next(iter(weapons())),
-            "f_location": "",
-            "f_crew": "Launcher 1",
-            "f_known": None,
-            "f_count": None,
-            **{f"f_{pos}": None for pos in POSITIONS},
-        }
-    crew = d.crews[0]
-    by_position = {m.position: m.person_id for m in crew.members}
-    return {
-        "f_date": d.event_date,
-        "f_type": d.event_type,
-        "f_context": d.training_context,
-        "f_weapon": d.weapon_system_id,
-        "f_location": d.location_unit or "",
-        "f_crew": crew.crew_name,
-        "f_known": "Unknown" if crew.physical_event_count is None else "Known",
-        "f_count": crew.physical_event_count,
-        **{f"f_{pos}": by_position.get(pos) for pos in POSITIONS},
+    values = {
+        "f_date": d.event_date if d else date.today(),
+        "f_type": d.event_type if d else EventType.WEAPON_FIRING,
+        "f_context": d.training_context if d else TrainingContext.HOME_STATION,
+        "f_weapon": d.weapon_system_id if d else "m142-himars",
+        "f_location": (d.location_unit or "") if d else "",
+        "f_crews": list(range(len(d.crews))) if d else [0],
+        "f_next_crew": len(d.crews) if d else 1,
     }
+    for i in values["f_crews"]:
+        crew = d.crews[i] if d else None
+        members = {m.position: m.person_id for m in crew.members} if crew else {}
+        values.update(
+            {
+                f"f_c{i}_name": crew.crew_name if crew else f"Launcher {i + 1}",
+                f"f_c{i}_known": ("Unknown" if crew.physical_event_count is None else "Known")
+                if crew
+                else None,
+                f"f_c{i}_count": crew.physical_event_count if crew else None,
+                **{f"f_c{i}_{pos}": members.get(pos) for pos in POSITIONS},
+            }
+        )
+    return values
+
+
+def change_crews(remove: int | None = None) -> None:
+    s = st.session_state
+    # Copy widget values before rerunning: Streamlit cleans up widgets omitted from a run.
+    values = {
+        key: value
+        for key, value in s.items()
+        if key.startswith("f_") and not key.endswith("_remove")
+    }
+    if remove is not None:
+        values["f_crews"] = [i for i in s["f_crews"] if i != remove]
+    else:
+        i = s["f_next_crew"]
+        values["f_crews"] = [*s["f_crews"], i]
+        values["f_next_crew"] = i + 1
+        values.update(
+            {
+                f"f_c{i}_name": f"Launcher {i + 1}",
+                f"f_c{i}_known": None,
+                f"f_c{i}_count": None,
+                **{f"f_c{i}_{pos}": None for pos in POSITIONS},
+            }
+        )
+    s["form_init"] = values
+    st.rerun()
 
 
 def open_form(event: TrainingEvent | None = None) -> None:
@@ -163,16 +190,21 @@ def open_history(person_id: str) -> None:
 
 
 def dashboard() -> None:
-    header("BlastBridge", "Recorder dashboard for training, safety and medical-readiness staff")
-    approved = store.list_events(CONN, EventStatus.APPROVED, limit=1000)
-    drafts = store.list_events(CONN, EventStatus.DRAFT, limit=50)
+    title, action = st.columns([3, 1], vertical_alignment="center")
+    with title:
+        header("BlastBridge", "Recorder dashboard for fictional training activity")
+    if action.button("+ Record Training Event", type="primary"):
+        open_form()
+    approved = store.list_events(CONN, EventStatus.APPROVED, limit=-1)
+    drafts = store.list_events(CONN, EventStatus.DRAFT, limit=-1)
 
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     c1.metric("Fictional personnel", len(PEOPLE))
     c2.metric("Approved training events", len(approved))
     c3.metric("Drafts awaiting review", len(drafts))
-    if st.button("+ Record Training Event", type="primary"):
-        open_form()
+    c4.metric(
+        "Known physical events recorded", sum(e.draft.known_physical_event_count for e in approved)
+    )
 
     if drafts:
         st.subheader("Awaiting review")
@@ -191,24 +223,32 @@ def dashboard() -> None:
     st.subheader("Recent approved training events")
     if not approved:
         st.info("No approved events yet. Record a training event to begin.")
-        return
     st.dataframe(
         [
             {
                 "Date": e.draft.event_date,
                 "Weapon": e.draft.weapon_name,
-                "Activity": label(e.draft.event_type),
                 "Context": label(e.draft.training_context),
                 "Physical events": count_text(e.draft.physical_event_count),
                 "Participants": e.draft.participant_count,
-                "Crew": crew_names(e),
-                "Event ID": e.event_id,
+                "Crews": len(e.draft.crews),
             }
             for e in approved[:15]
         ],
         hide_index=True,
         width="stretch",
     )
+    with st.expander("Demo data"):
+        confirmed = st.checkbox("I understand this deletes all recorded events")
+        if st.button("Reset to demo state", disabled=not confirmed):
+            store.reset_demo(CONN, DEMO_PEOPLE, DEMO_EVENTS)
+            for key in list(st.session_state):
+                if key.startswith(("review", "editing", "f_")) or key in (
+                    "last_decided",
+                    "form_init",
+                ):
+                    del st.session_state[key]
+            st.rerun()
 
 
 def new_event() -> None:
@@ -227,40 +267,53 @@ def new_event() -> None:
     with st.container(border=True):
         st.subheader("Event")
         a, b = st.columns(2)
-        a.date_input("Date", key="f_date")
+        a.date_input("Date", max_value=date.today(), key="f_date")
         b.selectbox("Activity type", list(EventType), format_func=label, key="f_type")
         a.selectbox("Training context", list(TrainingContext), format_func=label, key="f_context")
         b.selectbox("Weapon system", list(weapons()), format_func=weapons().get, key="f_weapon")
         st.text_input("Location / unit (optional)", key="f_location")
 
-    with st.container(border=True):
-        st.subheader("Physical events")
-        st.caption(
-            "Count each launch or firing event once. "
-            "Do not multiply by the number of people present."
-        )
-        st.radio(
-            "Launch / firing-event count", ["Known", "Unknown"], horizontal=True, key="f_known"
-        )
-        if st.session_state["f_known"] == "Known":
-            # Re-shown after Unknown: start empty rather than at min_value, which would invent 1.
-            st.session_state.setdefault("f_count", None)
-            st.number_input("Number of physical launches", min_value=1, step=1, key="f_count")
-        elif st.session_state["f_known"] == "Unknown":
-            st.caption("Recorded as **Unknown**. It will not be treated as zero.")
-
-    with st.container(border=True):
-        st.subheader("Crew")
-        st.text_input("Crew name", key="f_crew")
-        cols = st.columns(3)
-        for col, pos in zip(cols, POSITIONS, strict=True):
-            col.selectbox(
-                pos.label,
-                list(PEOPLE),
-                format_func=person_text,
-                placeholder="Select a person",
-                key=f"f_{pos}",
+    for i in st.session_state["f_crews"]:
+        prefix = f"f_c{i}_"
+        with st.container(border=True):
+            st.subheader(st.session_state[prefix + "name"])
+            if len(st.session_state["f_crews"]) > 1:
+                if st.button("Remove crew", key=prefix + "remove"):
+                    change_crews(i)
+            st.text_input("Crew name", key=prefix + "name")
+            for col, pos in zip(st.columns(3), POSITIONS, strict=True):
+                col.selectbox(
+                    pos.label,
+                    list(PEOPLE),
+                    index=None,
+                    format_func=person_text,
+                    placeholder="Select a person",
+                    key=prefix + pos,
+                )
+            st.caption("Count each launch once per crew. Do not multiply by people present.")
+            st.radio(
+                "Launch / firing-event count",
+                ["Known", "Unknown"],
+                index=None,
+                horizontal=True,
+                key=prefix + "known",
             )
+            if st.session_state[prefix + "known"] == "Known":
+                st.session_state.setdefault(prefix + "count", None)
+                st.number_input(
+                    "Number of physical launches",
+                    min_value=1,
+                    max_value=999,
+                    value=None,
+                    step=1,
+                    key=prefix + "count",
+                )
+            else:
+                st.session_state[prefix + "count"] = None
+                if st.session_state[prefix + "known"] == "Unknown":
+                    st.caption("Recorded as **Unknown**. Unknown is never zero.")
+    if st.button("+ Add Crew"):
+        change_crews()
 
     left, right, _ = st.columns([1, 1, 4])
     if right.button("Cancel"):
@@ -270,15 +323,36 @@ def new_event() -> None:
         return
 
     s = st.session_state
-    missing = [pos.label for pos in POSITIONS if not s.get(f"f_{pos}")]
+    missing = [
+        f"{s[f'f_c{i}_name']} · {pos.label}"
+        for i in s["f_crews"]
+        for pos in POSITIONS
+        if not s.get(f"f_c{i}_{pos}")
+    ]
     if missing:
         st.error(f"Select a person for: {', '.join(missing)}.")
         return
-    if s["f_known"] is None:
+    if any(s[f"f_c{i}_known"] is None for i in s["f_crews"]):
         st.error("Choose whether the launch count is Known or Unknown.")
         return
-    if s["f_known"] == "Known" and s.get("f_count") is None:
+    if any(s[f"f_c{i}_known"] == "Known" and s.get(f"f_c{i}_count") is None for i in s["f_crews"]):
         st.error("Enter the number of physical launches, or choose Unknown.")
+        return
+    assignments = {}
+    for i in s["f_crews"]:
+        for pos in POSITIONS:
+            assignments.setdefault(s[f"f_c{i}_{pos}"], []).append(
+                f"{s[f'f_c{i}_name']} · {pos.label}"
+            )
+    duplicates = []
+    for person_id, places in assignments.items():
+        if len(places) > 1:
+            times = "twice" if len(places) == 2 else f"{len(places)} times"
+            duplicates.append(
+                f"{PEOPLE[person_id].display_name} is assigned {times}: " + " and ".join(places)
+            )
+    if duplicates:
+        st.error("; ".join(duplicates))
         return
     try:
         draft = TrainingEventDraft(
@@ -288,14 +362,17 @@ def new_event() -> None:
             weapon_system_id=s["f_weapon"],
             weapon_name=weapons()[s["f_weapon"]],
             location_unit=s["f_location"].strip() or None,
-            crews=(
+            crews=tuple(
                 Crew(
-                    crew_name=s["f_crew"].strip() or "Crew 1",
+                    crew_name=s[f"f_c{i}_name"].strip() or f"Launcher {i + 1}",
                     members=tuple(
-                        CrewMember(person_id=s[f"f_{pos}"], position=pos) for pos in POSITIONS
+                        CrewMember(person_id=s[f"f_c{i}_{pos}"], position=pos) for pos in POSITIONS
                     ),
-                    physical_event_count=int(s["f_count"]) if s["f_known"] == "Known" else None,
-                ),
+                    physical_event_count=int(s[f"f_c{i}_count"])
+                    if s[f"f_c{i}_known"] == "Known"
+                    else None,
+                )
+                for i in s["f_crews"]
             ),
         )
     except ValidationError as exc:
@@ -361,9 +438,11 @@ def show_decision(event_id: str) -> None:
             return
         st.success("Approved. Each participant's history now includes this event.")
         members = [m for crew in d.crews for m in crew.members]
-        for col, m in zip(st.columns(len(members)), members, strict=True):
-            if col.button(f"View {PEOPLE[m.person_id].display_name}", key=f"h-{m.person_id}"):
-                open_history(m.person_id)
+        for start in range(0, len(members), 4):
+            row = members[start : start + 4]
+            for col, m in zip(st.columns(len(row)), row, strict=True):
+                if col.button(f"View {PEOPLE[m.person_id].display_name}", key=f"h-{m.person_id}"):
+                    open_history(m.person_id)
 
 
 def review() -> None:
@@ -415,6 +494,56 @@ def review() -> None:
     )
     st.write("")
 
+    known_links = sum(
+        c.physical_event_count * len(c.members)
+        for c in d.crews
+        if c.physical_event_count is not None
+    )
+    unknown_people = sum(len(c.members) for c in d.crews if c.physical_event_count is None)
+    with st.container(border=True):
+        st.subheader("What approval will record")
+        a, b, c, links = st.columns(4)
+        a.metric("Crews", len(d.crews))
+        b.metric("Unique participants", d.participant_count)
+        c.metric("Physical events (launches)", count_text(d.physical_event_count))
+        links.metric("Participant-event associations", str(known_links))
+        if unknown_people:
+            links.caption(f"+ {unknown_people} people with unknown count")
+        st.dataframe(
+            [
+                {
+                    "Crew": crew.crew_name,
+                    **{
+                        pos.label: next(
+                            (
+                                PEOPLE[m.person_id].display_name
+                                for m in crew.members
+                                if m.position == pos
+                            ),
+                            "Not recorded",
+                        )
+                        for pos in POSITIONS
+                    },
+                    "Physical events": count_text(crew.physical_event_count),
+                    "Participants": len(crew.members),
+                    "Associations": count_text(
+                        crew.physical_event_count * len(crew.members)
+                        if crew.physical_event_count is not None
+                        else None
+                    ),
+                }
+                for crew in d.crews
+            ],
+            hide_index=True,
+            width="stretch",
+        )
+        st.caption(
+            "Launches are counted once per crew; associations link people to those launches "
+            "and are not additional launches. When a crew's count is unknown, that crew's "
+            f"associations are unknown, never zero. The known crews' total is {known_links} "
+            f"associations across {d.known_physical_event_count} physical launches."
+        )
+
     with st.container(border=True):
         st.subheader("Event")
         a, b, c = st.columns(3)
@@ -426,46 +555,6 @@ def review() -> None:
             field("Training context", label(d.training_context))
         with c:
             field("Location / unit", d.location_unit or "Not recorded")
-
-    for crew in d.crews:
-        with st.container(border=True):
-            st.subheader(f"Crew · {crew.crew_name}")
-            st.dataframe(
-                [
-                    {
-                        "Position": m.position.label,
-                        "Name": PEOPLE[m.person_id].display_name,
-                        "Callsign": PEOPLE[m.person_id].callsign,
-                        "Section": PEOPLE[m.person_id].section,
-                        "Participation role": label(m.position.participation_role),
-                    }
-                    for m in crew.members
-                ],
-                hide_index=True,
-                width="stretch",
-            )
-
-    with st.container(border=True):
-        st.subheader("What approval will record")
-        n, p, links = d.physical_event_count, d.participant_count, d.association_count
-        a, b, c = st.columns(3)
-        a.metric("Physical events (launches)", count_text(n))
-        b.metric("Participants", p)
-        c.metric("Participant-event associations", count_text(links))
-        for crew in d.crews:
-            k, size = crew.physical_event_count, len(crew.members)
-            if k is None:
-                st.caption(
-                    f"{crew.crew_name}: the launch count is **Unknown**. Each of the {size} "
-                    "participants will be linked to this event with an Unknown count. "
-                    "It will not be treated as zero."
-                )
-            else:
-                st.caption(
-                    f"{crew.crew_name}: {k} physical events × {size} participants = "
-                    f"{k * size} participant-event associations. This records "
-                    f"**{k} launches**, not {k * size}."
-                )
 
     # Keys carry the revision on screen: a click made on an older revision does not fire here.
     key = f"{event.event_id}-r{event.revision}"
@@ -500,15 +589,21 @@ def history() -> None:
             field("Section", p.section)
         with c:
             field("Usual position", p.home_position.label)
+            roles = Counter(e.position for e in entries)
+            field(
+                "Roles held",
+                " · ".join(f"{pos.label} ×{roles[pos]}" for pos in POSITIONS if roles[pos])
+                or "No approved records",
+            )
 
     known = [e.physical_event_count for e in entries if e.physical_event_count is not None]
     a, b, c = st.columns(3)
     a.metric("Approved training events", len(entries))
     b.metric(
-        "Physical events (known counts)",
+        "Known physical events",
         "Unknown" if entries and not known else sum(known),
     )
-    c.metric("Events with unknown count", len(entries) - len(known))
+    c.metric("Records with unknown count", len(entries) - len(known))
     st.caption(
         "Totals use known counts only. Events with an unknown count are listed and are never "
         "counted as zero."
@@ -517,22 +612,40 @@ def history() -> None:
     if not entries:
         st.info("No approved training events for this person yet.")
         return
+    months = Counter(e.event_date.strftime("%Y-%m") for e in entries)
+    month = min(e.event_date for e in entries).replace(day=1)
+    today = date.today().replace(day=1)
+    chart = {}
+    while month <= today:
+        key = month.strftime("%Y-%m")
+        chart[key] = months[key]
+        month = date(month.year + (month.month == 12), month.month % 12 + 1, 1)
+    st.subheader("Training events per month")
+    st.bar_chart(
+        {"Month": list(chart), "Training events": list(chart.values())},
+        x="Month",
+        y="Training events",
+    )
+    st.caption(
+        "Counts approved training events, not launches. "
+        "Events with unknown launch counts are included."
+    )
     st.dataframe(
         [
             {
                 "Date": e.event_date,
                 "Weapon": e.weapon_name,
-                "Activity": label(e.event_type),
-                "Context": label(e.training_context),
                 "Position": e.position.label,
-                "Participation role": label(e.participation_role),
                 "Physical events": count_text(e.physical_event_count),
                 "Crew": e.crew_name,
+                "Training context": label(e.training_context),
+                "Activity": label(e.event_type),
                 "Location / unit": e.location_unit or "",
                 "Event ID": e.event_id,
             }
             for e in entries
         ],
+        column_config={"Date": st.column_config.DateColumn("Date", format="DD MMM YYYY")},
         hide_index=True,
         width="stretch",
     )

@@ -11,7 +11,7 @@ from blastbridge.models.training_tempo import ParticipationRole, TrainingContext
 
 Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 # A known count of physical launches/firing events. Unknown is None, so zero is not a stand-in.
-PhysicalCount = Annotated[int, Field(ge=1, strict=True)]
+PhysicalCount = Annotated[int, Field(ge=1, le=999, strict=True)]
 
 
 class ProductModel(BaseModel):
@@ -89,6 +89,11 @@ class TrainingEventDraft(ProductModel):
 
     @model_validator(mode="after")
     def unique_participants(self) -> Self:
+        if self.event_date > date.today():
+            raise ValueError("event date cannot be in the future")
+        names = [c.crew_name for c in self.crews]
+        if len(names) != len(set(names)):
+            raise ValueError("crew names must be unique within an event")
         ids = [m.person_id for c in self.crews for m in c.members]
         if len(ids) != len(set(ids)):
             raise ValueError("a person can appear in only one crew per event")
@@ -97,6 +102,14 @@ class TrainingEventDraft(ProductModel):
     @property
     def participant_count(self) -> int:
         return sum(len(c.members) for c in self.crews)
+
+    @property
+    def known_physical_event_count(self) -> int:
+        return sum(c.physical_event_count for c in self.crews if c.physical_event_count is not None)
+
+    @property
+    def unknown_crew_count(self) -> int:
+        return sum(c.physical_event_count is None for c in self.crews)
 
     @property
     def physical_event_count(self) -> int | None:

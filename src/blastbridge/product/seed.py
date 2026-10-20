@@ -1,6 +1,11 @@
 """FICTIONAL demo roster. These people do not exist; names and units are invented."""
 
-from .models import CrewPosition, Person
+from datetime import date
+
+from blastbridge.models.enums import EventType
+from blastbridge.models.training_tempo import TrainingContext
+
+from .models import Crew, CrewMember, CrewPosition, Person, TrainingEventDraft
 
 _UNIT = "Demo Rocket Battery (FICTIONAL)"
 
@@ -29,4 +34,100 @@ DEMO_PEOPLE = tuple(
         home_position=position,
     )
     for i, (name, callsign, section, position) in enumerate(_ROSTER, start=1)
+)
+
+
+def _demo_draft(
+    day: str,
+    context: TrainingContext,
+    crews: tuple[tuple[str, tuple[int, int, int], int | None], ...],
+    weapon: str = "m142-himars",
+    south: bool = False,
+) -> TrainingEventDraft:
+    return TrainingEventDraft(
+        event_date=date.fromisoformat(day),
+        event_type=EventType.WEAPON_FIRING,
+        training_context=context,
+        weapon_system_id=weapon,
+        weapon_name="M270 MLRS" if weapon == "m270-mlrs" else "M142 HIMARS",
+        location_unit=f"Demo Range {'South' if south else 'North'} (FICTIONAL)",
+        crews=tuple(
+            Crew(
+                crew_name=name,
+                members=tuple(
+                    CrewMember(person_id=f"FIC-{person:03d}", position=position)
+                    for person, position in zip(
+                        people,
+                        (CrewPosition.CHIEF, CrewPosition.GUNNER, CrewPosition.DRIVER),
+                        strict=True,
+                    )
+                ),
+                physical_event_count=count,
+            )
+            for name, people, count in crews
+        ),
+    )
+
+
+DEMO_EVENTS: tuple[tuple[str, TrainingEventDraft], ...] = (
+    (
+        "EVT-DEMO-01",
+        _demo_draft(
+            "2026-04-14",
+            TrainingContext.QUALIFICATION,
+            (
+                ("Launcher 1", (1, 2, 3), 6),
+                ("Launcher 2", (5, 6, 7), 6),
+            ),
+        ),
+    ),
+    (
+        "EVT-DEMO-02",
+        _demo_draft("2026-05-20", TrainingContext.HOME_STATION, (("Launcher 1", (1, 4, 3), 4),)),
+    ),
+    (
+        "EVT-DEMO-03",
+        _demo_draft(
+            "2026-06-23",
+            TrainingContext.ANNUAL_TRAINING,
+            (
+                ("Launcher 1", (1, 2, 3), 12),
+                ("Launcher 2", (5, 6, 8), 12),
+                ("Launcher 3", (9, 10, 11), None),
+            ),
+        ),
+    ),
+    (
+        "EVT-DEMO-04",
+        _demo_draft(
+            "2026-07-28",
+            TrainingContext.HOME_STATION,
+            (("Launcher 3", (9, 12, 11), 2),),
+            weapon="m270-mlrs",
+            south=True,
+        ),
+    ),
+    (
+        "EVT-DEMO-05",
+        _demo_draft(
+            "2026-08-25",
+            TrainingContext.DEPLOYMENT_PREPARATION,
+            (
+                ("Launcher 1", (2, 4, 3), 8),
+                ("Launcher 3", (9, 10, 11), 8),
+            ),
+            south=True,
+        ),
+    ),
+    (
+        "EVT-DEMO-06",
+        _demo_draft(
+            "2026-09-22",
+            TrainingContext.CTC_LARGE_SCALE_EXERCISE,
+            (
+                ("Launcher 1", (2, 1, 3), 10),
+                ("Launcher 2", (5, 6, 7), None),
+            ),
+        ),
+    ),
 )

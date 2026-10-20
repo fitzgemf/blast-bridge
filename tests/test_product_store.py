@@ -1,14 +1,20 @@
 """Recorder slice: approval gates history; launches are counted once; unknown is not zero."""
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
 from blastbridge.models.enums import EventType
 from blastbridge.models.training_tempo import ParticipationRole, TrainingContext
 from blastbridge.product import store
-from blastbridge.product.models import Crew, CrewMember, CrewPosition, TrainingEventDraft
-from blastbridge.product.seed import DEMO_PEOPLE
+from blastbridge.product.models import (
+    Crew,
+    CrewMember,
+    CrewPosition,
+    EventStatus,
+    TrainingEventDraft,
+)
+from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE
 
 CREW = ("FIC-001", "FIC-002", "FIC-003")
 OUTSIDER = "FIC-005"
@@ -111,3 +117,46 @@ def test_edit_replaces_the_crew(conn):
     assert store.member_history(conn, "FIC-001") == []
     assert len(store.member_history(conn, "FIC-004")) == 1
     assert exposure_rows(conn) == 3
+
+
+def test_multi_crew_counts_stay_with_their_own_people(conn):
+    other = ("FIC-005", "FIC-006", "FIC-007")
+    second = draft(None, other).crews[0].model_copy(update={"crew_name": "Launcher 2"})
+    event = TrainingEventDraft(**{**draft(6).model_dump(), "crews": (draft(6).crews[0], second)})
+    event_id = store.save_draft(conn, event)
+    store.approve_event(conn, event_id, 1)
+    assert exposure_rows(conn) == len(CREW) + len(other)
+    assert [store.member_history(conn, p)[0].physical_event_count for p in CREW] == [6] * 3
+    assert [store.member_history(conn, p)[0].physical_event_count for p in other] == [None] * 3
+
+
+def test_demo_events_are_idempotent(conn):
+    assert store.seed_demo_events(conn, DEMO_EVENTS) == 6
+    before = [tuple(row) for row in conn.execute("SELECT * FROM participant_exposures")]
+    assert store.seed_demo_events(conn, DEMO_EVENTS) == 0
+    assert [tuple(row) for row in conn.execute("SELECT * FROM participant_exposures")] == before
+    assert len(store.list_events(conn, EventStatus.APPROVED)) == 6
+    assert all(
+        store.get_event(conn, event_id).status is EventStatus.APPROVED
+        for event_id, _ in DEMO_EVENTS
+    )
+    assert {e.position for e in store.member_history(conn, "FIC-002")} == {
+        CrewPosition.CHIEF,
+        CrewPosition.GUNNER,
+    }
+
+
+def test_future_event_date_is_refused():
+    with pytest.raises(ValueError, match="event date cannot be in the future"):
+        TrainingEventDraft(
+            **{
+                **draft(6).model_dump(),
+                "event_date": date.today() + timedelta(days=1),
+            }
+        )
+
+
+def test_person_cannot_appear_in_two_crews():
+    second = draft(6).crews[0].model_copy(update={"crew_name": "Launcher 2"})
+    with pytest.raises(ValueError, match="only one crew per event"):
+        TrainingEventDraft(**{**draft(6).model_dump(), "crews": (draft(6).crews[0], second)})
