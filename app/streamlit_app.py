@@ -14,6 +14,19 @@ from blastbridge.data.catalog import load_weapon_catalog
 from blastbridge.models.enums import EventType
 from blastbridge.models.training_tempo import TrainingContext
 from blastbridge.product import store
+from blastbridge.product.followup import (
+    ABSENCE_NOTE,
+    BOUNDARY_NOTE,
+    DANGER_SIGN_LABEL,
+    EMPTY_FOLLOWUP,
+    GOVERNANCE_NOTE,
+    PRIVACY_NOTE,
+    SOURCES,
+    SYMPTOM_LIST_LABEL,
+    FollowUp,
+    FollowUpState,
+    evaluate,
+)
 from blastbridge.product.models import (
     Crew,
     CrewMember,
@@ -23,7 +36,16 @@ from blastbridge.product.models import (
     TrainingEvent,
     TrainingEventDraft,
 )
-from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE
+from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE, DEMO_SYMPTOMS
+from blastbridge.product.symptoms import (
+    DangerSign,
+    FunctionalImpact,
+    Persistence,
+    Symptom,
+    SymptomReportDraft,
+    SymptomSource,
+    TemporalRelationship,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = Path(
@@ -60,6 +82,7 @@ def _initialized(path: str) -> str:
     store.init_db(conn)
     store.seed_people(conn, DEMO_PEOPLE)
     store.seed_demo_events(conn, DEMO_EVENTS)
+    store.seed_demo_symptoms(conn, DEMO_SYMPTOMS)
     conn.close()
     return path
 
@@ -205,6 +228,13 @@ def dashboard() -> None:
     c4.metric(
         "Known physical events recorded", sum(e.draft.known_physical_event_count for e in approved)
     )
+    st.metric(
+        "Reports matching a follow-up rule",
+        sum(
+            evaluate(report.draft).state is not FollowUpState.NO_FOLLOWUP_RULE_TRIGGERED
+            for report in store.list_symptom_reports(CONN)
+        ),
+    )
 
     if drafts:
         st.subheader("Awaiting review")
@@ -242,12 +272,12 @@ def dashboard() -> None:
         confirmed = st.checkbox("I understand this deletes all recorded events")
         if st.button("Reset to demo state", disabled=not confirmed):
             try:
-                store.reset_demo(CONN, DEMO_PEOPLE, DEMO_EVENTS)
+                store.reset_demo(CONN, DEMO_PEOPLE, DEMO_EVENTS, DEMO_SYMPTOMS)
             except (store.StoreError, sqlite3.Error) as exc:
                 st.error(f"Could not reset demo data: {exc}")
                 return
             for key in list(st.session_state):
-                if key.startswith(("review", "editing", "f_")) or key in (
+                if key.startswith(("review", "editing", "f_", "sym_")) or key in (
                     "last_decided",
                     "form_init",
                 ):
@@ -582,6 +612,238 @@ def review() -> None:
         decide("reject", event)
 
 
+def followup_card(result: FollowUp) -> None:
+    if result.state is FollowUpState.URGENT_EVALUATION_RECOMMENDED:
+        st.error(result.headline)
+    elif result.state is FollowUpState.FOLLOW_UP_SUGGESTED:
+        with st.container(border=True):
+            st.markdown(f'<span class="bb-pill">{result.headline}</span>', unsafe_allow_html=True)
+    else:
+        st.caption(result.headline)
+    for sentence in result.missing:
+        st.caption(sentence)
+    st.write(result.explanation)
+
+
+def official_resources() -> None:
+    for source in SOURCES:
+        st.markdown(f"[{source.title}]({source.url})")
+        st.caption(f"{source.publisher} · {source.version}")
+        st.write(source.use)
+        st.caption(source.verification)
+    st.caption(GOVERNANCE_NOTE)
+
+
+def linked_event_text(event_id: str | None) -> str:
+    if event_id is None:
+        return "No linked event"
+    try:
+        event = store.get_event(CONN, event_id)
+    except store.StoreError:
+        return event_id
+    return f"{event.draft.event_date:%d %b %Y} · {event.draft.weapon_name} · {event_id}"
+
+
+def report_fields(report: SymptomReportDraft) -> None:
+    st.write(f"{PEOPLE[report.person_id].display_name} · FICTIONAL · {report.person_id}")
+    st.write(f"Report date: {report.report_date:%d %b %Y}")
+    st.write(f"Linked event: {linked_event_text(report.event_id)}")
+    st.write(report.temporal_relationship.label)
+    st.write("Symptoms: " + (", ".join(item.label for item in report.symptoms) or "None recorded"))
+    if report.danger_signs:
+        st.write("Danger signs: " + "; ".join(item.label for item in report.danger_signs))
+    else:
+        st.caption("Danger signs: None recorded")
+    st.write(f"Persistence: {report.persistence.label}")
+    st.write(f"Functional impact: {report.functional_impact.label}")
+    st.write(f"Source: {report.source.label}")
+    st.write(f"Note: {report.note or 'Not recorded'}")
+
+
+def clear_symptom_state() -> None:
+    for key in list(st.session_state):
+        if key.startswith("sym_"):
+            del st.session_state[key]
+
+
+def symptom_form(person_id: str) -> None:
+    s = st.session_state
+    if s.get("sym_person") != person_id:
+        clear_symptom_state()
+    notice = s.pop("sym_notice", None)
+    if notice:
+        st.success(notice)
+    if st.button("Log Symptom Report"):
+        clear_symptom_state()
+        s["sym_person"] = person_id
+        s["sym_open"] = True
+    if not s.get("sym_open"):
+        return
+    st.caption(BOUNDARY_NOTE)
+    pending = s.get("sym_review")
+    if pending is not None:
+        with st.container(border=True):
+            st.subheader("Review report")
+            report_fields(pending)
+            followup_card(evaluate(pending))
+            confirm, edit, discard = st.columns(3)
+            if confirm.button("Confirm", key="sym_confirm"):
+                try:
+                    store.confirm_symptom_report(CONN, pending)
+                except (store.StoreError, sqlite3.Error) as exc:
+                    st.error(f"Could not confirm report: {exc}")
+                else:
+                    clear_symptom_state()
+                    s["sym_person"] = person_id
+                    s["sym_notice"] = "Report confirmed."
+                    st.rerun()
+            if edit.button("Edit", key="sym_edit"):
+                s["sym_restore"] = s["sym_values"]
+                del s["sym_review"]
+                st.rerun()
+            if discard.button("Discard", key="sym_discard"):
+                clear_symptom_state()
+                st.rerun()
+        return
+
+    for key, value in s.pop("sym_restore", {}).items():
+        s[key] = value
+    entries = store.member_history(CONN, person_id)
+    by_id = {entry.event_id: entry for entry in entries}
+    with st.container(border=True):
+        st.subheader("Log Symptom Report")
+        event_id = st.selectbox(
+            "Linked event (optional)",
+            [None, *by_id],
+            key="sym_w_event",
+            format_func=lambda value: (
+                "No linked event"
+                if value is None
+                else (
+                    f"{by_id[value].event_date:%d %b %Y} · {by_id[value].weapon_name} · "
+                    f"{by_id[value].position.label}"
+                )
+            ),
+        )
+        relationships = [
+            TemporalRelationship.AFTER_RECORDED_EVENT
+            if event_id
+            else TemporalRelationship.NOT_LINKED_TO_EVENT,
+            TemporalRelationship.RELATIONSHIP_UNKNOWN,
+        ]
+        if s.get("sym_w_relationship") not in relationships:
+            s["sym_w_relationship"] = None
+        relationship = st.radio(
+            "Temporal relationship",
+            relationships,
+            index=None,
+            format_func=lambda value: value.label,
+            key="sym_w_relationship",
+        )
+        report_date = st.date_input("Report date", max_value=date.today(), key="sym_w_date")
+        st.write(SYMPTOM_LIST_LABEL)
+        symptoms = tuple(
+            item for item in Symptom if st.checkbox(item.label, key=f"sym_w_s_{item.value}")
+        )
+        with st.container(border=True):
+            st.write(DANGER_SIGN_LABEL)
+            danger_signs = tuple(
+                item for item in DangerSign if st.checkbox(item.label, key=f"sym_w_d_{item.value}")
+            )
+        persistence = st.radio(
+            "Persistence",
+            list(Persistence),
+            index=None,
+            format_func=lambda value: value.label,
+            key="sym_w_persistence",
+        )
+        impact = st.radio(
+            "Functional impact",
+            list(FunctionalImpact),
+            index=None,
+            format_func=lambda value: value.label,
+            key="sym_w_impact",
+        )
+        source = st.radio(
+            "Source",
+            list(SymptomSource),
+            index=None,
+            format_func=lambda value: value.label,
+            key="sym_w_source",
+        )
+        note = st.text_area("Note (optional)", max_chars=500, key="sym_w_note")
+        if st.button("Discard", key="sym_form_discard"):
+            clear_symptom_state()
+            st.rerun()
+        if not st.button("Review report", key="sym_form_review"):
+            return
+        if any(value is None for value in (relationship, persistence, impact, source)):
+            st.error(
+                "Choose temporal relationship, persistence, functional impact and "
+                "source explicitly."
+            )
+            return
+        if report_date > date.today():
+            st.error("Report date cannot be in the future.")
+            return
+        if (
+            relationship is TemporalRelationship.AFTER_RECORDED_EVENT
+            and event_id
+            and report_date < by_id[event_id].event_date
+        ):
+            st.error("A report after a recorded event cannot predate that event.")
+            return
+        try:
+            pending = SymptomReportDraft(
+                person_id=person_id,
+                event_id=event_id,
+                report_date=report_date,
+                source=source,
+                symptoms=symptoms,
+                danger_signs=danger_signs,
+                note=note,
+                temporal_relationship=relationship,
+                persistence=persistence,
+                functional_impact=impact,
+            )
+        except ValidationError as exc:
+            st.error(" ".join(e["msg"].removeprefix("Value error, ") for e in exc.errors()))
+            return
+        s["sym_values"] = {key: value for key, value in s.items() if key.startswith("sym_w_")}
+        s["sym_review"] = pending
+        st.rerun()
+
+
+def followup() -> None:
+    header("Follow-up", "Confirmed reports for fictional personnel.")
+    reports = [
+        report
+        for report in store.list_symptom_reports(CONN)
+        if evaluate(report.draft).state is not FollowUpState.NO_FOLLOWUP_RULE_TRIGGERED
+    ]
+    reports.sort(
+        key=lambda report: (
+            evaluate(report.draft).state is FollowUpState.URGENT_EVALUATION_RECOMMENDED,
+            report.draft.report_date,
+            report.confirmed_at,
+        ),
+        reverse=True,
+    )
+    if not reports:
+        st.write(EMPTY_FOLLOWUP)
+        st.caption(ABSENCE_NOTE)
+    for report in reports:
+        with st.container(border=True):
+            report_fields(report.draft)
+            followup_card(evaluate(report.draft))
+            if st.button("Open history", key=f"followup-{report.report_id}"):
+                open_history(report.draft.person_id)
+    st.subheader("Official resources")
+    official_resources()
+    st.caption(BOUNDARY_NOTE)
+    st.caption(PRIVACY_NOTE)
+
+
 def history() -> None:
     header("Personnel exposure history", "Approved training activity for one fictional person.")
     chosen = st.session_state.pop("history_person_id", None)
@@ -590,6 +852,7 @@ def history() -> None:
     person_id = st.selectbox("Person", list(PEOPLE), format_func=person_text, key="h_person")
     p = PEOPLE[person_id]
     entries = store.member_history(CONN, person_id)
+    reports = store.list_symptom_reports(CONN, person_id)
 
     with st.container(border=True):
         a, b, c = st.columns([2, 1, 1])
@@ -612,13 +875,14 @@ def history() -> None:
             )
 
     known = [e.physical_event_count for e in entries if e.physical_event_count is not None]
-    a, b, c = st.columns(3)
+    a, b, c, report_metric = st.columns(4)
     a.metric("Approved training events", len(entries))
     b.metric(
         "Known physical events",
         "Unknown" if entries and not known else sum(known),
     )
     c.metric("Records with unknown count", len(entries) - len(known))
+    report_metric.metric("Symptom reports", len(reports))
     st.caption(
         "Totals use known counts only. Events with an unknown count are listed and are never "
         "counted as zero."
@@ -626,9 +890,8 @@ def history() -> None:
 
     if not entries:
         st.info("No approved training events for this person yet.")
-        return
     months = Counter(e.event_date.strftime("%Y-%m") for e in entries)
-    month = min(e.event_date for e in entries).replace(day=1)
+    month = min((e.event_date for e in entries), default=date.today()).replace(day=1)
     today = date.today().replace(day=1)
     chart = {}
     while month <= today:
@@ -645,25 +908,35 @@ def history() -> None:
         "Counts approved training events, not launches. "
         "Events with unknown launch counts are included."
     )
-    st.dataframe(
-        [
-            {
-                "Date": e.event_date,
-                "Weapon": e.weapon_name,
-                "Position": e.position.label,
-                "Physical events": count_text(e.physical_event_count),
-                "Crew": e.crew_name,
-                "Training context": label(e.training_context),
-                "Activity": label(e.event_type),
-                "Location / unit": e.location_unit or "",
-                "Event ID": e.event_id,
-            }
-            for e in entries
-        ],
-        column_config={"Date": st.column_config.DateColumn("Date", format="DD MMM YYYY")},
-        hide_index=True,
-        width="stretch",
+    symptom_form(person_id)
+    st.subheader("History timeline")
+    training_by_id = {entry.event_id: entry for entry in entries}
+    reports_by_id = {report.report_id: report for report in reports}
+    timeline = [(entry.event_date, "", "training", entry.event_id) for entry in entries]
+    timeline.extend(
+        (report.draft.report_date, report.confirmed_at, "report", report.report_id)
+        for report in reports
     )
+    for _, _, kind, record_id in sorted(timeline, reverse=True):
+        with st.container(border=True):
+            if kind == "training":
+                entry = training_by_id[record_id]
+                st.write(f"**{entry.event_date:%d %b %Y} · {entry.weapon_name}**")
+                st.write(f"{label(entry.training_context)} · {entry.position.label}")
+                st.write(
+                    f"Physical events: {count_text(entry.physical_event_count)} · {entry.crew_name}"
+                )
+                st.caption("Source: organizational training record")
+            else:
+                report = reports_by_id[record_id]
+                st.write(f"**{report.draft.report_date:%d %b %Y} · Symptom report**")
+                report_fields(report.draft)
+                followup_card(evaluate(report.draft))
+    if reports:
+        with st.expander("Official resources"):
+            official_resources()
+        st.caption(BOUNDARY_NOTE)
+        st.caption(PRIVACY_NOTE)
 
 
 PAGES = {
@@ -671,6 +944,7 @@ PAGES = {
     "new": st.Page(new_event, title="New Training Event", icon=":material/add_circle:"),
     "review": st.Page(review, title="Review / Approve", icon=":material/fact_check:"),
     "history": st.Page(history, title="Personnel History", icon=":material/person_search:"),
+    "followup": st.Page(followup, title="Follow-up", icon=":material/assignment_ind:"),
 }
 
 try:

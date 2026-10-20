@@ -4,6 +4,7 @@ The physical launch count lives once on its crew. Approval links each crew membe
 participant_exposures; those rows never copy or multiply the count. Drafts never reach history.
 """
 
+import json
 import sqlite3
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
@@ -21,6 +22,7 @@ from .models import (
     TrainingEvent,
     TrainingEventDraft,
 )
+from .symptoms import SymptomReport, SymptomReportDraft, TemporalRelationship
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS people (
@@ -68,6 +70,20 @@ CREATE TABLE IF NOT EXISTS participant_exposures (
     approved_at TEXT NOT NULL,
     PRIMARY KEY (event_id, person_id)
 );
+CREATE TABLE IF NOT EXISTS symptom_reports (
+    report_id TEXT PRIMARY KEY,
+    person_id TEXT NOT NULL REFERENCES people(person_id),
+    event_id TEXT REFERENCES training_events(event_id),
+    report_date TEXT NOT NULL,
+    source TEXT NOT NULL,
+    symptoms TEXT NOT NULL,
+    danger_signs TEXT NOT NULL,
+    note TEXT,
+    temporal_relationship TEXT NOT NULL,
+    persistence TEXT NOT NULL,
+    functional_impact TEXT NOT NULL,
+    confirmed_at TEXT NOT NULL
+);
 """
 
 
@@ -99,16 +115,18 @@ def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
 
 
-_SCHEMA_VERSION = 2
+_SCHEMA_VERSION = 3
 
 
 def init_db(conn: sqlite3.Connection) -> None:
-    """Create the schema; refuse a database written by an older build instead of misreading it."""
+    """Create the schema, accepting version 2 for the additive report-table upgrade."""
     version = conn.execute("PRAGMA user_version").fetchone()[0]
     existing = conn.execute(
         "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'training_events'"
     ).fetchone()[0]
-    if existing and version != _SCHEMA_VERSION:
+    if (existing and version not in (2, _SCHEMA_VERSION)) or (
+        not existing and version not in (0, 2, _SCHEMA_VERSION)
+    ):
         raise StoreError(
             "this database was created by an older BlastBridge build; "
             "delete the demo database file and restart"
@@ -231,14 +249,17 @@ def reset_demo(
     conn: sqlite3.Connection,
     people: Iterable[Person],
     events: Iterable[tuple[str, TrainingEventDraft]],
+    symptoms: Iterable[tuple[str, SymptomReportDraft]],
 ) -> None:
     with _transaction(conn):
+        conn.execute("DELETE FROM symptom_reports")
         conn.execute("DELETE FROM participant_exposures")
         conn.execute("DELETE FROM crew_members")
         conn.execute("DELETE FROM crews")
         conn.execute("DELETE FROM training_events")
     seed_people(conn, people)
     seed_demo_events(conn, events)
+    seed_demo_symptoms(conn, symptoms)
 
 
 def update_draft(
@@ -370,3 +391,104 @@ def member_history(conn: sqlite3.Connection, person_id: str) -> list[HistoryEntr
     return [
         HistoryEntry(**{**dict(r), "event_date": date.fromisoformat(r["event_date"])}) for r in rows
     ]
+
+
+def confirm_symptom_report(
+    conn: sqlite3.Connection, draft: SymptomReportDraft, report_id: str | None = None
+) -> str:
+    with _transaction(conn):
+        if draft.report_date > date.today():
+            raise StoreError("report date cannot be in the future")
+        if get_person(conn, draft.person_id) is None:
+            raise StoreError("the report person does not exist")
+        if draft.event_id is not None:
+            event = conn.execute(
+                "SELECT status, event_date FROM training_events WHERE event_id = ?",
+                (draft.event_id,),
+            ).fetchone()
+            if event is None or event["status"] != EventStatus.APPROVED:
+                raise StoreError("a linked event must be approved")
+            if (
+                conn.execute(
+                    "SELECT 1 FROM participant_exposures WHERE event_id = ? AND person_id = ?",
+                    (draft.event_id, draft.person_id),
+                ).fetchone()
+                is None
+            ):
+                raise StoreError("the person must have participated in the linked event")
+            if (
+                draft.temporal_relationship is TemporalRelationship.AFTER_RECORDED_EVENT
+                and draft.report_date < date.fromisoformat(event["event_date"])
+            ):
+                raise StoreError("a report after a recorded event cannot predate that event")
+        if report_id is None:
+            report_id = f"SYM-{uuid4().hex[:8].upper()}"
+        conn.execute(
+            "INSERT INTO symptom_reports VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                report_id,
+                draft.person_id,
+                draft.event_id,
+                draft.report_date.isoformat(),
+                draft.source,
+                json.dumps(draft.symptoms),
+                json.dumps(draft.danger_signs),
+                draft.note,
+                draft.temporal_relationship,
+                draft.persistence,
+                draft.functional_impact,
+                _now(),
+            ),
+        )
+    return report_id
+
+
+def list_symptom_reports(
+    conn: sqlite3.Connection, person_id: str | None = None
+) -> list[SymptomReport]:
+    rows = conn.execute(
+        "SELECT * FROM symptom_reports "
+        + ("WHERE person_id = ? " if person_id is not None else "")
+        + "ORDER BY report_date DESC, confirmed_at DESC",
+        (person_id,) if person_id is not None else (),
+    ).fetchall()
+    reports = []
+    for row in rows:
+        values = dict(row)
+        report_id = values.pop("report_id")
+        confirmed_at = values.pop("confirmed_at")
+        values["report_date"] = date.fromisoformat(values["report_date"])
+        values["symptoms"] = tuple(json.loads(values["symptoms"]))
+        values["danger_signs"] = tuple(json.loads(values["danger_signs"]))
+        reports.append(
+            SymptomReport(
+                report_id=report_id,
+                draft=SymptomReportDraft(**values),
+                confirmed_at=confirmed_at,
+            )
+        )
+    return reports
+
+
+def seed_demo_symptoms(
+    conn: sqlite3.Connection, reports: Iterable[tuple[str, SymptomReportDraft]]
+) -> int:
+    added = 0
+    for report_id, draft in reports:
+        if conn.execute(
+            "SELECT 1 FROM symptom_reports WHERE report_id = ?", (report_id,)
+        ).fetchone():
+            continue
+        try:
+            confirm_symptom_report(conn, draft, report_id)
+        except sqlite3.IntegrityError:
+            if (
+                conn.execute(
+                    "SELECT 1 FROM symptom_reports WHERE report_id = ?", (report_id,)
+                ).fetchone()
+                is None
+            ):
+                raise
+        else:
+            added += 1
+    return added

@@ -6,6 +6,14 @@ from blastbridge.models.enums import EventType
 from blastbridge.models.training_tempo import TrainingContext
 
 from .models import Crew, CrewMember, CrewPosition, Person, TrainingEventDraft
+from .symptoms import (
+    FunctionalImpact,
+    Persistence,
+    Symptom,
+    SymptomReportDraft,
+    SymptomSource,
+    TemporalRelationship,
+)
 
 _UNIT = "Demo Rocket Battery (FICTIONAL)"
 
@@ -128,6 +136,49 @@ DEMO_EVENTS: tuple[tuple[str, TrainingEventDraft], ...] = (
                 ("Launcher 1", (2, 1, 3), 10),
                 ("Launcher 2", (5, 6, 7), None),
             ),
+        ),
+    ),
+)
+
+DEMO_SYMPTOMS: tuple[tuple[str, SymptomReportDraft], ...] = (
+    (
+        "SYM-DEMO-01",
+        SymptomReportDraft(
+            person_id="FIC-002",
+            event_id="EVT-DEMO-06",
+            report_date=date(2026, 9, 24),
+            source=SymptomSource.SELF_REPORTED,
+            symptoms=(Symptom.HEADACHES, Symptom.SLEEP_PROBLEMS),
+            temporal_relationship=TemporalRelationship.AFTER_RECORDED_EVENT,
+            persistence=Persistence.STILL_PRESENT,
+            functional_impact=FunctionalImpact.YES,
+            note="Fictional demo report.",
+        ),
+    ),
+    (
+        "SYM-DEMO-02",
+        SymptomReportDraft(
+            person_id="FIC-010",
+            event_id="EVT-DEMO-05",
+            report_date=date(2026, 8, 27),
+            source=SymptomSource.MEDICAL_OR_READINESS_RECORDED,
+            symptoms=(Symptom.TINNITUS,),
+            temporal_relationship=TemporalRelationship.RELATIONSHIP_UNKNOWN,
+            persistence=Persistence.UNKNOWN,
+            functional_impact=FunctionalImpact.UNKNOWN,
+        ),
+    ),
+    (
+        "SYM-DEMO-03",
+        SymptomReportDraft(
+            person_id="FIC-006",
+            event_id="EVT-DEMO-01",
+            report_date=date(2026, 4, 16),
+            source=SymptomSource.SELF_REPORTED,
+            symptoms=(Symptom.DIZZINESS,),
+            temporal_relationship=TemporalRelationship.AFTER_RECORDED_EVENT,
+            persistence=Persistence.RESOLVED,
+            functional_impact=FunctionalImpact.NO,
         ),
     ),
 )

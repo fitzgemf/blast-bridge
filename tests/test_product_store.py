@@ -7,6 +7,7 @@ import pytest
 from blastbridge.models.enums import EventType
 from blastbridge.models.training_tempo import ParticipationRole, TrainingContext
 from blastbridge.product import store
+from blastbridge.product.followup import FollowUpState, evaluate
 from blastbridge.product.models import (
     Crew,
     CrewMember,
@@ -14,7 +15,16 @@ from blastbridge.product.models import (
     EventStatus,
     TrainingEventDraft,
 )
-from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE
+from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE, DEMO_SYMPTOMS
+from blastbridge.product.symptoms import (
+    DangerSign,
+    FunctionalImpact,
+    Persistence,
+    Symptom,
+    SymptomReportDraft,
+    SymptomSource,
+    TemporalRelationship,
+)
 
 CREW = ("FIC-001", "FIC-002", "FIC-003")
 OUTSIDER = "FIC-005"
@@ -163,3 +173,122 @@ def test_person_cannot_appear_in_two_crews():
     second = draft(6).crews[0].model_copy(update={"crew_name": "Launcher 2"})
     with pytest.raises(ValueError, match="only one crew per event"):
         TrainingEventDraft(**{**draft(6).model_dump(), "crews": (draft(6).crews[0], second)})
+
+
+def report_draft(event_id: str | None = None, **changes) -> SymptomReportDraft:
+    values = {
+        "person_id": CREW[0],
+        "event_id": event_id,
+        "report_date": date(2026, 10, 15),
+        "source": SymptomSource.SELF_REPORTED,
+        "symptoms": (Symptom.HEADACHES,),
+        "temporal_relationship": (
+            TemporalRelationship.AFTER_RECORDED_EVENT
+            if event_id
+            else TemporalRelationship.NOT_LINKED_TO_EVENT
+        ),
+        "persistence": Persistence.STILL_PRESENT,
+        "functional_impact": FunctionalImpact.YES,
+    }
+    return SymptomReportDraft(**{**values, **changes})
+
+
+def test_confirm_writes_only_that_persons_report(conn):
+    event_id = store.save_draft(conn, draft(6))
+    store.approve_event(conn, event_id, 1)
+    tables = ("training_events", "crews", "crew_members", "participant_exposures")
+    before = {
+        table: repr(
+            [tuple(row) for row in conn.execute(f"SELECT * FROM {table} ORDER BY rowid")]
+        ).encode()
+        for table in tables
+    }
+    report = report_draft(event_id)
+    evaluate(report)
+    assert conn.execute("SELECT COUNT(*) FROM symptom_reports").fetchone()[0] == 0
+    store.confirm_symptom_report(conn, report)
+    assert len(store.list_symptom_reports(conn, CREW[0])) == 1
+    assert store.list_symptom_reports(conn, CREW[1]) == []
+    assert conn.execute("SELECT COUNT(*) FROM symptom_reports").fetchone()[0] == 1
+    after = {
+        table: repr(
+            [tuple(row) for row in conn.execute(f"SELECT * FROM {table} ORDER BY rowid")]
+        ).encode()
+        for table in tables
+    }
+    assert before == after
+
+
+def test_followup_rule():
+    linked = report_draft("EVT-FICTIONAL")
+    unknown = report_draft(
+        "EVT-FICTIONAL", persistence=Persistence.UNKNOWN, functional_impact=FunctionalImpact.UNKNOWN
+    )
+    danger_only = report_draft(symptoms=(), danger_signs=(DangerSign.REPEATED_VOMITING,))
+    danger_and_symptoms = report_draft(
+        "EVT-FICTIONAL", danger_signs=(DangerSign.REPEATED_VOMITING,)
+    )
+    results = [evaluate(report) for report in (linked, unknown, danger_only, danger_and_symptoms)]
+    assert [result.state for result in results] == [
+        FollowUpState.FOLLOW_UP_SUGGESTED,
+        FollowUpState.NO_FOLLOWUP_RULE_TRIGGERED,
+        FollowUpState.URGENT_EVALUATION_RECOMMENDED,
+        FollowUpState.URGENT_EVALUATION_RECOMMENDED,
+    ]
+    missing = " ".join(results[1].missing).lower()
+    assert "persistence" in missing and "functional impact" in missing
+    for result in results:
+        wording = " ".join((result.headline, result.explanation, *result.missing)).lower()
+        assert not any(
+            term in wording
+            for term in (
+                "possible tbi",
+                "tbi risk",
+                "probability",
+                "%",
+                "you are safe",
+                "no tbi",
+                "no follow-up needed",
+                "caused by",
+                "diagnosed with",
+            )
+        )
+
+
+def test_launch_count_does_not_change_followup(conn):
+    results = []
+    for count in (1, 999, None):
+        event_id = store.save_draft(conn, draft(count))
+        store.approve_event(conn, event_id, 1)
+        report = report_draft(event_id)
+        results.append(evaluate(report))
+        store.confirm_symptom_report(conn, report)
+    assert results[0] == results[1] == results[2]
+    assert len(store.list_symptom_reports(conn, CREW[0])) == 3
+
+
+def test_symptom_seed_is_idempotent(conn):
+    store.seed_demo_events(conn, DEMO_EVENTS)
+    assert store.seed_demo_symptoms(conn, DEMO_SYMPTOMS) == 3
+    assert store.seed_demo_events(conn, DEMO_EVENTS) == 0
+    assert store.seed_demo_symptoms(conn, DEMO_SYMPTOMS) == 0
+    assert len(store.list_symptom_reports(conn)) == 3
+    store.reset_demo(conn, DEMO_PEOPLE, DEMO_EVENTS, DEMO_SYMPTOMS)
+    reports = {report.report_id: report for report in store.list_symptom_reports(conn)}
+    assert len(reports) == 3
+    assert [evaluate(reports[report_id].draft).state for report_id, _ in DEMO_SYMPTOMS] == [
+        FollowUpState.FOLLOW_UP_SUGGESTED,
+        FollowUpState.NO_FOLLOWUP_RULE_TRIGGERED,
+        FollowUpState.NO_FOLLOWUP_RULE_TRIGGERED,
+    ]
+
+
+def test_link_must_be_an_approved_event_the_person_attended(conn):
+    approved = store.save_draft(conn, draft(6))
+    store.approve_event(conn, approved, 1)
+    pending = store.save_draft(conn, draft(6))
+    with pytest.raises(store.StoreError, match="participated"):
+        store.confirm_symptom_report(conn, report_draft(approved, person_id=OUTSIDER))
+    with pytest.raises(store.StoreError, match="approved"):
+        store.confirm_symptom_report(conn, report_draft(pending))
+    assert store.list_symptom_reports(conn) == []
