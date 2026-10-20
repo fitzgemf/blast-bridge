@@ -1,0 +1,41 @@
+{
+  "anomaly_percentile": 5.0,
+  "config_fingerprint": "b076b6380244678ad63fc150a4f870479807760fa535da20dade5fea5f0a5b1a",
+  "config_fingerprint_method": "sha256 of config.model_dump_json(); persistence exposes no public fingerprint helper",
+  "days_cap": 730,
+  "feature_names": [
+    "events_30d",
+    "events_90d",
+    "events_365d",
+    "days_since_previous_event",
+    "max_events_14d",
+    "recent_vs_earlier_cadence"
+  ],
+  "first_window_offset_days": 365,
+  "generator_version": "0.5.0",
+  "label": "FICTIONAL SIMULATION BASELINE \u2014 NOT CLINICAL DATA",
+  "mapping_id": "test-demo-mapping",
+  "mapping_version": "0.5.0",
+  "master_seed": 20261019,
+  "model_params": {
+    "n_estimators": 100,
+    "random_state": 20261019
+  },
+  "output_schema_version": "0.4.0",
+  "population_size": 30,
+  "row_count": 2910,
+  "scenario_id": "test-demo-scenario",
+  "scenario_note": "Uses the V0.5 fictional demo scenario assumptions with population_size 30. Not an empirical military population model; not medical ground truth.",
+  "scenario_version": "0.5.0",
+  "sklearn_version_pinned": "1.6.1",
+  "step_days": 45,
+  "unit_mapping": "One distinct attended live-fire session day is one occupational event day; one distinct approved product training event day is one occupational event day.",
+  "window_semantics": {
+    "days_since_previous_event": "Days since the most recent event day at or before analysis_as_of, capped at 730; 730 when none is recorded.",
+    "events_30d": "Distinct occupational event days in (analysis_as_of - 30 days, analysis_as_of].",
+    "events_365d": "Distinct occupational event days in (analysis_as_of - 365 days, analysis_as_of].",
+    "events_90d": "Distinct occupational event days in (analysis_as_of - 90 days, analysis_as_of].",
+    "max_events_14d": "For each event day d in the prior 365 days, count distinct event days in (d - 14 days, d] and retain the maximum, or zero if no endpoint exists.",
+    "recent_vs_earlier_cadence": "events_90d / 3 minus (events_365d - events_90d) / 9."
+  }
+}
