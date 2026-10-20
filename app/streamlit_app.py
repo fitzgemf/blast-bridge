@@ -21,6 +21,14 @@ from blastbridge.product.agent import (
     run_intake,
 )
 from blastbridge.product.anthropic_provider import AnthropicProvider, live_available
+from blastbridge.product.calendar_view import (
+    DEMO_STORY_DATE,
+    DayMarks,
+    can_record_on,
+    month_weeks,
+    organization_marks,
+    person_marks,
+)
 from blastbridge.product.followup import (
     ABSENCE_NOTE,
     BOUNDARY_NOTE,
@@ -46,6 +54,18 @@ from blastbridge.product.models import (
     TrainingEventDraft,
     provenance_text,
 )
+from blastbridge.product.patterns import (
+    CONTEXT_NOTE,
+    DIFFERING_HEADING,
+    PATTERN_DISCLAIMER,
+    PatternModel,
+    PatternStatus,
+    assess_pattern,
+    fit_pattern_model,
+    load_baseline,
+    occupational_features,
+)
+from blastbridge.product.readiness import ReadinessAssessment, ReadinessStatus, assess_readiness
 from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE, DEMO_SYMPTOMS
 from blastbridge.product.symptoms import (
     DangerSign,
@@ -76,7 +96,14 @@ st.markdown(
   font-size: .8rem; font-weight: 600; border: 1px solid rgba(128,128,128,.35);}
 .bb-pill.approved, .bb-pill.draft {background: rgba(128,128,128,.12);}
 [data-testid="stMetric"] {border: 1px solid rgba(128,128,128,.25);
-  border-radius: 8px; padding: .8rem;}
+  border-radius: 12px; padding: .8rem;}
+[data-testid="stVerticalBlockBorderWrapper"] {border-radius: 12px;
+  border-color: rgba(128,128,128,.25);}
+.st-key-cal-org button, .st-key-cal-person button {min-height: 2.6rem; padding: .2rem;}
+.bb-pill.routine {background: rgba(128,128,128,.10);}
+.bb-pill.review {background: rgba(194,137,31,.10); border-color: rgba(194,137,31,.30);}
+.bb-pill.medical {background: rgba(194,137,31,.18); border-color: rgba(194,137,31,.65);}
+.bb-pill.urgent {background: rgba(180,45,45,.13); border-color: rgba(180,45,45,.65);}
 .bb-label {font-size: .78rem; opacity: .65; text-transform: uppercase; letter-spacing: .05em;}
 .bb-value {font-size: 1.02rem; margin-bottom: .55rem;}
 .bb-name {font-size: 1.45rem; font-weight: 600; margin-bottom: .1rem;}
@@ -110,6 +137,103 @@ _initialized(str(DB_PATH))
 CONN = store.connect(DB_PATH)
 PEOPLE: dict[str, Person] = {p.person_id: p for p in store.list_people(CONN)}
 
+if st.session_state.pop("reset_demo_view", False):
+    st.session_state["analysis_as_of"] = DEMO_STORY_DATE
+    for calendar_key in ("org", "person"):
+        st.session_state[f"{calendar_key}_month"] = DEMO_STORY_DATE.replace(day=1)
+        st.session_state[f"{calendar_key}_day"] = DEMO_STORY_DATE
+st.session_state.setdefault("analysis_as_of", date.today())
+ANALYSIS_AS_OF = st.sidebar.date_input(
+    "Analysis as of", key="analysis_as_of", max_value=date.today()
+)
+st.sidebar.caption("Readiness and the occupational-pattern result are computed as of this date.")
+
+
+@st.cache_resource
+def pattern_model() -> PatternModel | None:
+    try:
+        rows, metadata = load_baseline()
+    except FileNotFoundError:
+        return None
+    return fit_pattern_model(rows, metadata)
+
+
+def readiness_for(person_id: str, as_of: date) -> ReadinessAssessment:
+    entries = store.member_history(CONN, person_id)
+    reports = store.list_symptom_reports(CONN, person_id)
+    model = pattern_model()
+    pattern = (
+        assess_pattern(model, (entry.event_date for entry in entries), as_of) if model else None
+    )
+    return assess_readiness(person_id, entries, reports, pattern, as_of)
+
+
+def all_readiness(as_of: date) -> dict[str, ReadinessAssessment]:
+    return {person_id: readiness_for(person_id, as_of) for person_id in PEOPLE}
+
+
+def readiness_pill(status: ReadinessStatus) -> None:
+    style = {
+        ReadinessStatus.ROUTINE_MONITORING: "routine",
+        ReadinessStatus.REVIEW_PRIORITY: "review",
+        ReadinessStatus.MEDICAL_FOLLOWUP_RECOMMENDED: "medical",
+        ReadinessStatus.URGENT_EVALUATION: "urgent",
+    }[status]
+    st.markdown(f'<span class="bb-pill {style}">{status.label}</span>', unsafe_allow_html=True)
+
+
+def render_calendar(key: str, marks: dict[date, DayMarks], person: bool) -> date | None:
+    today = date.today()
+    s = st.session_state
+    s.setdefault(f"{key}_month", today.replace(day=1))
+    s.setdefault(f"{key}_day", today)
+    month = s[f"{key}_month"]
+    with st.container(key=f"cal-{key}"):
+        previous, title, following = st.columns([1, 5, 1])
+        if previous.button("‹", key=f"{key}-previous"):
+            s[f"{key}_month"] = date(month.year - (month.month == 1), (month.month - 2) % 12 + 1, 1)
+            st.rerun()
+        title.markdown(f"**{month:%B %Y}**")
+        if following.button("›", key=f"{key}-next"):
+            s[f"{key}_month"] = date(month.year + (month.month == 12), month.month % 12 + 1, 1)
+            st.rerun()
+        for column, weekday in zip(
+            st.columns(7),
+            ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"),
+            strict=True,
+        ):
+            column.caption(weekday)
+        for week in month_weeks(month.year, month.month):
+            for column, day in zip(st.columns(7), week, strict=True):
+                if day is None:
+                    column.write("")
+                    continue
+                enabled = can_record_on(day, today)
+                mark = marks.get(day, DayMarks()) if enabled else DayMarks()
+                text = str(day.day)
+                if mark.training:
+                    text += " :gray[●]"
+                if person and mark.symptom:
+                    text += " :blue[◆]"
+                if mark.attention:
+                    text += " :orange[●]"
+                if mark.urgent:
+                    text += " :red[●]"
+                if column.button(
+                    text,
+                    key=f"{key}-{day.isoformat()}",
+                    disabled=not enabled,
+                    type="primary" if day == s[f"{key}_day"] else "secondary",
+                ):
+                    s[f"{key}_day"] = day
+                    st.rerun()
+        st.caption(
+            "● occupational record · "
+            + ("◆ symptom report · " if person else "")
+            + "● (amber) personnel needing review/follow-up · ● (red) urgent danger sign only"
+        )
+    return s.get(f"{key}_day")
+
 
 def label(value: StrEnum) -> str:
     return value.value.replace("_", " ").capitalize()
@@ -127,6 +251,10 @@ def person_text(person_id: str) -> str:
 def header(title: str, subtitle: str) -> None:
     st.title(title)
     st.markdown(f'<div class="bb-sub">{subtitle}</div>', unsafe_allow_html=True)
+    demo_banner()
+
+
+def demo_banner() -> None:
     st.markdown(
         '<div class="bb-banner">FICTIONAL DEMO — All people and events are invented. '
         "BlastBridge records occupational exposure; exposure does not imply injury.</div>",
@@ -200,13 +328,17 @@ def change_crews(remove: int | None = None) -> None:
     st.rerun()
 
 
-def open_form(event: TrainingEvent | None = None) -> None:
+def open_form(event: TrainingEvent | None = None, on_date: date | None = None) -> None:
     if event is None:
         clear_ai_state()
     st.session_state["form_init"] = form_values(event.draft if event else None)
     st.session_state["form_init"]["f_mode"] = (
         "Enter manually" if event else "Describe / paste training record"
     )
+    st.session_state.pop("calendar_date", None)
+    if on_date is not None:
+        st.session_state["form_init"]["f_date"] = on_date
+        st.session_state["calendar_date"] = on_date
     st.session_state.pop("ai_pending", None)
     st.session_state["editing_event_id"] = event.event_id if event else None
     st.session_state["editing_revision"] = event.revision if event else None
@@ -231,26 +363,115 @@ def open_history(person_id: str) -> None:
 def dashboard() -> None:
     title, action = st.columns([3, 1], vertical_alignment="center")
     with title:
-        header("BlastBridge", "Recorder dashboard for fictional training activity")
+        st.title("BlastBridge")
+        st.write("Brain-health readiness from longitudinal occupational exposure records")
     if action.button("+ Record Training Event", type="primary"):
         open_form()
+    demo_banner()
+    st.caption(f"Analysis as of {ANALYSIS_AS_OF:%d %b %Y}")
+    st.write(
+        "An AI-assisted occupational brain-health readiness system that reconstructs longitudinal "
+        "blast-exposure history and surfaces service members whose recorded exposure patterns "
+        "or symptoms deserve attention."
+    )
+    st.caption(
+        "Four separate signals: AI-assisted record intake · longitudinal occupational history · "
+        "ML occupational-pattern result · deterministic symptom/follow-up guidance. "
+        "No combined score."
+    )
     approved = store.list_events(CONN, EventStatus.APPROVED, limit=-1)
     drafts = store.list_events(CONN, EventStatus.DRAFT, limit=-1)
-
+    assessments = all_readiness(ANALYSIS_AS_OF)
+    statuses = Counter(item.overall_readiness_status for item in assessments.values())
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Fictional personnel", len(PEOPLE))
-    c2.metric("Approved training events", len(approved))
-    c3.metric("Drafts awaiting review", len(drafts))
-    c4.metric(
-        "Known physical events recorded", sum(e.draft.known_physical_event_count for e in approved)
-    )
-    st.metric(
-        "Reports matching a follow-up rule",
-        sum(
-            evaluate(report.draft).state is not FollowUpState.NO_FOLLOWUP_RULE_TRIGGERED
-            for report in store.list_symptom_reports(CONN)
+    c1.metric("Personnel monitored", len(PEOPLE))
+    c2.metric("Review priority", statuses[ReadinessStatus.REVIEW_PRIORITY])
+    c3.metric("Medical follow-up", statuses[ReadinessStatus.MEDICAL_FOLLOWUP_RECOMMENDED])
+    c4.metric("Urgent", statuses[ReadinessStatus.URGENT_EVALUATION])
+    if pattern_model() is None:
+        st.info("Occupational-pattern model unavailable (baseline not built)")
+    marks = organization_marks(approved, assessments)
+    calendar, detail = st.columns([2, 1])
+    with calendar:
+        st.subheader("Organization calendar")
+        selected = render_calendar("org", marks, person=False)
+        st.caption(
+            "Recorded dates only; attention markers reflect readiness as of the analysis date."
+        )
+    with detail:
+        st.subheader("Selected day")
+        if selected:
+            st.write(f"**{selected:%d %b %Y}**")
+            day_events = [event for event in approved if event.draft.event_date == selected]
+            if not day_events:
+                st.write("No approved occupational records on this date.")
+            for event in day_events:
+                with st.container(border=True):
+                    st.write(
+                        f"**{event.draft.weapon_name}** · {label(event.draft.training_context)}"
+                    )
+                    st.write(f"{event.draft.participant_count} participants")
+                    for crew in event.draft.crews:
+                        st.write(
+                            f"{crew.crew_name}: {count_text(crew.physical_event_count)} "
+                            "physical events"
+                        )
+                        for member in crew.members:
+                            st.caption(
+                                f"{PEOPLE[member.person_id].display_name} · {member.position.label}"
+                            )
+                    st.caption(provenance_text(event.intake_source, event.status))
+            people = marks.get(selected, DayMarks()).people
+            needing_attention = [
+                person_id
+                for person_id in sorted(people)
+                if assessments[person_id].overall_readiness_status
+                is not ReadinessStatus.ROUTINE_MONITORING
+            ]
+            if needing_attention:
+                st.write(
+                    f"{len(needing_attention)} people associated with this day currently "
+                    "need review or follow-up"
+                )
+                for person_id in needing_attention:
+                    st.write(PEOPLE[person_id].display_name)
+                    readiness_pill(assessments[person_id].overall_readiness_status)
+                    if st.button("Open history", key=f"day-history-{person_id}"):
+                        open_history(person_id)
+            if can_record_on(selected, date.today()):
+                if st.button("Record training event for this date"):
+                    open_form(on_date=selected)
+    st.subheader("Priority review")
+    order = {
+        ReadinessStatus.URGENT_EVALUATION: 0,
+        ReadinessStatus.MEDICAL_FOLLOWUP_RECOMMENDED: 1,
+        ReadinessStatus.REVIEW_PRIORITY: 2,
+    }
+    priority = sorted(
+        (item for item in assessments.values() if item.overall_readiness_status in order),
+        key=lambda item: (
+            order[item.overall_readiness_status],
+            PEOPLE[item.person_id].display_name,
         ),
     )
+    if not priority:
+        st.write("No personnel currently surfaced from the recorded information.")
+    for assessment in priority:
+        with st.container(border=True):
+            st.write(f"**{PEOPLE[assessment.person_id].display_name}** · FICTIONAL")
+            readiness_pill(assessment.overall_readiness_status)
+            for evidence in assessment.evidence_lines:
+                st.write(evidence)
+            st.caption(
+                "ML: "
+                + (
+                    assessment.ml_pattern.status.label
+                    if assessment.ml_pattern
+                    else "unavailable (baseline not built)"
+                )
+            )
+            if st.button("Review history", key=f"priority-{assessment.person_id}"):
+                open_history(assessment.person_id)
 
     if drafts:
         st.subheader("Awaiting review")
@@ -266,39 +487,44 @@ def dashboard() -> None:
                 if right.button("Review", key=f"review-{event.event_id}"):
                     open_review(event.event_id)
 
-    st.subheader("Recent approved training events")
-    if not approved:
-        st.info("No approved events yet. Record a training event to begin.")
-    st.dataframe(
-        [
-            {
-                "Date": e.draft.event_date,
-                "Weapon": e.draft.weapon_name,
-                "Context": label(e.draft.training_context),
-                "Physical events": count_text(e.draft.physical_event_count),
-                "Participants": e.draft.participant_count,
-                "Crews": len(e.draft.crews),
-            }
-            for e in approved[:15]
-        ],
-        hide_index=True,
-        width="stretch",
-    )
+    with st.expander("Recorded training events"):
+        if not approved:
+            st.info("No approved events yet. Record a training event to begin.")
+        st.dataframe(
+            [
+                {
+                    "Date": event.draft.event_date,
+                    "Weapon": event.draft.weapon_name,
+                    "Context": label(event.draft.training_context),
+                    "Physical events": count_text(event.draft.physical_event_count),
+                    "Participants": event.draft.participant_count,
+                    "Crews": len(event.draft.crews),
+                }
+                for event in approved[:15]
+            ],
+            hide_index=True,
+            width="stretch",
+        )
     with st.expander("Demo data"):
         confirmed = st.checkbox("I understand this deletes all recorded events")
         if st.button("Reset to demo state", disabled=not confirmed):
             try:
                 store.reset_demo(CONN, DEMO_PEOPLE, DEMO_EVENTS, DEMO_SYMPTOMS)
             except (store.StoreError, sqlite3.Error) as exc:
-                st.error(f"Could not reset demo data: {exc}")
+                st.warning(f"Could not reset demo data: {exc}")
                 return
             for key in list(st.session_state):
                 if key.startswith(("review", "editing", "f_", "sym_", "ai_")) or key in (
                     "last_decided",
                     "form_init",
+                    "calendar_date",
                 ):
                     del st.session_state[key]
+            st.session_state["reset_demo_view"] = True
             st.rerun()
+        st.caption(
+            "Reset restores the fictional demo state and the demo analysis date (19 Oct 2026)."
+        )
 
 
 def clear_ai_state() -> None:
@@ -386,7 +612,7 @@ def ai_intake() -> None:
     if result is None:
         return
     if result.error:
-        st.error(result.error)
+        st.warning(result.error)
         if result.mode == "live":
             st.caption("Demo replay uses the golden fictional narrative instead of your text.")
             st.button("Use demo replay instead", on_click=run_demo_replay)
@@ -400,6 +626,13 @@ def ai_intake() -> None:
         )
         show_ai_metadata(metadata)
         values = result.form_values
+        calendar_date = st.session_state.get("calendar_date")
+        narrative_date = values.get("f_date")
+        if calendar_date and narrative_date and narrative_date != calendar_date:
+            st.info(
+                f"The narrative date ({narrative_date}) differs from the date selected on the "
+                f"calendar ({calendar_date}). Review the date."
+            )
         for title, key in (
             ("Date", "f_date"),
             ("Activity", "f_type"),
@@ -457,13 +690,19 @@ def ai_intake() -> None:
                 source = IntakeSource.AI_REPLAY if result.mode == "replay" else IntakeSource.AI_LIVE
                 event_id = store.save_draft(CONN, result.draft, intake_source=source)
             except (store.StoreError, sqlite3.Error) as exc:
-                st.error(f"Could not save this draft: {exc}")
+                st.warning(f"Could not save this draft: {exc}")
             else:
                 st.session_state.setdefault("ai_drafts", {})[event_id] = metadata
                 clear_ai_state()
                 open_review(event_id)
         if edit_col.button("Edit Draft"):
             st.session_state["form_init"] = {**values, "f_mode": "Enter manually"}
+            if values.get("f_date") is None and calendar_date:
+                st.session_state["form_init"]["f_date"] = calendar_date
+                metadata = {
+                    **metadata,
+                    "origins": {**result.origins, "Date": "selected on calendar"},
+                }
             st.session_state["editing_event_id"] = None
             st.session_state["editing_revision"] = None
             clear_ai_state()
@@ -576,10 +815,12 @@ def new_event() -> None:
 
     s = st.session_state
     if any(s.get(key) is None for key in ("f_date", "f_type", "f_context", "f_weapon")):
-        st.error("Choose a date, activity type, training context and weapon system before review.")
+        st.warning(
+            "Choose a date, activity type, training context and weapon system before review."
+        )
         return
     if s["f_date"] > date.today():
-        st.error("Event date cannot be in the future.")
+        st.warning("Event date cannot be in the future.")
         return
     missing = [
         f"{s[f'f_c{i}_name']} · {pos.label}"
@@ -588,13 +829,13 @@ def new_event() -> None:
         if not s.get(f"f_c{i}_{pos}")
     ]
     if missing:
-        st.error(f"Select a person for: {', '.join(missing)}.")
+        st.warning(f"Select a person for: {', '.join(missing)}.")
         return
     if any(s[f"f_c{i}_known"] is None for i in s["f_crews"]):
-        st.error("Choose whether the launch count is Known or Unknown.")
+        st.warning("Choose whether the launch count is Known or Unknown.")
         return
     if any(s[f"f_c{i}_known"] == "Known" and s.get(f"f_c{i}_count") is None for i in s["f_crews"]):
-        st.error("Enter the number of physical launches, or choose Unknown.")
+        st.warning("Enter the number of physical launches, or choose Unknown.")
         return
     assignments = {}
     for i in s["f_crews"]:
@@ -610,7 +851,7 @@ def new_event() -> None:
                 f"{PEOPLE[person_id].display_name} is assigned {times}: " + " and ".join(places)
             )
     if duplicates:
-        st.error("; ".join(duplicates))
+        st.warning("; ".join(duplicates))
         return
     try:
         draft = TrainingEventDraft(
@@ -634,7 +875,7 @@ def new_event() -> None:
             ),
         )
     except ValidationError as exc:
-        st.error(" ".join(e["msg"].removeprefix("Value error, ") for e in exc.errors()))
+        st.warning(" ".join(e["msg"].removeprefix("Value error, ") for e in exc.errors()))
         return
     try:
         if editing:
@@ -649,7 +890,7 @@ def new_event() -> None:
             event_id = store.save_draft(CONN, draft, intake_source=source)
     except (store.StoreError, sqlite3.Error) as exc:
         if not editing:
-            st.error(f"Could not save this draft: {exc}")
+            st.warning(f"Could not save this draft: {exc}")
             return
         # The draft changed or was decided elsewhere: show its current state instead of retrying.
         st.session_state["editing_event_id"] = None
@@ -704,7 +945,7 @@ def show_decision(event_id: str) -> None:
             st.caption("This event was not added to anyone's history.")
             return
         st.caption(provenance_text(event.intake_source, event.status))
-        st.success("Approved. Each participant's history now includes this event.")
+        st.info("Approved. Each participant's history now includes this event.")
         members = [m for crew in d.crews for m in crew.members]
         for start in range(0, len(members), 4):
             row = members[start : start + 4]
@@ -717,7 +958,7 @@ def review() -> None:
     header("Review training event", "Nothing enters personnel history until you approve it.")
     notice = st.session_state.pop("review_notice", None)
     if notice:
-        st.error(notice)
+        st.warning(notice)
     decided = st.session_state.get("last_decided")
     if decided:
         show_decision(decided)
@@ -863,7 +1104,10 @@ def followup_card(result: FollowUp) -> None:
         st.error(result.headline)
     elif result.state is FollowUpState.FOLLOW_UP_SUGGESTED:
         with st.container(border=True):
-            st.markdown(f'<span class="bb-pill">{result.headline}</span>', unsafe_allow_html=True)
+            st.markdown(
+                f'<span class="bb-pill medical">{result.headline}</span>',
+                unsafe_allow_html=True,
+            )
     else:
         st.caption(result.headline)
     for sentence in result.missing:
@@ -918,7 +1162,7 @@ def symptom_form(person_id: str) -> None:
         clear_symptom_state()
     notice = s.pop("sym_notice", None)
     if notice:
-        st.success(notice)
+        st.info(notice)
     if st.button("Log Symptom Report"):
         clear_symptom_state()
         s["sym_person"] = person_id
@@ -939,7 +1183,7 @@ def symptom_form(person_id: str) -> None:
                 try:
                     store.confirm_symptom_report(CONN, pending)
                 except (store.StoreError, sqlite3.Error) as exc:
-                    st.error(f"Could not confirm report: {exc}")
+                    st.warning(f"Could not confirm report: {exc}")
                 else:
                     clear_symptom_state()
                     s["sym_person"] = person_id
@@ -1027,20 +1271,20 @@ def symptom_form(person_id: str) -> None:
         if not st.button("Review report", key="sym_form_review"):
             return
         if any(value is None for value in (relationship, persistence, impact, source)):
-            st.error(
+            st.warning(
                 "Choose temporal relationship, persistence, functional impact and "
                 "source explicitly."
             )
             return
         if report_date > date.today():
-            st.error("Report date cannot be in the future.")
+            st.warning("Report date cannot be in the future.")
             return
         if (
             relationship is TemporalRelationship.AFTER_RECORDED_EVENT
             and event_id
             and report_date < by_id[event_id].event_date
         ):
-            st.error("A report after a recorded event cannot predate that event.")
+            st.warning("A report after a recorded event cannot predate that event.")
             return
         try:
             pending = SymptomReportDraft(
@@ -1056,7 +1300,7 @@ def symptom_form(person_id: str) -> None:
                 functional_impact=impact,
             )
         except ValidationError as exc:
-            st.error(" ".join(e["msg"].removeprefix("Value error, ") for e in exc.errors()))
+            st.warning(" ".join(e["msg"].removeprefix("Value error, ") for e in exc.errors()))
             return
         s["sym_values"] = {key: value for key, value in s.items() if key.startswith("sym_w_")}
         s["sym_review"] = pending
@@ -1065,10 +1309,12 @@ def symptom_form(person_id: str) -> None:
 
 def followup() -> None:
     header("Follow-up", "Confirmed reports for fictional personnel.")
+    st.caption(f"Analysis as of {ANALYSIS_AS_OF:%d %b %Y}")
     reports = [
         report
         for report in store.list_symptom_reports(CONN)
-        if evaluate(report.draft).state is not FollowUpState.NO_FOLLOWUP_RULE_TRIGGERED
+        if report.draft.report_date <= ANALYSIS_AS_OF
+        and evaluate(report.draft).state is not FollowUpState.NO_FOLLOWUP_RULE_TRIGGERED
     ]
     reports.sort(
         key=lambda report: (
@@ -1094,7 +1340,7 @@ def followup() -> None:
 
 
 def history() -> None:
-    header("Personnel exposure history", "Approved training activity for one fictional person.")
+    header("Personnel history", "Occupational records, symptoms and guidance shown separately.")
     chosen = st.session_state.pop("history_person_id", None)
     if chosen:
         st.session_state["h_person"] = chosen
@@ -1102,6 +1348,9 @@ def history() -> None:
     p = PEOPLE[person_id]
     entries = store.member_history(CONN, person_id)
     reports = store.list_symptom_reports(CONN, person_id)
+    assessment = readiness_for(person_id, ANALYSIS_AS_OF)
+    visible_entries = [entry for entry in entries if entry.event_date <= ANALYSIS_AS_OF]
+    visible_reports = [report for report in reports if report.draft.report_date <= ANALYSIS_AS_OF]
 
     with st.container(border=True):
         a, b, c = st.columns([2, 1, 1])
@@ -1116,76 +1365,158 @@ def history() -> None:
             field("Section", p.section)
         with c:
             field("Usual position", p.home_position.label)
-            roles = Counter(e.position for e in entries)
+            roles = Counter(e.position for e in visible_entries)
             field(
                 "Roles held",
                 " · ".join(f"{pos.label} ×{roles[pos]}" for pos in POSITIONS if roles[pos])
                 or "No approved records",
             )
+        readiness_pill(assessment.overall_readiness_status)
+        st.caption(f"Analysis as of {ANALYSIS_AS_OF:%d %b %Y}")
+        st.write(" · ".join(assessment.evidence_lines) or "No current rule-based or pattern signal")
 
-    known = [e.physical_event_count for e in entries if e.physical_event_count is not None]
-    a, b, c, report_metric = st.columns(4)
-    a.metric("Approved training events", len(entries))
-    b.metric(
-        "Known physical events",
-        "Unknown" if entries and not known else sum(known),
-    )
-    c.metric("Records with unknown count", len(entries) - len(known))
-    report_metric.metric("Symptom reports", len(reports))
-    st.caption(
-        "Totals use known counts only. Events with an unknown count are listed and are never "
-        "counted as zero."
-    )
-
-    if not entries:
-        st.info("No approved training events for this person yet.")
-    months = Counter(e.event_date.strftime("%Y-%m") for e in entries)
-    month = min((e.event_date for e in entries), default=date.today()).replace(day=1)
-    today = date.today().replace(day=1)
-    chart = {}
-    while month <= today:
-        key = month.strftime("%Y-%m")
-        chart[key] = months[key]
-        month = date(month.year + (month.month == 12), month.month % 12 + 1, 1)
-    st.subheader("Training events per month")
-    st.bar_chart(
-        {"Month": list(chart), "Training events": list(chart.values())},
-        x="Month",
-        y="Training events",
-    )
-    st.caption(
-        "Counts approved training events, not launches. "
-        "Events with unknown launch counts are included."
-    )
-    symptom_form(person_id)
-    st.subheader("History timeline")
-    training_by_id = {entry.event_id: entry for entry in entries}
-    reports_by_id = {report.report_id: report for report in reports}
-    timeline = [(entry.event_date, "", "training", entry.event_id) for entry in entries]
-    timeline.extend(
-        (report.draft.report_date, report.confirmed_at, "report", report.report_id)
-        for report in reports
-    )
-    for _, _, kind, record_id in sorted(timeline, reverse=True):
-        with st.container(border=True):
-            if kind == "training":
-                entry = training_by_id[record_id]
-                st.write(f"**{entry.event_date:%d %b %Y} · {entry.weapon_name}**")
-                st.write(f"{label(entry.training_context)} · {entry.position.label}")
-                st.write(
-                    f"Physical events: {count_text(entry.physical_event_count)} · {entry.crew_name}"
-                )
+    calendar, detail = st.columns([2, 1])
+    with calendar:
+        st.subheader("Calendar")
+        selected = render_calendar("person", person_marks(entries, reports), person=True)
+        st.caption("Calendars show recorded dates; readiness uses the selected analysis date.")
+    with detail:
+        st.subheader("Selected day")
+        if selected:
+            st.write(f"**{selected:%d %b %Y}**")
+            day_entries = [entry for entry in entries if entry.event_date == selected]
+            day_reports = [report for report in reports if report.draft.report_date == selected]
+            if not day_entries and not day_reports:
+                st.caption("No records on this date.")
+            for entry in day_entries:
+                st.write(f"{entry.position.label} · {entry.weapon_name}")
+                st.write(f"Physical events: {count_text(entry.physical_event_count)}")
                 st.caption(provenance_text(entry.intake_source, EventStatus.APPROVED))
-            else:
-                report = reports_by_id[record_id]
-                st.write(f"**{report.draft.report_date:%d %b %Y} · Symptom report**")
+            for report in day_reports:
+                st.write("Symptom report")
                 report_fields(report.draft)
                 followup_card(evaluate(report.draft))
-    if reports:
-        with st.expander("Official resources"):
-            official_resources()
-        st.caption(BOUNDARY_NOTE)
-        st.caption(PRIVACY_NOTE)
+            if can_record_on(selected, date.today()):
+                if st.button("Log symptom report for this date"):
+                    clear_symptom_state()
+                    st.session_state["sym_person"] = person_id
+                    st.session_state["sym_open"] = True
+                    st.session_state["sym_restore"] = {"sym_w_date": selected}
+    symptom_form(person_id)
+
+    with st.container(border=True):
+        st.subheader("Occupational exposure")
+        st.metric("Career record count", len(visible_entries))
+        features = occupational_features((entry.event_date for entry in entries), ANALYSIS_AS_OF)
+        for column, name, value in zip(
+            st.columns(4),
+            (
+                "Events · 30 days",
+                "Events · 90 days",
+                "Events · 365 days",
+                "Days since previous event",
+            ),
+            features[:4],
+            strict=True,
+        ):
+            column.metric(name, int(value))
+        st.caption(
+            "Occupational events are distinct recorded event days. Elapsed days are capped at 730; "
+            "730 also represents no prior recorded event."
+        )
+        for note in assessment.data_quality_notes:
+            st.caption(note)
+        pattern = assessment.ml_pattern
+        if pattern is None:
+            st.info("Occupational-pattern model unavailable (baseline not built)")
+        else:
+            style = (
+                "review"
+                if pattern.status is PatternStatus.ATYPICAL_OCCUPATIONAL_PATTERN
+                else "routine"
+            )
+            st.markdown(
+                f'<span class="bb-pill {style}">{pattern.status.label}</span>',
+                unsafe_allow_html=True,
+            )
+            st.dataframe(
+                [
+                    {
+                        "Feature": item.label,
+                        "Recorded": item.value,
+                        "Fictional baseline median": item.median,
+                        "IQR q25–q75": f"{item.q25:g}–{item.q75:g}",
+                    }
+                    for item in pattern.comparisons
+                ],
+                hide_index=True,
+                width="stretch",
+            )
+            st.write(DIFFERING_HEADING)
+            for item in pattern.differing:
+                st.write(
+                    f"{item.label}: {item.value:g} "
+                    f"(fictional simulation baseline median {item.median:g})"
+                )
+            if not pattern.differing:
+                st.caption(
+                    "No features outside the fictional simulation baseline's percentile ranges."
+                )
+            model = pattern_model()
+            st.caption(
+                f"Model: IsolationForest on {model.baseline_rows} fictional simulation baseline "
+                "windows · prototype analytic threshold: 5th percentile"
+            )
+        st.caption(PATTERN_DISCLAIMER)
+        st.caption(CONTEXT_NOTE)
+
+    with st.container(border=True):
+        st.subheader("Symptoms")
+        st.caption(f"Confirmed reports as of {ANALYSIS_AS_OF:%d %b %Y}")
+        if not visible_reports:
+            st.write("No confirmed symptom reports.")
+        for report in visible_reports:
+            with st.container(border=True):
+                report_fields(report.draft)
+    with st.container(border=True):
+        st.subheader("Follow-up")
+        st.caption(
+            "Deterministic guidance from TBICoE/CDC sources; "
+            "independent of the occupational-pattern model."
+        )
+        for report in visible_reports:
+            st.write(f"Report: {report.draft.report_date:%d %b %Y}")
+            followup_card(evaluate(report.draft))
+        if reports:
+            with st.expander("Official resources"):
+                official_resources()
+    st.caption(BOUNDARY_NOTE)
+    st.caption(PRIVACY_NOTE)
+
+    with st.expander("Chronological detail"):
+        training_by_id = {entry.event_id: entry for entry in entries}
+        reports_by_id = {report.report_id: report for report in reports}
+        timeline = [(entry.event_date, "", "training", entry.event_id) for entry in entries]
+        timeline.extend(
+            (report.draft.report_date, report.confirmed_at, "report", report.report_id)
+            for report in reports
+        )
+        for _, _, kind, record_id in sorted(timeline, reverse=True):
+            with st.container(border=True):
+                if kind == "training":
+                    entry = training_by_id[record_id]
+                    st.write(f"**{entry.event_date:%d %b %Y} · {entry.weapon_name}**")
+                    st.write(f"{label(entry.training_context)} · {entry.position.label}")
+                    st.write(
+                        f"Physical events: {count_text(entry.physical_event_count)} · "
+                        f"{entry.crew_name}"
+                    )
+                    st.caption(provenance_text(entry.intake_source, EventStatus.APPROVED))
+                else:
+                    report = reports_by_id[record_id]
+                    st.write(f"**{report.draft.report_date:%d %b %Y} · Symptom report**")
+                    report_fields(report.draft)
+                    followup_card(evaluate(report.draft))
 
 
 PAGES = {

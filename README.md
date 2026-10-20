@@ -1,5 +1,7 @@
 # BlastBridge
 
+Hackathon product prototype: see [PRODUCT.md](PRODUCT.md).
+
 A Python 3.12 research foundation for longitudinal reconstruction of occupational
 blast exposure among U.S. military service members.
 
