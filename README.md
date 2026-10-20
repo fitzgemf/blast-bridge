@@ -15,7 +15,9 @@ specialties, 12 supported relationships, 10 taxonomy nodes and 11 official
 sources. Dataset and schema versions begin at **0.1.0**. The original typed
 research records and validation remain available. The project has no web
 application, trained model, NLP extraction, unsupported exposure scores, or
-provider-summary generator. V0.5 is the fictional synthetic-engine foundation:
+provider-summary generator (research dataset scope; see [PRODUCT.md](PRODUCT.md) for the
+product/hackathon Streamlit prototype with a runtime-fitted IsolationForest).
+V0.5 is the fictional synthetic-engine foundation:
 an in-memory assembler, ExecutionMapping, minimal JSON persistence, and one
 committed fictional demo career, using generator 0.5.0 and unchanged output
 schema 0.4.0. Only a fictional, content-gated engine exists; real generation
@@ -33,7 +35,8 @@ See the [V0.2 review and validation](research/notes/training-tempo-v0.2.md).
 Dataset/schema versions are independent of the Python package version, which
 remains 0.1.0. V0.3 prior and uncertainty design is complete; no empirical
 population priors were justified. No production synthetic careers have been
-generated, and no ML models have been trained. The V0.5 fictional foundation
+generated, and no ML models have been trained (research dataset scope; product prototype:
+[PRODUCT.md](PRODUCT.md)). The V0.5 fictional foundation
 builds on the V0.4 configuration, scenario, distribution, RNG, provenance,
 hierarchy, validation, and output-schema contracts. Scale, chunking, manifests,
 and golden-vector work are deferred. See the

@@ -157,13 +157,11 @@ The unavailable state is “Not enough applicable recorded history for this prot
 Its reason identifies out-of-scope history, a shorter recording window, no recent HIMARS record,
 or an unavailable reference. It contributes no ML readiness signal and is not reassurance.
 
-Three earlier, explicitly fictional demo events (7 Oct 2025, 21 Jan 2026 and 10 Mar 2026) backfill
-the demo's recorded-history window. Some people intentionally retain short or M270-only history
-to demonstrate the unavailable state honestly. The original events and symptom reports are retained.
-EVT-DEMO-C1/C2/C3 add an explicitly fictional October cadence example, not tuned to the model.
-EVT-DEMO-C1..C3 were constructed so that Reese Calder (FIC-010) demonstrates an atypical comparison
-in the demo. 'Not tuned' means the model, threshold, reference and gates were left unchanged;
-the demo history, not the model, was arranged for this example.
+Fictional demo history is arranged: EVT-DEMO-B1–B3 (Oct 2025–Mar 2026) were added so
+most of the roster has the 365-day history the comparison requires, and EVT-DEMO-C1–C3
+(Oct 2026) were constructed so Reese Calder demonstrates an elevated-cadence comparison.
+The model, threshold, reference and rules were not changed for the demo.
+Some people intentionally retain short or M270-only history to demonstrate the unavailable state.
 The V0.5 sparse demo scenario is now only a secondary stress test.
 
 ## Research → product mapping
@@ -187,7 +185,8 @@ provenance, uncertainty, unknown handling
 prevents participant count from multiplying physical events
 </td></tr>
 <tr><td>V0.5 fictional generator</td><td>
-reproducible fictional ML baseline
+secondary stress-test data (the readiness model uses the SME-informed fictional HIMARS scenario
+reference built by scripts/build_himars_reference.py)
 </td></tr>
 <tr><td>symptom research</td><td>
 participant symptom records

@@ -104,6 +104,8 @@ There are no medical labels; this evaluation does not measure injury prediction.
 
 Seeded fictional roster (HIMARS-scope event days only):
 
+Fictional demo history is arranged: EVT-DEMO-B1–B3 (Oct 2025–Mar 2026) were added so most of the roster has the 365-day history the comparison requires, and EVT-DEMO-C1–C3 (Oct 2026) were constructed so Reese Calder demonstrates an elevated-cadence comparison. The model, threshold, reference and rules were not changed for the demo.
+
 | Person | events_30d | events_90d | events_365d | days_since_previous_event | max_events_14d | recent_vs_earlier_cadence | Status | Reason |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Avery Kestrel (FICTIONAL) | 2.000000 | 2.000000 | 5.000000 | 6.000000 | 1.000000 | 0.333333 | Typical recorded pattern | Applicable HIMARS history |

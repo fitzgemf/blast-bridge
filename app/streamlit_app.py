@@ -90,6 +90,12 @@ DB_PATH = Path(
     os.environ.get("BLASTBRIDGE_DB", ROOT / "data" / "synthetic" / "product-demo.sqlite")
 )
 POSITIONS = (CrewPosition.CHIEF, CrewPosition.GUNNER, CrewPosition.DRIVER)
+DEMO_ARRANGEMENT_NOTE = (
+    "Fictional demo history is arranged: EVT-DEMO-B1–B3 (Oct 2025–Mar 2026) were added so "
+    "most of the roster has the 365-day history the comparison requires, and EVT-DEMO-C1–C3 "
+    "(Oct 2026) were constructed so Reese Calder demonstrates an elevated-cadence comparison. "
+    "The model, threshold, reference and rules were not changed for the demo."
+)
 
 st.set_page_config(page_title="BlastBridge", layout="wide", initial_sidebar_state="collapsed")
 st.markdown(
@@ -473,6 +479,7 @@ def dashboard() -> None:
                         open_form(on_date=selected, mode="Enter manually")
 
     st.subheader("Needs attention")
+    st.caption(DEMO_ARRANGEMENT_NOTE)
     priority = priority_people(assessments)
     if not priority:
         st.caption("No personnel currently surfaced from the recorded information.")
@@ -1388,6 +1395,7 @@ def history() -> None:
         st.title("People")
         fictional_pill()
         query = st.text_input("Search people", key="people_search").strip().casefold()
+        st.caption(DEMO_ARRANGEMENT_NOTE)
         assessments = all_readiness(ANALYSIS_AS_OF)
         matches = [
             p
@@ -1548,12 +1556,7 @@ def history() -> None:
             "5th percentile of reference scores"
         )
     with st.expander("Research details"):
-        st.caption(
-            "EVT-DEMO-C1..C3 were constructed so that Reese Calder (FIC-010) demonstrates an "
-            "atypical comparison in the demo. 'Not tuned' means the model, threshold, reference "
-            "and gates were left unchanged; the demo history, not the model, was arranged "
-            "for this example."
-        )
+        st.caption(DEMO_ARRANGEMENT_NOTE)
         st.write(REFERENCE_LABEL)
         model = pattern_model()
         if model is None:

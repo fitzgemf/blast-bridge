@@ -332,6 +332,12 @@ def main() -> None:
             "",
             "Seeded fictional roster (HIMARS-scope event days only):",
             "",
+            "Fictional demo history is arranged: EVT-DEMO-B1–B3 (Oct 2025–Mar 2026) were added so "
+            "most of the roster has the 365-day history the comparison requires, "
+            "and EVT-DEMO-C1–C3 "
+            "(Oct 2026) were constructed so Reese Calder demonstrates an elevated-cadence "
+            "comparison. The model, threshold, reference and rules were not changed for the demo.",
+            "",
             "| Person | " + " | ".join(FEATURE_NAMES) + " | Status | Reason |",
             "| --- | " + " | ".join("---" for _ in FEATURE_NAMES) + " | --- | --- |",
         ]
