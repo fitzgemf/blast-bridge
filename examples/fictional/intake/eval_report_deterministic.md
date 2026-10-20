@@ -1,6 +1,6 @@
 # Intake evaluation (deterministic)
 
-Model: deterministic-stub · Generated: 2026-10-20T02:59:39+00:00 · Reference date: 2026-10-19
+Model: deterministic-stub · Generated: 2026-10-20T03:06:17+00:00 · Reference date: 2026-10-19
 
 Deterministic mode scripts each model proposal (including adversarial ones) to test the Python gate; it does not measure the model.
 

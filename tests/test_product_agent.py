@@ -161,6 +161,15 @@ def test_gate_refuses_name_id_mismatch_and_missing_weapon_lookup(catalog, golden
     assert result.draft is None and any(issue.blocking for issue in result.issues)
     assert result.form_values["f_c0_driver"] is None
     assert any("'Alex'" in issue.message for issue in result.issues)
+    proposal["crews"][0]["members"][2].update(name_text="Sam", person_id="FIC-004")
+    shortened = run_intake(
+        GOLDEN_NARRATIVE.replace("Riley Marsh", "Samantha"),
+        proposal_provider(proposal),
+        catalog,
+        DEMO_PEOPLE,
+        TODAY,
+    )
+    assert shortened.draft is None and shortened.form_values["f_c0_driver"] is None
     no_lookup = run_intake(
         GOLDEN_NARRATIVE,
         proposal_provider(golden["stub_proposal"], queries=()),

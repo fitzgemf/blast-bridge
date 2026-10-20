@@ -199,6 +199,8 @@ def change_crews(remove: int | None = None) -> None:
 
 
 def open_form(event: TrainingEvent | None = None) -> None:
+    if event is None:
+        clear_ai_state()
     st.session_state["form_init"] = form_values(event.draft if event else None)
     st.session_state["form_init"]["f_mode"] = (
         "Enter manually" if event else "Describe / paste training record"
@@ -405,6 +407,15 @@ def ai_intake() -> None:
             name = values[prefix + "name"]
             for position in POSITIONS:
                 person = PEOPLE.get(values.get(prefix + position))
+                as_written = (
+                    ", ".join(
+                        member.name_text
+                        for member in result.proposal.crews[i].members
+                        if member.position == position
+                    )
+                    if result.proposal
+                    else ""
+                )
                 known = values.get(prefix + "known")
                 count = (
                     values.get(prefix + "count")
@@ -415,6 +426,7 @@ def ai_intake() -> None:
                     {
                         "Crew": name,
                         "Position": position.label,
+                        "As written": as_written,
                         "Person": person.display_name if person else "Needs review",
                         "Origin": result.origins.get(f"{name} · {position.label}", "unresolved"),
                         "Physical events": str(count),
@@ -442,6 +454,7 @@ def ai_intake() -> None:
             st.session_state["form_init"] = {**values, "f_mode": "Enter manually"}
             st.session_state["editing_event_id"] = None
             st.session_state["editing_revision"] = None
+            clear_ai_state()
             st.session_state["ai_pending"] = metadata
             st.rerun()
         start_col.button("Start Over", on_click=clear_ai_state)

@@ -3,7 +3,7 @@
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal, Protocol
 
@@ -182,9 +182,12 @@ def _gate(
         issue("Date", "Event date cannot be in the future")
         event_date = None
     values["f_date"] = event_date
-    date_in_narrative = bool(
-        proposal.event_date and normalize(proposal.event_date) in normalized_narrative
-    ) or bool({"today", "yesterday"} & set(normalized_narrative.split()))
+    narrative_words = set(normalized_narrative.split())
+    date_in_narrative = (
+        bool(proposal.event_date and proposal.event_date in result.narrative)
+        or ("today" in narrative_words and event_date == today)
+        or ("yesterday" in narrative_words and event_date == today - timedelta(days=1))
+    )
     origins["Date"] = (
         ("narrative" if date_in_narrative else "AI interpretation") if event_date else "unresolved"
     )
@@ -246,7 +249,7 @@ def _gate(
             matches = search_roster(name_text, people)
             if not (
                 normalized_name
-                and normalized_name in normalized_narrative
+                and f" {normalized_name} " in f" {normalized_narrative} "
                 and len(matches) == 1
                 and matches[0]["person_id"] == person_id
             ):

@@ -1,6 +1,6 @@
 # Intake evaluation (live)
 
-Model: claude-sonnet-5-5 · Generated: 2026-10-20T03:00:39+00:00 · Reference date: 2026-10-19
+Model: claude-sonnet-5-5 · Generated: 2026-10-20T03:07:38+00:00 · Reference date: 2026-10-19
 
 | Case | Title | Expected | Actual | Result | Reason |
 | --- | --- | --- | --- | --- | --- |
