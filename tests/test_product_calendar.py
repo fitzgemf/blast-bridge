@@ -70,15 +70,15 @@ def test_organization_marks_use_only_approved_dates_and_supplied_statuses():
         "FIC-001": assessment("FIC-001", ReadinessStatus.REVIEW_PRIORITY),
         "FIC-002": assessment("FIC-002", ReadinessStatus.URGENT_EVALUATION),
     }
-    marks = organization_marks(events, assessments)
+    marks = organization_marks(events, assessments, DEMO_STORY_DATE)
     assert set(marks) == {events[0].draft.event_date}
     mark = marks[events[0].draft.event_date]
     assert mark.training == 1 and mark.symptom == 0 and mark.attention and mark.urgent
     assert mark.people == frozenset(
         member.person_id for crew in events[0].draft.crews for member in crew.members
     )
-    assert not organization_marks(events, {})[events[0].draft.event_date].attention
-    assert not organization_marks(events, {})[events[0].draft.event_date].urgent
+    assert not organization_marks(events, {}, DEMO_STORY_DATE)[events[0].draft.event_date].attention
+    assert not organization_marks(events, {}, DEMO_STORY_DATE)[events[0].draft.event_date].urgent
 
 
 def test_person_marks_separate_records_and_report_guidance():
@@ -113,7 +113,7 @@ def test_person_marks_separate_records_and_report_guidance():
         )
         for offset in (1, 2, 3)
     ]
-    marks = person_marks([entry], reports)
+    marks = person_marks([entry], reports, DEMO_STORY_DATE)
     assert marks[training_day].training == 1 and marks[training_day].symptom == 0
     suggested = marks[training_day + timedelta(days=1)]
     assert suggested.symptom == 1 and suggested.attention and not suggested.urgent
@@ -121,6 +121,12 @@ def test_person_marks_separate_records_and_report_guidance():
     assert urgent.symptom == 1 and urgent.urgent and not urgent.attention
     resolved = marks[training_day + timedelta(days=3)]
     assert resolved.symptom == 1 and not resolved.attention and not resolved.urgent
+    earlier_marks = person_marks([entry], reports, training_day)
+    assert all(
+        mark.symptom == 1 and not mark.attention and not mark.urgent
+        for day, mark in earlier_marks.items()
+        if day > training_day
+    )
 
 
 def test_month_weeks_are_sunday_first_and_future_days_cannot_record():
@@ -179,6 +185,7 @@ def test_demo_reset_reproduces_calendar_and_readiness():
                     organization_marks(
                         store.list_events(conn, EventStatus.APPROVED, limit=-1),
                         assessments,
+                        DEMO_STORY_DATE,
                     ),
                     {
                         person_id: item.overall_readiness_status

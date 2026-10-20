@@ -91,6 +91,10 @@ Feature medians, IQRs and differing features explain comparison context, not med
 
 ## Fictional simulation baseline provenance
 
+The fictional simulation baseline is sparse: about 8 live-fire sessions per fictional career,
+clustered across 2012–2024, so regular monthly training can read as atypical relative to it;
+that is a property of the fictional simulation baseline, not a finding about the person.
+
 The V0.5 fictional generator runs the existing demo scenario with population 30 and seed 20261019.
 Analysis windows begin at service start +365 days, advance every 45 days and end at the bounded
 service end, producing 2910 windows. The build preserves the original simulation/scenario logic.
@@ -142,6 +146,9 @@ identifies atypical recorded occupational patterns only
 - [Live intake report](examples/fictional/intake/eval_report_live.md).
 - [Deterministic intake report](examples/fictional/intake/eval_report_deterministic.md).
 - [Occupational-pattern report](examples/fictional/ml-baseline/eval_report.md).
+
+The evaluation's roster table compares against the sparse fictional simulation baseline; regular
+monthly training can read as atypical because of that reference, not as a finding about the person.
 
 Intake reports distinguish model performance from scripted tests of the Python gate.
 Pattern hypotheses are fixed before evaluation; mismatches are retained rather than tuned away.

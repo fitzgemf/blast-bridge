@@ -34,7 +34,9 @@ class DayMarks:
 
 
 def organization_marks(
-    events: Sequence[TrainingEvent], assessments: Mapping[str, ReadinessAssessment]
+    events: Sequence[TrainingEvent],
+    assessments: Mapping[str, ReadinessAssessment],
+    analysis_as_of: date,
 ) -> dict[date, DayMarks]:
     marks: dict[date, DayMarks] = {}
     for event in events:
@@ -53,23 +55,27 @@ def organization_marks(
         marks[day] = replace(
             current,
             training=current.training + 1,
-            attention=current.attention
-            or any(
-                status
-                in (
-                    ReadinessStatus.REVIEW_PRIORITY,
-                    ReadinessStatus.MEDICAL_FOLLOWUP_RECOMMENDED,
+            attention=day <= analysis_as_of
+            and (
+                current.attention
+                or any(
+                    status
+                    in (
+                        ReadinessStatus.REVIEW_PRIORITY,
+                        ReadinessStatus.MEDICAL_FOLLOWUP_RECOMMENDED,
+                    )
+                    for status in statuses
                 )
-                for status in statuses
             ),
-            urgent=current.urgent or ReadinessStatus.URGENT_EVALUATION in statuses,
+            urgent=day <= analysis_as_of
+            and (current.urgent or ReadinessStatus.URGENT_EVALUATION in statuses),
             people=current.people | people,
         )
     return marks
 
 
 def person_marks(
-    history: Sequence[HistoryEntry], reports: Sequence[SymptomReport]
+    history: Sequence[HistoryEntry], reports: Sequence[SymptomReport], analysis_as_of: date
 ) -> dict[date, DayMarks]:
     marks: dict[date, DayMarks] = {}
     for entry in history:
@@ -82,8 +88,10 @@ def person_marks(
         marks[day] = replace(
             current,
             symptom=current.symptom + 1,
-            attention=current.attention or state is FollowUpState.FOLLOW_UP_SUGGESTED,
-            urgent=current.urgent or state is FollowUpState.URGENT_EVALUATION_RECOMMENDED,
+            attention=day <= analysis_as_of
+            and (current.attention or state is FollowUpState.FOLLOW_UP_SUGGESTED),
+            urgent=day <= analysis_as_of
+            and (current.urgent or state is FollowUpState.URGENT_EVALUATION_RECOMMENDED),
             people=current.people | frozenset((report.draft.person_id,)),
         )
     return marks

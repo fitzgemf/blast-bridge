@@ -190,11 +190,11 @@ def render_calendar(key: str, marks: dict[date, DayMarks], person: bool) -> date
     month = s[f"{key}_month"]
     with st.container(key=f"cal-{key}"):
         previous, title, following = st.columns([1, 5, 1])
-        if previous.button("‹", key=f"{key}-previous"):
+        if previous.button("‹", key=f"{key}-previous", width="stretch"):
             s[f"{key}_month"] = date(month.year - (month.month == 1), (month.month - 2) % 12 + 1, 1)
             st.rerun()
         title.markdown(f"**{month:%B %Y}**")
-        if following.button("›", key=f"{key}-next"):
+        if following.button("›", key=f"{key}-next", width="stretch"):
             s[f"{key}_month"] = date(month.year + (month.month == 12), month.month % 12 + 1, 1)
             st.rerun()
         for column, weekday in zip(
@@ -223,14 +223,19 @@ def render_calendar(key: str, marks: dict[date, DayMarks], person: bool) -> date
                     text,
                     key=f"{key}-{day.isoformat()}",
                     disabled=not enabled,
+                    width="stretch",
                     type="primary" if day == s[f"{key}_day"] else "secondary",
                 ):
                     s[f"{key}_day"] = day
                     st.rerun()
         st.caption(
-            "● occupational record · "
-            + ("◆ symptom report · " if person else "")
-            + "● (amber) personnel needing review/follow-up · ● (red) urgent danger sign only"
+            ":gray[●] occupational record · "
+            + (":blue[◆] symptom report · " if person else "")
+            + ":orange[●] (amber) personnel needing review/follow-up · "
+            ":red[●] (red) urgent danger sign only"
+        )
+        st.caption(
+            "Records after the analysis date are shown but are not part of the current assessment."
         )
     return s.get(f"{key}_day")
 
@@ -390,7 +395,7 @@ def dashboard() -> None:
     c4.metric("Urgent", statuses[ReadinessStatus.URGENT_EVALUATION])
     if pattern_model() is None:
         st.info("Occupational-pattern model unavailable (baseline not built)")
-    marks = organization_marks(approved, assessments)
+    marks = organization_marks(approved, assessments, ANALYSIS_AS_OF)
     calendar, detail = st.columns([2, 1])
     with calendar:
         st.subheader("Organization calendar")
@@ -713,6 +718,13 @@ def ai_intake() -> None:
 
 def new_event() -> None:
     init = st.session_state.pop("form_init", None)
+    if init is None:
+        st.session_state.pop("ai_pending", None)
+        if "f_date" not in st.session_state:
+            st.session_state.pop("f_ai_pending", None)
+    else:
+        # Keep provenance with the handed-off form across its own widget reruns.
+        st.session_state["f_ai_pending"] = st.session_state.get("ai_pending")
     if init is None and "f_date" not in st.session_state:
         init = form_values()
         st.session_state["editing_event_id"] = None
@@ -809,6 +821,7 @@ def new_event() -> None:
     if right.button("Cancel"):
         st.session_state["editing_event_id"] = None
         st.session_state.pop("ai_pending", None)
+        st.session_state.pop("f_ai_pending", None)
         st.switch_page(PAGES["dashboard"])
     if not left.button("Review Event", type="primary"):
         return
@@ -882,7 +895,7 @@ def new_event() -> None:
             store.update_draft(CONN, editing, draft, s["editing_revision"])
             event_id = editing
         else:
-            pending_mode = (s.get("ai_pending") or {}).get("mode")
+            pending_mode = (s.get("ai_pending") or s.get("f_ai_pending") or {}).get("mode")
             source = {
                 "live": IntakeSource.AI_LIVE,
                 "replay": IntakeSource.AI_REPLAY,
@@ -898,6 +911,8 @@ def new_event() -> None:
         open_review(editing)
     st.session_state["editing_event_id"] = None
     pending = st.session_state.pop("ai_pending", None)
+    form_pending = st.session_state.pop("f_ai_pending", None)
+    pending = pending or form_pending
     if pending:
         st.session_state.setdefault("ai_drafts", {})[event_id] = pending
     open_review(event_id)
@@ -1378,7 +1393,11 @@ def history() -> None:
     calendar, detail = st.columns([2, 1])
     with calendar:
         st.subheader("Calendar")
-        selected = render_calendar("person", person_marks(entries, reports), person=True)
+        selected = render_calendar(
+            "person",
+            person_marks(entries, reports, ANALYSIS_AS_OF),
+            person=True,
+        )
         st.caption("Calendars show recorded dates; readiness uses the selected analysis date.")
     with detail:
         st.subheader("Selected day")
