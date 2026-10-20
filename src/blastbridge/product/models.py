@@ -24,6 +24,28 @@ class EventStatus(StrEnum):
     REJECTED = "rejected"
 
 
+class IntakeSource(StrEnum):
+    MANUAL = "manual"
+    AI_LIVE = "ai_live"
+    AI_REPLAY = "ai_replay"
+
+
+def provenance_text(source: IntakeSource, status: EventStatus) -> str:
+    if status is EventStatus.REJECTED:
+        return "Rejected — not part of personnel history"
+    if status is EventStatus.APPROVED:
+        return {
+            IntakeSource.MANUAL: "Organizational record — manually entered",
+            IntakeSource.AI_LIVE: "Organizational record — AI-assisted, human approved",
+            IntakeSource.AI_REPLAY: "Organizational record — validated demo replay, human approved",
+        }[source]
+    return {
+        IntakeSource.MANUAL: "Draft — manually entered, awaiting human approval",
+        IntakeSource.AI_LIVE: "Draft — AI-assisted, awaiting human approval",
+        IntakeSource.AI_REPLAY: "Draft — validated demo replay, awaiting human approval",
+    }[source]
+
+
 class CrewPosition(StrEnum):
     CHIEF = "chief"
     GUNNER = "gunner"
@@ -127,12 +149,14 @@ class TrainingEventDraft(ProductModel):
 class TrainingEvent(ProductModel):
     event_id: Text
     status: EventStatus
+    intake_source: IntakeSource
     revision: Annotated[int, Field(ge=1, strict=True)]
     draft: TrainingEventDraft
 
 
 class HistoryEntry(ProductModel):
     event_id: Text
+    intake_source: IntakeSource
     event_date: date
     event_type: EventType
     training_context: TrainingContext

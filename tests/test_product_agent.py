@@ -49,6 +49,23 @@ def text_turn(text):
     return ProviderTurn("end_turn", blocks, blocks, "stub-model")
 
 
+def test_blank_or_short_narrative_never_calls_provider(catalog):
+    class CountingProvider:
+        name = "stub"
+        calls = 0
+
+        def complete(self, **kwargs):
+            self.calls += 1
+            raise AssertionError("Short input must not call the provider")
+
+    provider = CountingProvider()
+    for narrative in ("", "   \n\t", "  fired  6 \n rockets  "):
+        result = run_intake(narrative, provider, catalog, DEMO_PEOPLE, TODAY)
+        assert result.error == "Paste or type a training record before drafting."
+        assert result.model_calls == 0 and result.proposal is None
+    assert provider.calls == 0
+
+
 def proposal_provider(proposal, queries=(("search_weapon_catalog", "HIMARS"),), name="stub"):
     turns = []
     if queries:

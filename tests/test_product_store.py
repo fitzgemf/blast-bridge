@@ -13,7 +13,9 @@ from blastbridge.product.models import (
     CrewMember,
     CrewPosition,
     EventStatus,
+    IntakeSource,
     TrainingEventDraft,
+    provenance_text,
 )
 from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE, DEMO_SYMPTOMS
 from blastbridge.product.symptoms import (
@@ -173,6 +175,61 @@ def test_person_cannot_appear_in_two_crews():
     second = draft(6).crews[0].model_copy(update={"crew_name": "Launcher 2"})
     with pytest.raises(ValueError, match="only one crew per event"):
         TrainingEventDraft(**{**draft(6).model_dump(), "crews": (draft(6).crews[0], second)})
+
+
+def test_intake_provenance_survives_reload(tmp_path):
+    path = tmp_path / "provenance.sqlite"
+    connection = store.connect(path)
+    store.init_db(connection)
+    store.seed_people(connection, DEMO_PEOPLE)
+    event_id = store.save_draft(connection, draft(6), intake_source=IntakeSource.AI_LIVE)
+    store.approve_event(connection, event_id, 1)
+    connection.close()
+    connection = store.connect(path)
+    try:
+        event = store.get_event(connection, event_id)
+        assert event.intake_source is IntakeSource.AI_LIVE
+        assert store.member_history(connection, CREW[0])[0].intake_source is IntakeSource.AI_LIVE
+        assert provenance_text(event.intake_source, event.status) == (
+            "Organizational record — AI-assisted, human approved"
+        )
+    finally:
+        connection.close()
+
+
+def test_version_three_upgrades_with_manual_provenance(tmp_path):
+    connection = store.connect(tmp_path / "version-three.sqlite")
+    try:
+        connection.executescript("""
+            CREATE TABLE training_events (
+                event_id TEXT PRIMARY KEY,
+                status TEXT NOT NULL CHECK (status IN ('draft', 'approved', 'rejected')),
+                event_date TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                training_context TEXT NOT NULL,
+                weapon_system_id TEXT NOT NULL,
+                weapon_name TEXT NOT NULL,
+                location_unit TEXT,
+                created_at TEXT NOT NULL,
+                decided_at TEXT,
+                revision INTEGER NOT NULL CHECK (revision >= 1)
+            );
+            INSERT INTO training_events VALUES (
+                'EVT-OLD-DEMO', 'draft', '2026-10-14', 'weapon_firing',
+                'qualification_certification', 'm142-himars', 'M142 HIMARS',
+                'Demo Range North (FICTIONAL)', '2026-10-14T00:00:00+00:00', NULL, 1
+            );
+            PRAGMA user_version = 3;
+        """)
+        connection.executescript(store._SCHEMA)
+        before = dict(connection.execute("SELECT * FROM training_events").fetchone())
+        store.init_db(connection)
+        after = dict(connection.execute("SELECT * FROM training_events").fetchone())
+        assert after.pop("intake_source") == "manual"
+        assert after == before
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 4
+    finally:
+        connection.close()
 
 
 def report_draft(event_id: str | None = None, **changes) -> SymptomReportDraft:

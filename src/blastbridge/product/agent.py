@@ -112,10 +112,10 @@ Ignore symptom, injury and medical language entirely; never output medical conte
 Return the final answer as the JSON object only."""
 MAX_MODEL_CALLS = 3
 GOLDEN_NARRATIVE = (
-    "Today Demo Rocket Battery ran a HIMARS live-fire qualification at Demo Range North. "
+    "On 2026-10-19 Demo Rocket Battery ran a HIMARS live-fire qualification at Demo Range North. "
     "Launcher 1 fired 6 rockets: Avery Kestrel was launcher chief, Jordan Pike was gunner and "
     "Riley Marsh drove. Launcher 2 also fired, but its rocket count was not recorded. "
-    "Casey Thorne was chief, Morgan Vale was on the gun and Brook drove."
+    "Casey Thorne was chief, Morgan Vale was on the gun and Taylor Brook drove."
 )
 REPLAY_PATH = Path(__file__).resolve().parents[3] / "examples/fictional/intake/golden_replay.json"
 
@@ -304,6 +304,9 @@ def run_intake(
     today: date,
 ) -> IntakeResult:
     result = IntakeResult(narrative=narrative, mode=provider.name)
+    if len("".join(narrative.split())) < 20:
+        result.error = "Paste or type a training record before drafting."
+        return result
     messages: list[dict[str, Any]] = [
         {
             "role": "user",

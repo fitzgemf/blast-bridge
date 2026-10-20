@@ -1,7 +1,7 @@
 {
-  "narrative": "Today Demo Rocket Battery ran a HIMARS live-fire qualification at Demo Range North. Launcher 1 fired 6 rockets: Avery Kestrel was launcher chief, Jordan Pike was gunner and Riley Marsh drove. Launcher 2 also fired, but its rocket count was not recorded. Casey Thorne was chief, Morgan Vale was on the gun and Brook drove.",
+  "narrative": "On 2026-10-19 Demo Rocket Battery ran a HIMARS live-fire qualification at Demo Range North. Launcher 1 fired 6 rockets: Avery Kestrel was launcher chief, Jordan Pike was gunner and Riley Marsh drove. Launcher 2 also fired, but its rocket count was not recorded. Casey Thorne was chief, Morgan Vale was on the gun and Taylor Brook drove.",
   "model": "claude-sonnet-5-5",
-  "recorded_at": "2026-10-20T02:42:55+00:00",
+  "recorded_at": "2026-10-20T03:56:19+00:00",
   "reference_date": "2026-10-19",
   "turns": [
     {
@@ -9,7 +9,7 @@
       "blocks": [
         {
           "type": "tool_use",
-          "id": "toolu_01HHv8FVW8HeGmfG94NhJTYL",
+          "id": "toolu_01T6a2N1TUt6WRNJkPJTtq7F",
           "name": "search_weapon_catalog",
           "input": {
             "query": "HIMARS"
@@ -17,7 +17,7 @@
         },
         {
           "type": "tool_use",
-          "id": "toolu_01NDxMgeKRGPo5Gzce8LskRA",
+          "id": "toolu_01Ke1okHBHHqBXhmtk21Rtvb",
           "name": "search_roster",
           "input": {
             "query": "Avery Kestrel"
@@ -25,7 +25,7 @@
         },
         {
           "type": "tool_use",
-          "id": "toolu_01NXryALj9Lz9J1KKDRNqoDG",
+          "id": "toolu_017FBrCVgTbCVVRW2Wv3HPXn",
           "name": "search_roster",
           "input": {
             "query": "Jordan Pike"
@@ -33,7 +33,7 @@
         },
         {
           "type": "tool_use",
-          "id": "toolu_01J5wJJiAMjBP3zwYPw4SQCq",
+          "id": "toolu_014uXiTUHvpPgsNxqwQJ3kd9",
           "name": "search_roster",
           "input": {
             "query": "Riley Marsh"
@@ -41,7 +41,7 @@
         },
         {
           "type": "tool_use",
-          "id": "toolu_01KwcNQzhcpS8wfatCWKMRhU",
+          "id": "toolu_01Bj4UAmCrv1q32pyjrmqPuh",
           "name": "search_roster",
           "input": {
             "query": "Casey Thorne"
@@ -49,7 +49,7 @@
         },
         {
           "type": "tool_use",
-          "id": "toolu_01UeMdDNbU66gXxk87Z59YJ1",
+          "id": "toolu_01Qs9k2MhEJk9X9mMqS6XoUc",
           "name": "search_roster",
           "input": {
             "query": "Morgan Vale"
@@ -57,10 +57,10 @@
         },
         {
           "type": "tool_use",
-          "id": "toolu_01SQt4XPEvS17hyeXQZFsrqb",
+          "id": "toolu_01BFcY3NMJeR86bQLtvKb3WK",
           "name": "search_roster",
           "input": {
-            "query": "Brook"
+            "query": "Taylor Brook"
           }
         }
       ],
@@ -71,7 +71,7 @@
       "blocks": [
         {
           "type": "text",
-          "text": "{\"event_date\":\"2026-10-19\",\"event_type\":\"weapon_firing\",\"training_context\":\"qualification_certification\",\"weapon_system_id\":\"m142-himars\",\"location_unit\":\"Demo Range North\",\"crews\":[{\"crew_name\":\"Launcher 1\",\"count_status\":\"explicit_exact\",\"launch_count\":6,\"count_text\":\"6 rockets\",\"members\":[{\"position\":\"chief\",\"name_text\":\"Avery Kestrel\",\"person_id\":\"FIC-001\"},{\"position\":\"gunner\",\"name_text\":\"Jordan Pike\",\"person_id\":\"FIC-002\"},{\"position\":\"driver\",\"name_text\":\"Riley Marsh\",\"person_id\":\"FIC-003\"}]},{\"crew_name\":\"Launcher 2\",\"count_status\":\"explicitly_unknown\",\"launch_count\":null,\"count_text\":\"rocket count was not recorded\",\"members\":[{\"position\":\"chief\",\"name_text\":\"Casey Thorne\",\"person_id\":\"FIC-005\"},{\"position\":\"gunner\",\"name_text\":\"Morgan Vale\",\"person_id\":\"FIC-006\"},{\"position\":\"driver\",\"name_text\":\"Brook\",\"person_id\":\"FIC-007\"}]}],\"unresolved\":[]}"
+          "text": "{\"event_date\":\"2026-10-19\",\"event_type\":\"weapon_firing\",\"training_context\":\"qualification_certification\",\"weapon_system_id\":\"m142-himars\",\"location_unit\":\"Demo Range North\",\"crews\":[{\"crew_name\":\"Launcher 1\",\"count_status\":\"explicit_exact\",\"launch_count\":6,\"count_text\":\"6 rockets\",\"members\":[{\"position\":\"chief\",\"name_text\":\"Avery Kestrel\",\"person_id\":\"FIC-001\"},{\"position\":\"gunner\",\"name_text\":\"Jordan Pike\",\"person_id\":\"FIC-002\"},{\"position\":\"driver\",\"name_text\":\"Riley Marsh\",\"person_id\":\"FIC-003\"}]},{\"crew_name\":\"Launcher 2\",\"count_status\":\"explicitly_unknown\",\"launch_count\":null,\"count_text\":\"its rocket count was not recorded\",\"members\":[{\"position\":\"chief\",\"name_text\":\"Casey Thorne\",\"person_id\":\"FIC-005\"},{\"position\":\"gunner\",\"name_text\":\"Morgan Vale\",\"person_id\":\"FIC-006\"},{\"position\":\"driver\",\"name_text\":\"Taylor Brook\",\"person_id\":\"FIC-007\"}]}],\"unresolved\":[]}"
         }
       ],
       "model": "claude-sonnet-5-5"

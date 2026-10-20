@@ -40,9 +40,11 @@ from blastbridge.product.models import (
     CrewMember,
     CrewPosition,
     EventStatus,
+    IntakeSource,
     Person,
     TrainingEvent,
     TrainingEventDraft,
+    provenance_text,
 )
 from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE, DEMO_SYMPTOMS
 from blastbridge.product.symptoms import (
@@ -345,28 +347,37 @@ def show_ai_metadata(metadata: dict[str, object]) -> None:
         st.caption(f"Model: {metadata.get('model')}")
 
 
+def load_example_narrative() -> None:
+    st.session_state["ai_narrative"] = GOLDEN_NARRATIVE
+
+
 def ai_intake() -> None:
     st.text_area(
         "Describe / paste training record",
         key="ai_narrative",
         height=180,
-        placeholder=GOLDEN_NARRATIVE,
+        placeholder="Paste or type the training record here.",
     )
+    st.button("Load example narrative", on_click=load_example_narrative)
     available = live_available()
     if not available:
         st.caption("Live AI unavailable: ANTHROPIC_API_KEY is not configured. Use the demo replay.")
     live, replay = st.columns(2)
     if live.button("Draft with AI", disabled=not available):
-        st.session_state.pop("ai_pending", None)
-        st.session_state["ai_metadata"] = {}
-        with st.spinner("Building a proposed training record…"):
-            st.session_state["ai_result"] = run_intake(
-                st.session_state.get("ai_narrative", ""),
-                AnthropicProvider(),
-                load_weapon_catalog(ROOT / "data/reference/weapons.json"),
-                list(PEOPLE.values()),
-                date.today(),
-            )
+        narrative = st.session_state["ai_narrative"]
+        if len("".join(narrative.split())) < 20:
+            st.warning("Paste or type a training record first.")
+        else:
+            st.session_state.pop("ai_pending", None)
+            st.session_state["ai_metadata"] = {}
+            with st.spinner("Building a proposed training record…"):
+                st.session_state["ai_result"] = run_intake(
+                    narrative,
+                    AnthropicProvider(),
+                    load_weapon_catalog(ROOT / "data/reference/weapons.json"),
+                    list(PEOPLE.values()),
+                    date.today(),
+                )
     replay.button("Use demo replay", on_click=run_demo_replay)
     notice = st.session_state.pop("ai_replay_notice", None)
     if notice:
@@ -443,7 +454,8 @@ def ai_intake() -> None:
         continue_col, edit_col, start_col = st.columns(3)
         if continue_col.button("Continue to Review", disabled=result.draft is None):
             try:
-                event_id = store.save_draft(CONN, result.draft)
+                source = IntakeSource.AI_REPLAY if result.mode == "replay" else IntakeSource.AI_LIVE
+                event_id = store.save_draft(CONN, result.draft, intake_source=source)
             except (store.StoreError, sqlite3.Error) as exc:
                 st.error(f"Could not save this draft: {exc}")
             else:
@@ -629,7 +641,12 @@ def new_event() -> None:
             store.update_draft(CONN, editing, draft, s["editing_revision"])
             event_id = editing
         else:
-            event_id = store.save_draft(CONN, draft)
+            pending_mode = (s.get("ai_pending") or {}).get("mode")
+            source = {
+                "live": IntakeSource.AI_LIVE,
+                "replay": IntakeSource.AI_REPLAY,
+            }.get(pending_mode, IntakeSource.MANUAL)
+            event_id = store.save_draft(CONN, draft, intake_source=source)
     except (store.StoreError, sqlite3.Error) as exc:
         if not editing:
             st.error(f"Could not save this draft: {exc}")
@@ -683,8 +700,10 @@ def show_decision(event_id: str) -> None:
             unsafe_allow_html=True,
         )
         if event.status is not EventStatus.APPROVED:
+            st.caption(provenance_text(event.intake_source, event.status))
             st.caption("This event was not added to anyone's history.")
             return
+        st.caption(provenance_text(event.intake_source, event.status))
         st.success("Approved. Each participant's history now includes this event.")
         members = [m for crew in d.crews for m in crew.members]
         for start in range(0, len(members), 4):
@@ -741,14 +760,16 @@ def review() -> None:
     st.markdown(
         f"{status_pill(event)} &nbsp; <small>{event.event_id}</small>", unsafe_allow_html=True
     )
+    st.caption(provenance_text(event.intake_source, event.status))
     st.write("")
 
     metadata = st.session_state.get("ai_drafts", {}).get(event.event_id)
-    if metadata:
+    if event.intake_source is not IntakeSource.MANUAL and event.status is EventStatus.DRAFT:
         st.info(
             "AI-generated draft — not yet recorded. "
             "Nothing is added to personnel history until you approve."
         )
+    if metadata:
         show_ai_metadata(metadata)
         with st.expander("Field origins"):
             st.dataframe(
@@ -1154,7 +1175,7 @@ def history() -> None:
                 st.write(
                     f"Physical events: {count_text(entry.physical_event_count)} · {entry.crew_name}"
                 )
-                st.caption("Source: organizational training record")
+                st.caption(provenance_text(entry.intake_source, EventStatus.APPROVED))
             else:
                 report = reports_by_id[record_id]
                 st.write(f"**{report.draft.report_date:%d %b %Y} · Symptom report**")

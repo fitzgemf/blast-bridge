@@ -4,7 +4,7 @@
     {
       "id": "intake-01",
       "title": "Golden two-crew record",
-      "narrative": "Today Demo Rocket Battery ran a HIMARS live-fire qualification at Demo Range North. Launcher 1 fired 6 rockets: Avery Kestrel was launcher chief, Jordan Pike was gunner and Riley Marsh drove. Launcher 2 also fired, but its rocket count was not recorded. Casey Thorne was chief, Morgan Vale was on the gun and Brook drove.",
+      "narrative": "On 2026-10-19 Demo Rocket Battery ran a HIMARS live-fire qualification at Demo Range North. Launcher 1 fired 6 rockets: Avery Kestrel was launcher chief, Jordan Pike was gunner and Riley Marsh drove. Launcher 2 also fired, but its rocket count was not recorded. Casey Thorne was chief, Morgan Vale was on the gun and Taylor Brook drove.",
       "expect": {
         "weapon_system_id": "m142-himars",
         "crews": 2,
@@ -76,7 +76,7 @@
               },
               {
                 "position": "driver",
-                "name_text": "Brook",
+                "name_text": "Taylor Brook",
                 "person_id": "FIC-007"
               }
             ]
@@ -900,6 +900,14 @@
           "Alex"
         ]
       ]
+    },
+    {
+      "id": "intake-12",
+      "title": "Empty narrative is refused before any model call",
+      "narrative": "   ",
+      "expect": {
+        "refused": true
+      }
     }
   ]
 }

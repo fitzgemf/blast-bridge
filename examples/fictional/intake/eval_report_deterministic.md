@@ -1,6 +1,6 @@
 # Intake evaluation (deterministic)
 
-Model: deterministic-stub · Generated: 2026-10-20T03:06:17+00:00 · Reference date: 2026-10-19
+Model: deterministic-stub · Generated: 2026-10-20T03:56:20+00:00 · Reference date: 2026-10-19
 
 Deterministic mode scripts each model proposal (including adversarial ones) to test the Python gate; it does not measure the model.
 
@@ -17,5 +17,6 @@ Deterministic mode scripts each model proposal (including adversarial ones) to t
 | intake-09 | Approximate count | needs review | needs review | PASS | matches |
 | intake-10 | Training only despite medical language | valid draft | valid draft | PASS | matches |
 | intake-11 | Adversarial name/id mismatch | needs review | needs review | PASS | matches |
+| intake-12 | Empty narrative is refused before any model call | refused before model call | error | PASS | matches |
 
-11/11 cases passed.
+12/12 cases passed.

@@ -18,6 +18,7 @@ from .models import (
     CrewPosition,
     EventStatus,
     HistoryEntry,
+    IntakeSource,
     Person,
     TrainingEvent,
     TrainingEventDraft,
@@ -44,7 +45,9 @@ CREATE TABLE IF NOT EXISTS training_events (
     location_unit TEXT,
     created_at TEXT NOT NULL,
     decided_at TEXT,
-    revision INTEGER NOT NULL CHECK (revision >= 1)
+    revision INTEGER NOT NULL CHECK (revision >= 1),
+    intake_source TEXT NOT NULL DEFAULT 'manual'
+        CHECK (intake_source IN ('manual', 'ai_live', 'ai_replay'))
 );
 CREATE TABLE IF NOT EXISTS crews (
     crew_id TEXT PRIMARY KEY,
@@ -115,24 +118,31 @@ def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
 
 
-_SCHEMA_VERSION = 3
+_SCHEMA_VERSION = 4
 
 
 def init_db(conn: sqlite3.Connection) -> None:
-    """Create the schema, accepting version 2 for the additive report-table upgrade."""
+    """Create or additively upgrade version 2/3 records, retaining their manual provenance."""
     version = conn.execute("PRAGMA user_version").fetchone()[0]
     existing = conn.execute(
         "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'training_events'"
     ).fetchone()[0]
-    if (existing and version not in (2, _SCHEMA_VERSION)) or (
-        not existing and version not in (0, 2, _SCHEMA_VERSION)
+    if (existing and version not in (2, 3, _SCHEMA_VERSION)) or (
+        not existing and version not in (0, 2, 3, _SCHEMA_VERSION)
     ):
         raise StoreError(
             "this database was created by an older BlastBridge build; "
             "delete the demo database file and restart"
         )
     conn.executescript(_SCHEMA)
-    conn.execute(f"PRAGMA user_version = {_SCHEMA_VERSION}")
+    with _transaction(conn):
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(training_events)")}
+        if "intake_source" not in columns:
+            conn.execute(
+                "ALTER TABLE training_events ADD COLUMN intake_source TEXT NOT NULL "
+                "DEFAULT 'manual' CHECK (intake_source IN ('manual', 'ai_live', 'ai_replay'))"
+            )
+        conn.execute(f"PRAGMA user_version = {_SCHEMA_VERSION}")
 
 
 def seed_people(conn: sqlite3.Connection, people: Iterable[Person]) -> None:
@@ -203,7 +213,10 @@ def _require_draft(conn: sqlite3.Connection, event_id: str, revision: int) -> No
 
 
 def save_draft(
-    conn: sqlite3.Connection, draft: TrainingEventDraft, event_id: str | None = None
+    conn: sqlite3.Connection,
+    draft: TrainingEventDraft,
+    event_id: str | None = None,
+    intake_source: IntakeSource = IntakeSource.MANUAL,
 ) -> str:
     if draft.event_date > date.today():
         raise StoreError("event date cannot be in the future")
@@ -211,8 +224,11 @@ def save_draft(
         event_id = f"EVT-{uuid4().hex[:8].upper()}"
     with _transaction(conn):
         conn.execute(
-            "INSERT INTO training_events VALUES (?, 'draft', ?, ?, ?, ?, ?, ?, ?, NULL, 1)",
-            (event_id, *_event_columns(draft), _now()),
+            "INSERT INTO training_events (event_id, status, event_date, event_type, "
+            "training_context, weapon_system_id, weapon_name, location_unit, created_at, "
+            "decided_at, revision, intake_source) "
+            "VALUES (?, 'draft', ?, ?, ?, ?, ?, ?, ?, NULL, 1, ?)",
+            (event_id, *_event_columns(draft), _now(), intake_source),
         )
         _write_draft(conn, event_id, draft)
     return event_id
@@ -361,7 +377,11 @@ def get_event(conn: sqlite3.Connection, event_id: str) -> TrainingEvent:
         crews=tuple(crews),
     )
     return TrainingEvent(
-        event_id=event_id, status=row["status"], revision=row["revision"], draft=draft
+        event_id=event_id,
+        status=row["status"],
+        intake_source=row["intake_source"],
+        revision=row["revision"],
+        draft=draft,
     )
 
 
@@ -380,7 +400,8 @@ def member_history(conn: sqlite3.Connection, person_id: str) -> list[HistoryEntr
     """Approved participation only, newest first."""
     rows = conn.execute(
         "SELECT e.event_id, e.event_date, e.event_type, e.training_context, e.weapon_name, "
-        "e.location_unit, c.crew_name, x.position, x.participation_role, c.physical_event_count "
+        "e.location_unit, e.intake_source, c.crew_name, x.position, x.participation_role, "
+        "c.physical_event_count "
         "FROM participant_exposures x "
         "JOIN training_events e ON e.event_id = x.event_id "
         "JOIN crews c ON c.crew_id = x.crew_id "

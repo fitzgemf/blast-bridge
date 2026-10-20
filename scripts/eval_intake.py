@@ -32,13 +32,17 @@ def scripted(case: dict[str, Any]) -> ScriptedProvider:
             for i, (name, query) in enumerate(queries)
         ]
         turns.append(ProviderTurn("tool_use", blocks, blocks, "deterministic-stub"))
-    blocks = [{"type": "text", "text": json.dumps(case["stub_proposal"])}]
+    blocks = [{"type": "text", "text": json.dumps(case.get("stub_proposal"))}]
     turns.append(ProviderTurn("end_turn", blocks, blocks, "deterministic-stub"))
     return ScriptedProvider(turns)
 
 
 def check(case: dict[str, Any], result: IntakeResult) -> list[str]:
     expected = case["expect"]
+    if expected.get("refused"):
+        if result.error and result.proposal is None and result.model_calls == 0:
+            return []
+        return ["empty narrative was not refused before a model call"]
     reasons = []
     if result.error:
         reasons.append(result.error)
@@ -114,7 +118,11 @@ def main() -> None:
             model = result.model
         reasons = check(case, result)
         passed += not reasons
-        expected = "valid draft" if case["expect"]["draft_valid"] else "needs review"
+        expected = (
+            "refused before model call"
+            if case["expect"].get("refused")
+            else ("valid draft" if case["expect"]["draft_valid"] else "needs review")
+        )
         actual = (
             "error"
             if result.error
