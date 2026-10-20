@@ -138,39 +138,42 @@ def evaluate(report: SymptomReportDraft) -> FollowUp:
         )
     if (
         report.symptoms
-        and report.temporal_relationship is TemporalRelationship.AFTER_RECORDED_EVENT
         and report.persistence is Persistence.STILL_PRESENT
         and report.functional_impact is FunctionalImpact.YES
     ):
+        explanations = {
+            TemporalRelationship.AFTER_RECORDED_EVENT: (
+                "Persistent, function-affecting symptoms were reported after the linked recorded "
+                "event. Current TBICoE guidance advises service members whose symptoms persist "
+                "and impact daily function to inform their command and medical provider. "
+                "BlastBridge does not determine whether the recorded exposure caused the symptoms "
+                "and does not diagnose concussion or TBI."
+            ),
+            TemporalRelationship.RELATIONSHIP_UNKNOWN: (
+                "Persistent, function-affecting symptoms were reported. Their relationship to "
+                "recorded exposure is unknown. Current TBICoE guidance advises service members "
+                "whose symptoms persist and impact daily function to inform their command and "
+                "medical provider. BlastBridge does not determine whether any exposure caused "
+                "the symptoms and does not diagnose concussion or TBI."
+            ),
+            TemporalRelationship.NOT_LINKED_TO_EVENT: (
+                "Persistent, function-affecting symptoms were reported and were not linked to a "
+                "recorded training event. Current TBICoE guidance advises service members whose "
+                "symptoms persist and impact daily function to inform their command and medical "
+                "provider. BlastBridge does not diagnose concussion or TBI."
+            ),
+        }
         return FollowUp(
             FollowUpState.FOLLOW_UP_SUGGESTED,
             "Follow-up suggested",
-            "Symptoms were reported as persistent and affecting daily function after a recorded "
-            "training event. Current TBICoE guidance advises service members whose "
-            "symptoms persist "
-            "and impact daily function to inform their command and medical provider. BlastBridge "
-            "does not determine whether the recorded exposure caused the symptoms and does not "
-            "diagnose concussion or TBI.",
+            explanations[report.temporal_relationship],
             missing,
             ("tbicoe_service_member",),
-        )
-    explanation = "This does not determine whether an injury is present or absent."
-    if (
-        report.symptoms
-        and report.persistence is Persistence.STILL_PRESENT
-        and report.functional_impact is FunctionalImpact.YES
-    ):
-        explanation = (
-            "Symptoms were reported as persistent and affecting daily function. The BlastBridge "
-            "follow-up rule also requires the report to be linked as occurring after a recorded "
-            "training event, so it is not triggered. Current TBICoE guidance advises service "
-            "members whose symptoms persist and impact daily function to inform their command "
-            "and medical provider. This does not determine whether an injury is present or absent."
         )
     return FollowUp(
         FollowUpState.NO_FOLLOWUP_RULE_TRIGGERED,
         "No rule-based follow-up signal from the currently recorded information.",
-        explanation,
+        "This does not determine whether an injury is present or absent.",
         missing,
         ("tbicoe_service_member",),
     )

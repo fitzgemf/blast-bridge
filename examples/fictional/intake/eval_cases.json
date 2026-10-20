@@ -1,0 +1,830 @@
+{
+  "reference_date": "2026-10-19",
+  "cases": [
+    {
+      "id": "intake-01",
+      "title": "Golden two-crew record",
+      "narrative": "Today Demo Rocket Battery ran a HIMARS live-fire qualification at Demo Range North. Launcher 1 fired 6 rockets: Avery Kestrel was launcher chief, Jordan Pike was gunner and Riley Marsh drove. Launcher 2 also fired, but its rocket count was not recorded. Casey Thorne was chief, Morgan Vale was on the gun and Brook drove.",
+      "expect": {
+        "weapon_system_id": "m142-himars",
+        "crews": 2,
+        "count_status": [
+          "explicit_exact",
+          "explicitly_unknown"
+        ],
+        "person_ids": [
+          {
+            "chief": "FIC-001",
+            "gunner": "FIC-002",
+            "driver": "FIC-003"
+          },
+          {
+            "chief": "FIC-005",
+            "gunner": "FIC-006",
+            "driver": "FIC-007"
+          }
+        ],
+        "blocking": false,
+        "issue_contains": [],
+        "draft_valid": true
+      },
+      "stub_proposal": {
+        "event_date": "2026-10-19",
+        "event_type": "weapon_firing",
+        "training_context": "qualification_certification",
+        "weapon_system_id": "m142-himars",
+        "location_unit": "Demo Range North",
+        "crews": [
+          {
+            "crew_name": "Launcher 1",
+            "count_status": "explicit_exact",
+            "launch_count": 6,
+            "count_text": "6 rockets",
+            "members": [
+              {
+                "position": "chief",
+                "name_text": "Avery Kestrel",
+                "person_id": "FIC-001"
+              },
+              {
+                "position": "gunner",
+                "name_text": "Jordan Pike",
+                "person_id": "FIC-002"
+              },
+              {
+                "position": "driver",
+                "name_text": "Riley Marsh",
+                "person_id": "FIC-003"
+              }
+            ]
+          },
+          {
+            "crew_name": "Launcher 2",
+            "count_status": "explicitly_unknown",
+            "launch_count": null,
+            "count_text": "rocket count was not recorded",
+            "members": [
+              {
+                "position": "chief",
+                "name_text": "Casey Thorne",
+                "person_id": "FIC-005"
+              },
+              {
+                "position": "gunner",
+                "name_text": "Morgan Vale",
+                "person_id": "FIC-006"
+              },
+              {
+                "position": "driver",
+                "name_text": "Brook",
+                "person_id": "FIC-007"
+              }
+            ]
+          }
+        ],
+        "unresolved": []
+      },
+      "stub_tool_queries": [
+        [
+          "search_weapon_catalog",
+          "HIMARS"
+        ],
+        [
+          "search_roster",
+          "Avery Kestrel"
+        ],
+        [
+          "search_roster",
+          "Jordan Pike"
+        ],
+        [
+          "search_roster",
+          "Riley Marsh"
+        ],
+        [
+          "search_roster",
+          "Casey Thorne"
+        ],
+        [
+          "search_roster",
+          "Morgan Vale"
+        ],
+        [
+          "search_roster",
+          "Brook"
+        ]
+      ]
+    },
+    {
+      "id": "intake-02",
+      "title": "Two exact crew counts",
+      "narrative": "Today at Demo Range North, fictional personnel ran a HIMARS live-fire qualification. Launcher 1 fired 6 rockets: Avery Kestrel was chief, Jordan Pike was gunner and Riley Marsh drove. Launcher 2 fired 4 rockets: Casey Thorne was chief, Morgan Vale was gunner and Taylor Brook drove.",
+      "expect": {
+        "weapon_system_id": "m142-himars",
+        "crews": 2,
+        "count_status": [
+          "explicit_exact",
+          "explicit_exact"
+        ],
+        "person_ids": [
+          {
+            "chief": "FIC-001",
+            "gunner": "FIC-002",
+            "driver": "FIC-003"
+          },
+          {
+            "chief": "FIC-005",
+            "gunner": "FIC-006",
+            "driver": "FIC-007"
+          }
+        ],
+        "blocking": false,
+        "issue_contains": [],
+        "draft_valid": true
+      },
+      "stub_proposal": {
+        "event_date": "2026-10-19",
+        "event_type": "weapon_firing",
+        "training_context": "qualification_certification",
+        "weapon_system_id": "m142-himars",
+        "location_unit": "Demo Range North",
+        "crews": [
+          {
+            "crew_name": "Launcher 1",
+            "count_status": "explicit_exact",
+            "launch_count": 6,
+            "count_text": "6 rockets",
+            "members": [
+              {
+                "position": "chief",
+                "name_text": "Avery Kestrel",
+                "person_id": "FIC-001"
+              },
+              {
+                "position": "gunner",
+                "name_text": "Jordan Pike",
+                "person_id": "FIC-002"
+              },
+              {
+                "position": "driver",
+                "name_text": "Riley Marsh",
+                "person_id": "FIC-003"
+              }
+            ]
+          },
+          {
+            "crew_name": "Launcher 2",
+            "count_status": "explicit_exact",
+            "launch_count": 4,
+            "count_text": "4 rockets",
+            "members": [
+              {
+                "position": "chief",
+                "name_text": "Casey Thorne",
+                "person_id": "FIC-005"
+              },
+              {
+                "position": "gunner",
+                "name_text": "Morgan Vale",
+                "person_id": "FIC-006"
+              },
+              {
+                "position": "driver",
+                "name_text": "Taylor Brook",
+                "person_id": "FIC-007"
+              }
+            ]
+          }
+        ],
+        "unresolved": []
+      },
+      "stub_tool_queries": [
+        [
+          "search_weapon_catalog",
+          "HIMARS"
+        ],
+        [
+          "search_roster",
+          "Avery Kestrel"
+        ],
+        [
+          "search_roster",
+          "Jordan Pike"
+        ],
+        [
+          "search_roster",
+          "Riley Marsh"
+        ],
+        [
+          "search_roster",
+          "Casey Thorne"
+        ],
+        [
+          "search_roster",
+          "Morgan Vale"
+        ],
+        [
+          "search_roster",
+          "Brook"
+        ]
+      ]
+    },
+    {
+      "id": "intake-03",
+      "title": "Canonical alias",
+      "narrative": "Today at Demo Range North, fictional personnel ran a High Mobility Artillery Rocket System live-fire qualification. Launcher 1 fired 6 rockets: Avery Kestrel was chief, Jordan Pike was gunner and Riley Marsh drove.",
+      "expect": {
+        "weapon_system_id": "m142-himars",
+        "crews": 1,
+        "count_status": [
+          "explicit_exact"
+        ],
+        "person_ids": [
+          {
+            "chief": "FIC-001",
+            "gunner": "FIC-002",
+            "driver": "FIC-003"
+          }
+        ],
+        "blocking": false,
+        "issue_contains": [],
+        "draft_valid": true
+      },
+      "stub_proposal": {
+        "event_date": "2026-10-19",
+        "event_type": "weapon_firing",
+        "training_context": "qualification_certification",
+        "weapon_system_id": "m142-himars",
+        "location_unit": "Demo Range North",
+        "crews": [
+          {
+            "crew_name": "Launcher 1",
+            "count_status": "explicit_exact",
+            "launch_count": 6,
+            "count_text": "6 rockets",
+            "members": [
+              {
+                "position": "chief",
+                "name_text": "Avery Kestrel",
+                "person_id": "FIC-001"
+              },
+              {
+                "position": "gunner",
+                "name_text": "Jordan Pike",
+                "person_id": "FIC-002"
+              },
+              {
+                "position": "driver",
+                "name_text": "Riley Marsh",
+                "person_id": "FIC-003"
+              }
+            ]
+          }
+        ],
+        "unresolved": []
+      },
+      "stub_tool_queries": [
+        [
+          "search_weapon_catalog",
+          "High Mobility Artillery Rocket System"
+        ],
+        [
+          "search_roster",
+          "Avery Kestrel"
+        ],
+        [
+          "search_roster",
+          "Jordan Pike"
+        ],
+        [
+          "search_roster",
+          "Riley Marsh"
+        ]
+      ]
+    },
+    {
+      "id": "intake-04",
+      "title": "Explicit unknown count",
+      "narrative": "Today at Demo Range North, fictional personnel ran a HIMARS live-fire qualification. Launcher 1 fired an unrecorded number of rockets: Avery Kestrel was chief, Jordan Pike was gunner and Riley Marsh drove.",
+      "expect": {
+        "weapon_system_id": "m142-himars",
+        "crews": 1,
+        "count_status": [
+          "explicitly_unknown"
+        ],
+        "person_ids": [
+          {
+            "chief": "FIC-001",
+            "gunner": "FIC-002",
+            "driver": "FIC-003"
+          }
+        ],
+        "blocking": false,
+        "issue_contains": [],
+        "draft_valid": true
+      },
+      "stub_proposal": {
+        "event_date": "2026-10-19",
+        "event_type": "weapon_firing",
+        "training_context": "qualification_certification",
+        "weapon_system_id": "m142-himars",
+        "location_unit": "Demo Range North",
+        "crews": [
+          {
+            "crew_name": "Launcher 1",
+            "count_status": "explicitly_unknown",
+            "launch_count": null,
+            "count_text": "an unrecorded number of rockets",
+            "members": [
+              {
+                "position": "chief",
+                "name_text": "Avery Kestrel",
+                "person_id": "FIC-001"
+              },
+              {
+                "position": "gunner",
+                "name_text": "Jordan Pike",
+                "person_id": "FIC-002"
+              },
+              {
+                "position": "driver",
+                "name_text": "Riley Marsh",
+                "person_id": "FIC-003"
+              }
+            ]
+          }
+        ],
+        "unresolved": []
+      },
+      "stub_tool_queries": [
+        [
+          "search_weapon_catalog",
+          "HIMARS"
+        ],
+        [
+          "search_roster",
+          "Avery Kestrel"
+        ],
+        [
+          "search_roster",
+          "Jordan Pike"
+        ],
+        [
+          "search_roster",
+          "Riley Marsh"
+        ]
+      ]
+    },
+    {
+      "id": "intake-05",
+      "title": "Missing driver",
+      "narrative": "Today at Demo Range North, fictional personnel ran a HIMARS live-fire qualification. Launcher 1 fired 6 rockets: Avery Kestrel was chief, Jordan Pike was gunner.",
+      "expect": {
+        "weapon_system_id": "m142-himars",
+        "crews": 1,
+        "count_status": [
+          "explicit_exact"
+        ],
+        "person_ids": [
+          {
+            "chief": "FIC-001",
+            "gunner": "FIC-002",
+            "driver": null
+          }
+        ],
+        "blocking": true,
+        "issue_contains": [
+          "Driver"
+        ],
+        "draft_valid": false
+      },
+      "stub_proposal": {
+        "event_date": "2026-10-19",
+        "event_type": "weapon_firing",
+        "training_context": "qualification_certification",
+        "weapon_system_id": "m142-himars",
+        "location_unit": "Demo Range North",
+        "crews": [
+          {
+            "crew_name": "Launcher 1",
+            "count_status": "explicit_exact",
+            "launch_count": 6,
+            "count_text": "6 rockets",
+            "members": [
+              {
+                "position": "chief",
+                "name_text": "Avery Kestrel",
+                "person_id": "FIC-001"
+              },
+              {
+                "position": "gunner",
+                "name_text": "Jordan Pike",
+                "person_id": "FIC-002"
+              }
+            ]
+          }
+        ],
+        "unresolved": []
+      },
+      "stub_tool_queries": [
+        [
+          "search_weapon_catalog",
+          "HIMARS"
+        ],
+        [
+          "search_roster",
+          "Avery Kestrel"
+        ],
+        [
+          "search_roster",
+          "Jordan Pike"
+        ],
+        [
+          "search_roster",
+          "Riley Marsh"
+        ]
+      ]
+    },
+    {
+      "id": "intake-06",
+      "title": "Unresolved name",
+      "narrative": "Today at Demo Range North, fictional personnel ran a HIMARS live-fire qualification. Launcher 1 fired 6 rockets: Avery Kestrel was chief, Jordan Pike was gunner and Alex drove.",
+      "expect": {
+        "weapon_system_id": "m142-himars",
+        "crews": 1,
+        "count_status": [
+          "explicit_exact"
+        ],
+        "person_ids": [
+          {
+            "chief": "FIC-001",
+            "gunner": "FIC-002",
+            "driver": null
+          }
+        ],
+        "blocking": true,
+        "issue_contains": [
+          "Driver"
+        ],
+        "draft_valid": false
+      },
+      "stub_proposal": {
+        "event_date": "2026-10-19",
+        "event_type": "weapon_firing",
+        "training_context": "qualification_certification",
+        "weapon_system_id": "m142-himars",
+        "location_unit": "Demo Range North",
+        "crews": [
+          {
+            "crew_name": "Launcher 1",
+            "count_status": "explicit_exact",
+            "launch_count": 6,
+            "count_text": "6 rockets",
+            "members": [
+              {
+                "position": "chief",
+                "name_text": "Avery Kestrel",
+                "person_id": "FIC-001"
+              },
+              {
+                "position": "gunner",
+                "name_text": "Jordan Pike",
+                "person_id": "FIC-002"
+              },
+              {
+                "position": "driver",
+                "name_text": "Alex",
+                "person_id": null
+              }
+            ]
+          }
+        ],
+        "unresolved": [
+          "Alex has no fictional roster match."
+        ]
+      },
+      "stub_tool_queries": [
+        [
+          "search_weapon_catalog",
+          "HIMARS"
+        ],
+        [
+          "search_roster",
+          "Avery Kestrel"
+        ],
+        [
+          "search_roster",
+          "Jordan Pike"
+        ],
+        [
+          "search_roster",
+          "Alex"
+        ]
+      ]
+    },
+    {
+      "id": "intake-07",
+      "title": "Adversarial invented weapon",
+      "narrative": "Today at Demo Range North, fictional personnel ran a M1A2 laser cannon live-fire qualification. Launcher 1 fired 6 rockets: Avery Kestrel was chief, Jordan Pike was gunner and Riley Marsh drove.",
+      "expect": {
+        "weapon_system_id": null,
+        "crews": 1,
+        "count_status": [
+          "explicit_exact"
+        ],
+        "person_ids": [
+          {
+            "chief": "FIC-001",
+            "gunner": "FIC-002",
+            "driver": "FIC-003"
+          }
+        ],
+        "blocking": true,
+        "issue_contains": [
+          "catalog"
+        ],
+        "draft_valid": false
+      },
+      "stub_proposal": {
+        "event_date": "2026-10-19",
+        "event_type": "weapon_firing",
+        "training_context": "qualification_certification",
+        "weapon_system_id": "m1a2-laser-cannon",
+        "location_unit": "Demo Range North",
+        "crews": [
+          {
+            "crew_name": "Launcher 1",
+            "count_status": "explicit_exact",
+            "launch_count": 6,
+            "count_text": "6 rockets",
+            "members": [
+              {
+                "position": "chief",
+                "name_text": "Avery Kestrel",
+                "person_id": "FIC-001"
+              },
+              {
+                "position": "gunner",
+                "name_text": "Jordan Pike",
+                "person_id": "FIC-002"
+              },
+              {
+                "position": "driver",
+                "name_text": "Riley Marsh",
+                "person_id": "FIC-003"
+              }
+            ]
+          }
+        ],
+        "unresolved": []
+      },
+      "stub_tool_queries": [
+        [
+          "search_weapon_catalog",
+          "M1A2 laser cannon"
+        ],
+        [
+          "search_roster",
+          "Avery Kestrel"
+        ],
+        [
+          "search_roster",
+          "Jordan Pike"
+        ],
+        [
+          "search_roster",
+          "Riley Marsh"
+        ]
+      ]
+    },
+    {
+      "id": "intake-08",
+      "title": "Adversarial future date",
+      "narrative": "On 2099-01-05 at Demo Range North, fictional personnel ran a HIMARS live-fire qualification. Launcher 1 fired 6 rockets: Avery Kestrel was chief, Jordan Pike was gunner and Riley Marsh drove.",
+      "expect": {
+        "weapon_system_id": "m142-himars",
+        "crews": 1,
+        "count_status": [
+          "explicit_exact"
+        ],
+        "person_ids": [
+          {
+            "chief": "FIC-001",
+            "gunner": "FIC-002",
+            "driver": "FIC-003"
+          }
+        ],
+        "blocking": true,
+        "issue_contains": [
+          "future"
+        ],
+        "draft_valid": false
+      },
+      "stub_proposal": {
+        "event_date": "2099-01-05",
+        "event_type": "weapon_firing",
+        "training_context": "qualification_certification",
+        "weapon_system_id": "m142-himars",
+        "location_unit": "Demo Range North",
+        "crews": [
+          {
+            "crew_name": "Launcher 1",
+            "count_status": "explicit_exact",
+            "launch_count": 6,
+            "count_text": "6 rockets",
+            "members": [
+              {
+                "position": "chief",
+                "name_text": "Avery Kestrel",
+                "person_id": "FIC-001"
+              },
+              {
+                "position": "gunner",
+                "name_text": "Jordan Pike",
+                "person_id": "FIC-002"
+              },
+              {
+                "position": "driver",
+                "name_text": "Riley Marsh",
+                "person_id": "FIC-003"
+              }
+            ]
+          }
+        ],
+        "unresolved": []
+      },
+      "stub_tool_queries": [
+        [
+          "search_weapon_catalog",
+          "HIMARS"
+        ],
+        [
+          "search_roster",
+          "Avery Kestrel"
+        ],
+        [
+          "search_roster",
+          "Jordan Pike"
+        ],
+        [
+          "search_roster",
+          "Riley Marsh"
+        ]
+      ]
+    },
+    {
+      "id": "intake-09",
+      "title": "Approximate count",
+      "narrative": "Today at Demo Range North, fictional personnel ran a HIMARS live-fire qualification. Launcher 1 fired about six rockets: Avery Kestrel was chief, Jordan Pike was gunner and Riley Marsh drove.",
+      "expect": {
+        "weapon_system_id": "m142-himars",
+        "crews": 1,
+        "count_status": [
+          "approximate_or_ambiguous"
+        ],
+        "person_ids": [
+          {
+            "chief": "FIC-001",
+            "gunner": "FIC-002",
+            "driver": "FIC-003"
+          }
+        ],
+        "blocking": true,
+        "issue_contains": [
+          "about six rockets"
+        ],
+        "draft_valid": false
+      },
+      "stub_proposal": {
+        "event_date": "2026-10-19",
+        "event_type": "weapon_firing",
+        "training_context": "qualification_certification",
+        "weapon_system_id": "m142-himars",
+        "location_unit": "Demo Range North",
+        "crews": [
+          {
+            "crew_name": "Launcher 1",
+            "count_status": "approximate_or_ambiguous",
+            "launch_count": null,
+            "count_text": "about six rockets",
+            "members": [
+              {
+                "position": "chief",
+                "name_text": "Avery Kestrel",
+                "person_id": "FIC-001"
+              },
+              {
+                "position": "gunner",
+                "name_text": "Jordan Pike",
+                "person_id": "FIC-002"
+              },
+              {
+                "position": "driver",
+                "name_text": "Riley Marsh",
+                "person_id": "FIC-003"
+              }
+            ]
+          }
+        ],
+        "unresolved": []
+      },
+      "stub_tool_queries": [
+        [
+          "search_weapon_catalog",
+          "HIMARS"
+        ],
+        [
+          "search_roster",
+          "Avery Kestrel"
+        ],
+        [
+          "search_roster",
+          "Jordan Pike"
+        ],
+        [
+          "search_roster",
+          "Riley Marsh"
+        ]
+      ]
+    },
+    {
+      "id": "intake-10",
+      "title": "Training only despite medical language",
+      "narrative": "Today at Demo Range North, fictional personnel ran a HIMARS live-fire qualification. Launcher 1 fired 6 rockets: Avery Kestrel was chief, Jordan Pike was gunner and Riley Marsh drove. Pike reported a headache afterwards.",
+      "expect": {
+        "weapon_system_id": "m142-himars",
+        "crews": 1,
+        "count_status": [
+          "explicit_exact"
+        ],
+        "person_ids": [
+          {
+            "chief": "FIC-001",
+            "gunner": "FIC-002",
+            "driver": "FIC-003"
+          }
+        ],
+        "blocking": false,
+        "issue_contains": [],
+        "draft_valid": true,
+        "forbidden_output_words": [
+          "headache",
+          "symptom",
+          "medical",
+          "injury"
+        ]
+      },
+      "stub_proposal": {
+        "event_date": "2026-10-19",
+        "event_type": "weapon_firing",
+        "training_context": "qualification_certification",
+        "weapon_system_id": "m142-himars",
+        "location_unit": "Demo Range North",
+        "crews": [
+          {
+            "crew_name": "Launcher 1",
+            "count_status": "explicit_exact",
+            "launch_count": 6,
+            "count_text": "6 rockets",
+            "members": [
+              {
+                "position": "chief",
+                "name_text": "Avery Kestrel",
+                "person_id": "FIC-001"
+              },
+              {
+                "position": "gunner",
+                "name_text": "Jordan Pike",
+                "person_id": "FIC-002"
+              },
+              {
+                "position": "driver",
+                "name_text": "Riley Marsh",
+                "person_id": "FIC-003"
+              }
+            ]
+          }
+        ],
+        "unresolved": []
+      },
+      "stub_tool_queries": [
+        [
+          "search_weapon_catalog",
+          "HIMARS"
+        ],
+        [
+          "search_roster",
+          "Avery Kestrel"
+        ],
+        [
+          "search_roster",
+          "Jordan Pike"
+        ],
+        [
+          "search_roster",
+          "Riley Marsh"
+        ]
+      ]
+    }
+  ]
+}

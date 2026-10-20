@@ -14,6 +14,13 @@ from blastbridge.data.catalog import load_weapon_catalog
 from blastbridge.models.enums import EventType
 from blastbridge.models.training_tempo import TrainingContext
 from blastbridge.product import store
+from blastbridge.product.agent import (
+    GOLDEN_NARRATIVE,
+    IntakeResult,
+    load_replay,
+    run_intake,
+)
+from blastbridge.product.anthropic_provider import AnthropicProvider, live_available
 from blastbridge.product.followup import (
     ABSENCE_NOTE,
     BOUNDARY_NOTE,
@@ -193,6 +200,10 @@ def change_crews(remove: int | None = None) -> None:
 
 def open_form(event: TrainingEvent | None = None) -> None:
     st.session_state["form_init"] = form_values(event.draft if event else None)
+    st.session_state["form_init"]["f_mode"] = (
+        "Enter manually" if event else "Describe / paste training record"
+    )
+    st.session_state.pop("ai_pending", None)
     st.session_state["editing_event_id"] = event.event_id if event else None
     st.session_state["editing_revision"] = event.revision if event else None
     st.switch_page(PAGES["new"])
@@ -278,12 +289,161 @@ def dashboard() -> None:
                 st.error(f"Could not reset demo data: {exc}")
                 return
             for key in list(st.session_state):
-                if key.startswith(("review", "editing", "f_", "sym_")) or key in (
+                if key.startswith(("review", "editing", "f_", "sym_", "ai_")) or key in (
                     "last_decided",
                     "form_init",
                 ):
                     del st.session_state[key]
             st.rerun()
+
+
+def clear_ai_state() -> None:
+    for key in list(st.session_state):
+        if key.startswith("ai_"):
+            del st.session_state[key]
+
+
+def run_demo_replay() -> None:
+    try:
+        narrative, provider, metadata = load_replay()
+        reference_date = date.fromisoformat(metadata["reference_date"])
+    except (OSError, ValueError, KeyError, TypeError):
+        st.session_state["ai_replay_notice"] = (
+            "The demo replay is not available yet. Enter manually or use live AI when configured."
+        )
+        return
+    st.session_state["ai_narrative"] = narrative
+    st.session_state["ai_metadata"] = metadata
+    st.session_state["ai_result"] = run_intake(
+        narrative,
+        provider,
+        load_weapon_catalog(ROOT / "data/reference/weapons.json"),
+        list(PEOPLE.values()),
+        reference_date,
+    )
+
+
+def ai_metadata(result: IntakeResult) -> dict[str, object]:
+    metadata = st.session_state.get("ai_metadata", {}) if result.mode == "replay" else {}
+    return {
+        "mode": result.mode,
+        "model": result.model,
+        "recorded_at": metadata.get("recorded_at"),
+        "origins": result.origins,
+    }
+
+
+def show_ai_metadata(metadata: dict[str, object]) -> None:
+    if metadata["mode"] == "replay":
+        st.caption(
+            "Demo replay — previously validated AI response "
+            f"(recorded {metadata.get('recorded_at')}, {metadata.get('model')})"
+        )
+    else:
+        st.caption(f"Model: {metadata.get('model')}")
+
+
+def ai_intake() -> None:
+    st.text_area(
+        "Describe / paste training record",
+        key="ai_narrative",
+        height=180,
+        placeholder=GOLDEN_NARRATIVE,
+    )
+    available = live_available()
+    if not available:
+        st.caption("Live AI unavailable: ANTHROPIC_API_KEY is not configured. Use the demo replay.")
+    live, replay = st.columns(2)
+    if live.button("Draft with AI", disabled=not available):
+        st.session_state.pop("ai_pending", None)
+        st.session_state["ai_metadata"] = {}
+        with st.spinner("Building a proposed training record…"):
+            st.session_state["ai_result"] = run_intake(
+                st.session_state.get("ai_narrative", ""),
+                AnthropicProvider(),
+                load_weapon_catalog(ROOT / "data/reference/weapons.json"),
+                list(PEOPLE.values()),
+                date.today(),
+            )
+    replay.button("Use demo replay", on_click=run_demo_replay)
+    notice = st.session_state.pop("ai_replay_notice", None)
+    if notice:
+        st.info(notice)
+    result = st.session_state.get("ai_result")
+    if result is None:
+        return
+    if result.error:
+        st.error(result.error)
+        if result.mode == "live":
+            st.caption("Demo replay uses the golden fictional narrative instead of your text.")
+            st.button("Use demo replay instead", on_click=run_demo_replay)
+        st.button("Start Over", on_click=clear_ai_state)
+        return
+    metadata = ai_metadata(result)
+    with st.container(border=True):
+        st.markdown(
+            '<span class="bb-pill">AI-generated draft — not yet recorded</span>',
+            unsafe_allow_html=True,
+        )
+        show_ai_metadata(metadata)
+        values = result.form_values
+        for title, key in (
+            ("Date", "f_date"),
+            ("Activity", "f_type"),
+            ("Training context", "f_context"),
+            ("Weapon", "f_weapon"),
+            ("Location / unit", "f_location"),
+        ):
+            value = values.get(key)
+            if key == "f_weapon" and value:
+                value = weapons().get(value, value)
+            st.write(f"{title}: {value if value is not None else 'Needs review'}")
+            st.caption(f"Origin: {result.origins.get(title, 'unresolved')}")
+        rows = []
+        for i in values.get("f_crews", []):
+            prefix = f"f_c{i}_"
+            name = values[prefix + "name"]
+            for position in POSITIONS:
+                person = PEOPLE.get(values.get(prefix + position))
+                known = values.get(prefix + "known")
+                count = (
+                    values.get(prefix + "count")
+                    if known == "Known"
+                    else ("Unknown" if known == "Unknown" else "Needs review")
+                )
+                rows.append(
+                    {
+                        "Crew": name,
+                        "Position": position.label,
+                        "Person": person.display_name if person else "Needs review",
+                        "Origin": result.origins.get(f"{name} · {position.label}", "unresolved"),
+                        "Physical events": str(count),
+                    }
+                )
+        st.dataframe(rows, hide_index=True, width="stretch")
+        if result.issues:
+            st.write("NEEDS REVIEW")
+            for issue in sorted(result.issues, key=lambda item: not item.blocking):
+                st.write(f"{'Required · ' if issue.blocking else ''}{issue.message}")
+        with st.expander("How BlastBridge built this draft"):
+            for step in result.trace:
+                st.write(f"{'✓' if step.ok else '!'} {step.text}")
+        continue_col, edit_col, start_col = st.columns(3)
+        if continue_col.button("Continue to Review", disabled=result.draft is None):
+            try:
+                event_id = store.save_draft(CONN, result.draft)
+            except (store.StoreError, sqlite3.Error) as exc:
+                st.error(f"Could not save this draft: {exc}")
+            else:
+                st.session_state.setdefault("ai_drafts", {})[event_id] = metadata
+                open_review(event_id)
+        if edit_col.button("Edit Draft"):
+            st.session_state["form_init"] = {**values, "f_mode": "Enter manually"}
+            st.session_state["editing_event_id"] = None
+            st.session_state["editing_revision"] = None
+            st.session_state["ai_pending"] = metadata
+            st.rerun()
+        start_col.button("Start Over", on_click=clear_ai_state)
 
 
 def new_event() -> None:
@@ -296,16 +456,46 @@ def new_event() -> None:
     editing = st.session_state.get("editing_event_id")
 
     header("New training event", "Record what the crew physically did. You will review it next.")
+    mode = st.radio(
+        "Entry mode",
+        ["Describe / paste training record", "Enter manually"],
+        key="f_mode",
+        horizontal=True,
+    )
+    if mode == "Describe / paste training record":
+        ai_intake()
+        return
     if editing:
         st.info(f"Editing draft {editing}. Changes are saved when you review again.")
 
     with st.container(border=True):
         st.subheader("Event")
         a, b = st.columns(2)
-        a.date_input("Date", max_value=date.today(), key="f_date")
-        b.selectbox("Activity type", list(EventType), format_func=label, key="f_type")
-        a.selectbox("Training context", list(TrainingContext), format_func=label, key="f_context")
-        b.selectbox("Weapon system", list(weapons()), format_func=weapons().get, key="f_weapon")
+        a.date_input("Date", value=None, max_value=date.today(), key="f_date")
+        b.selectbox(
+            "Activity type",
+            list(EventType),
+            index=None,
+            format_func=label,
+            key="f_type",
+            placeholder="Select activity",
+        )
+        a.selectbox(
+            "Training context",
+            list(TrainingContext),
+            index=None,
+            format_func=label,
+            key="f_context",
+            placeholder="Select context",
+        )
+        b.selectbox(
+            "Weapon system",
+            list(weapons()),
+            index=None,
+            format_func=weapons().get,
+            key="f_weapon",
+            placeholder="Select weapon",
+        )
         st.text_input("Location / unit (optional)", key="f_location")
 
     for i in st.session_state["f_crews"]:
@@ -353,11 +543,15 @@ def new_event() -> None:
     left, right, _ = st.columns([1, 1, 4])
     if right.button("Cancel"):
         st.session_state["editing_event_id"] = None
+        st.session_state.pop("ai_pending", None)
         st.switch_page(PAGES["dashboard"])
     if not left.button("Review Event", type="primary"):
         return
 
     s = st.session_state
+    if any(s.get(key) is None for key in ("f_date", "f_type", "f_context", "f_weapon")):
+        st.error("Choose a date, activity type, training context and weapon system before review.")
+        return
     if s["f_date"] > date.today():
         st.error("Event date cannot be in the future.")
         return
@@ -399,7 +593,7 @@ def new_event() -> None:
             training_context=s["f_context"],
             weapon_system_id=s["f_weapon"],
             weapon_name=weapons()[s["f_weapon"]],
-            location_unit=s["f_location"].strip() or None,
+            location_unit=(s["f_location"] or "").strip() or None,
             crews=tuple(
                 Crew(
                     crew_name=s[f"f_c{i}_name"].strip() or f"Launcher {i + 1}",
@@ -431,6 +625,9 @@ def new_event() -> None:
         st.session_state["review_notice"] = f"Your edits were not saved: {exc}"
         open_review(editing)
     st.session_state["editing_event_id"] = None
+    pending = st.session_state.pop("ai_pending", None)
+    if pending:
+        st.session_state.setdefault("ai_drafts", {})[event_id] = pending
     open_review(event_id)
 
 
@@ -531,6 +728,19 @@ def review() -> None:
         f"{status_pill(event)} &nbsp; <small>{event.event_id}</small>", unsafe_allow_html=True
     )
     st.write("")
+
+    metadata = st.session_state.get("ai_drafts", {}).get(event.event_id)
+    if metadata:
+        st.info(
+            "AI-generated draft — not yet recorded. "
+            "Nothing is added to personnel history until you approve."
+        )
+        show_ai_metadata(metadata)
+        with st.expander("Field origins"):
+            st.dataframe(
+                [{"Field": key, "Origin": value} for key, value in metadata["origins"].items()],
+                hide_index=True,
+            )
 
     known_links = sum(
         c.physical_event_count * len(c.members)

@@ -235,10 +235,20 @@ def test_followup_rule():
         FollowUpState.URGENT_EVALUATION_RECOMMENDED,
         FollowUpState.URGENT_EVALUATION_RECOMMENDED,
     ]
-    negative_cases = (
+    unknown_relationship = evaluate(
         report_draft(
             "EVT-FICTIONAL", temporal_relationship=TemporalRelationship.RELATIONSHIP_UNKNOWN
-        ),
+        )
+    )
+    assert unknown_relationship.state is FollowUpState.FOLLOW_UP_SUGGESTED
+    assert "relationship to recorded exposure is unknown" in unknown_relationship.explanation
+    assert "the relationship to a recorded event" in (
+        " ".join(unknown_relationship.missing).lower()
+    )
+    unlinked = evaluate(report_draft())
+    assert unlinked.state is FollowUpState.FOLLOW_UP_SUGGESTED
+    results.extend((unknown_relationship, unlinked))
+    negative_cases = (
         report_draft("EVT-FICTIONAL", persistence=Persistence.RESOLVED),
         report_draft("EVT-FICTIONAL", functional_impact=FunctionalImpact.NO),
         report_draft("EVT-FICTIONAL", symptoms=(), note="Fictional demo note."),
@@ -247,7 +257,6 @@ def test_followup_rule():
         result = evaluate(report)
         assert result.state is FollowUpState.NO_FOLLOWUP_RULE_TRIGGERED
         results.append(result)
-    assert "inform their command and medical provider" in results[4].explanation
     missing = " ".join(results[1].missing).lower()
     assert "persistence" in missing and "functional impact" in missing
     for result in results:

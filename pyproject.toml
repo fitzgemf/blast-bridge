@@ -12,7 +12,7 @@ dependencies = ["pydantic>=2.12,<3"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<10", "ruff>=0.12,<1", "mypy>=1.15,<2"]
-app = ["streamlit>=1.40,<2"]
+app = ["streamlit>=1.40,<2", "anthropic>=1.15,<2"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/blastbridge"]
@@ -35,3 +35,7 @@ python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
 files = ["src/blastbridge"]
+
+[[tool.mypy.overrides]]
+module = ["anthropic", "anthropic.*"]
+ignore_missing_imports = true
