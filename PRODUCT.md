@@ -141,6 +141,9 @@ Three earlier, explicitly fictional demo events (7 Oct 2025, 21 Jan 2026 and 10 
 the demo's recorded-history window. Some people intentionally retain short or M270-only history
 to demonstrate the unavailable state honestly. The original events and symptom reports are retained.
 EVT-DEMO-C1/C2/C3 add an explicitly fictional October cadence example, not tuned to the model.
+EVT-DEMO-C1..C3 were constructed so that Reese Calder (FIC-010) demonstrates an atypical comparison
+in the demo. 'Not tuned' means the model, threshold, reference and gates were left unchanged;
+the demo history, not the model, was arranged for this example.
 The V0.5 sparse demo scenario is now only a secondary stress test.
 
 ## Research → product mapping

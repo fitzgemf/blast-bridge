@@ -174,8 +174,10 @@ DEMO_EVENTS: tuple[tuple[str, TrainingEventDraft], ...] = (
             ),
         ),
     ),
-    # FICTIONAL demo pattern example added in T-0017 so the prototype shows one
-    # atypical-cadence comparison; not tuned to the model.
+    # FICTIONAL demo pattern example: EVT-DEMO-C1..C3 were constructed so that Reese Calder
+    # (FIC-010) demonstrates an atypical comparison. 'Not tuned' means the model, threshold,
+    # reference and gates were left unchanged; the demo history, not the model, was arranged
+    # for this example.
     (
         "EVT-DEMO-C1",
         _demo_draft(

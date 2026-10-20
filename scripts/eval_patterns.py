@@ -163,6 +163,8 @@ def main() -> None:
         [
             "",
             f"Analysis as of {ANALYSIS_AS_OF}. Expectations are pre-registered; no tuning.",
+            "The clustered and increase gates were also used once to diagnose reference v1 "
+            "(see Reference revision), so they are not strictly held out from v2.",
             "Held-out histories retain phase .35 and jitter ±7; they are not drawn from "
             "the reference's uniform within-year placement.",
             "",

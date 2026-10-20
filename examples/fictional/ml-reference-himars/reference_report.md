@@ -65,6 +65,7 @@ Deliberately excluded:
 - symptoms, medical and demographic fields: Excluded by design.
 
 Analysis as of 2026-10-19. Expectations are pre-registered; no tuning.
+The clustered and increase gates were also used once to diagnose reference v1 (see Reference revision), so they are not strictly held out from v2.
 Held-out histories retain phase .35 and jitter ±7; they are not drawn from the reference's uniform within-year placement.
 
 | Scenario | Expected | Actual | PASS/MISMATCH | Reason |

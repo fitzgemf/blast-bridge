@@ -211,9 +211,9 @@ def render_calendar(key: str, marks: dict[date, DayMarks], person: bool) -> date
                 mark = marks.get(day, DayMarks()) if enabled else DayMarks()
                 text = str(day.day)
                 if mark.training:
-                    text += " :gray[●]"
+                    text += " ●" if day == s[f"{key}_day"] else " :gray[●]"
                 if person and mark.symptom:
-                    text += " :blue[◆]"
+                    text += " ◆" if day == s[f"{key}_day"] else " :blue[◆]"
                 if mark.urgent:
                     text += " :red[●]"
                 if column.button(
@@ -242,6 +242,10 @@ def label(value: StrEnum) -> str:
 
 def count_text(n: int | None) -> str:
     return "Unknown" if n is None else str(n)
+
+
+def comparison_number(value: float) -> str:
+    return f"{value:.2f}".rstrip("0").rstrip(".")
 
 
 def person_text(person_id: str) -> str:
@@ -434,7 +438,10 @@ def dashboard() -> None:
             for event in day_events:
                 d = event.draft
                 st.write(f"**{d.weapon_name}** · {label(d.training_context)}")
-                st.caption(f"{len(d.crews)} crews · {d.participant_count} personnel")
+                st.caption(
+                    f"{len(d.crews)} {'crew' if len(d.crews) == 1 else 'crews'} · "
+                    f"{d.participant_count} personnel"
+                )
                 st.caption(short_provenance(event.intake_source, event.status))
                 if st.button("View record", key=f"day-record-{event.event_id}"):
                     open_review(event.event_id)
@@ -1346,7 +1353,10 @@ def inbox() -> None:
                 d = event.draft
                 details, action = st.columns([5, 1], vertical_alignment="center")
                 details.write(f"**{d.event_date:%d %b %Y} · {d.weapon_name}**")
-                details.caption(f"{len(d.crews)} crews · {d.participant_count} personnel")
+                details.caption(
+                    f"{len(d.crews)} {'crew' if len(d.crews) == 1 else 'crews'} · "
+                    f"{d.participant_count} personnel"
+                )
                 details.caption(short_provenance(event.intake_source, event.status))
                 if action.button("Open", key=f"inbox-{event.event_id}"):
                     open_review(event.event_id)
@@ -1479,8 +1489,10 @@ def history() -> None:
                     {
                         "Feature": item.label,
                         "Recorded": item.value,
-                        "Reference median": item.median,
-                        "IQR q25–q75": f"{item.q25:g}–{item.q75:g}",
+                        "Reference median": comparison_number(item.median),
+                        "IQR q25–q75": (
+                            f"{comparison_number(item.q25)}–{comparison_number(item.q75)}"
+                        ),
                     }
                     for item in pattern.comparisons
                 ],
@@ -1491,7 +1503,8 @@ def history() -> None:
             for item in pattern.differing:
                 st.write(
                     f"{item.label}: {item.value:g} "
-                    f"(fictional HIMARS scenario reference median {item.median:g})"
+                    "(fictional HIMARS scenario reference median "
+                    f"{comparison_number(item.median)})"
                 )
             if not pattern.differing:
                 st.caption(
@@ -1508,6 +1521,12 @@ def history() -> None:
             "5th percentile of reference scores"
         )
     with st.expander("Research details"):
+        st.caption(
+            "EVT-DEMO-C1..C3 were constructed so that Reese Calder (FIC-010) demonstrates an "
+            "atypical comparison in the demo. 'Not tuned' means the model, threshold, reference "
+            "and gates were left unchanged; the demo history, not the model, was arranged "
+            "for this example."
+        )
         st.write(REFERENCE_LABEL)
         model = pattern_model()
         if model is None:
