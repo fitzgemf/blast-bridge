@@ -38,6 +38,14 @@ FEATURE_LABELS = {
 }
 DAYS_CAP = 730
 ANOMALY_PERCENTILE = 5.0
+ELEVATION_QUANTILE = 0.95
+ELEVATION_FEATURES = (
+    "events_30d",
+    "events_90d",
+    "events_365d",
+    "max_events_14d",
+    "recent_vs_earlier_cadence",
+)
 MODEL_PARAMS = {"n_estimators": 100, "random_state": 20261019}
 BASELINE_DIR = Path(__file__).resolve().parents[3] / "examples/fictional/ml-baseline"
 REFERENCE_DIR = Path(__file__).resolve().parents[3] / "examples/fictional/ml-reference-himars"
@@ -72,6 +80,17 @@ CONTEXT_NOTE = (
 )
 DIFFERING_HEADING = "Features that differ from the fictional HIMARS scenario reference"
 BASELINE_LABEL = "FICTIONAL SIMULATION BASELINE — NOT CLINICAL DATA"
+ELEVATION_RULE_TEXT = (
+    "Prototype interpretation rule: an atypical comparison is 'elevated' only when at least "
+    "one recent-activity feature (30/90/365-day events, most events in 14 days, "
+    "recent-minus-earlier cadence) exceeds the 95th percentile of the SME-informed fictional "
+    "HIMARS scenario reference. Not clinical."
+)
+REDUCED_TEXT = (
+    "Recorded occupational activity is atypical in a lower/reduced direction relative to the "
+    "SME-informed fictional HIMARS scenario reference."
+)
+OBSERVATION_NOTE = "This is an occupational-pattern observation, not a medical risk result."
 
 
 def occupational_features(event_days: Iterable[date], analysis_as_of: date) -> tuple[float, ...]:
@@ -108,7 +127,10 @@ def load_baseline() -> tuple[NDArray[np.float64], dict[str, Any]]:
     with (BASELINE_DIR / "baseline_features.csv").open(encoding="utf-8", newline="") as handle:
         reader = csv.reader(handle)
         if tuple(next(reader, ())) != FEATURE_NAMES:
-            raise ValueError("fictional simulation baseline feature header does not match")
+            raise ValueError(
+                "V0.5 sparse demo scenario (secondary stress-test data, not the readiness "
+                "reference) feature header does not match"
+            )
         rows = np.asarray([[float(value) for value in row] for row in reader], dtype=np.float64)
     metadata = json.loads((BASELINE_DIR / "metadata.json").read_text(encoding="utf-8"))
     return rows, metadata
@@ -131,6 +153,7 @@ class PatternModel:
     summaries: dict[str, dict[str, float]]
     baseline_rows: int
     metadata: dict[str, Any]
+    elevation_bounds: dict[str, float]
 
 
 def fit_pattern_model(rows: NDArray[np.float64], metadata: dict[str, Any]) -> PatternModel:
@@ -157,19 +180,25 @@ def fit_pattern_model(rows: NDArray[np.float64], metadata: dict[str, Any]) -> Pa
         summaries=summaries,
         baseline_rows=len(rows),
         metadata=metadata,
+        elevation_bounds={
+            name: float(np.quantile(rows[:, FEATURE_NAMES.index(name)], ELEVATION_QUANTILE))
+            for name in ELEVATION_FEATURES
+        },
     )
 
 
 class PatternStatus(StrEnum):
-    TYPICAL_RECORDED_PATTERN = "typical_recorded_pattern"
-    ATYPICAL_OCCUPATIONAL_PATTERN = "atypical_occupational_pattern"
     PATTERN_NOT_AVAILABLE = "pattern_not_available"
+    TYPICAL_RECORDED_PATTERN = "typical_recorded_pattern"
+    ATYPICAL_REDUCED_ACTIVITY = "atypical_reduced_activity"
+    ATYPICAL_ELEVATED_ACTIVITY = "atypical_elevated_activity"
 
     @property
     def label(self) -> str:
         return {
             self.TYPICAL_RECORDED_PATTERN: "Typical recorded pattern",
-            self.ATYPICAL_OCCUPATIONAL_PATTERN: "Atypical occupational pattern",
+            self.ATYPICAL_REDUCED_ACTIVITY: "Unusual lower activity pattern — informational only",
+            self.ATYPICAL_ELEVATED_ACTIVITY: "Atypical elevated occupational cadence",
             self.PATTERN_NOT_AVAILABLE: (
                 "Not enough applicable recorded history for this prototype comparison."
             ),
@@ -195,6 +224,8 @@ class PatternResult:
     analysis_as_of: date
     comparisons: tuple[FeatureComparison, ...]
     differing: tuple[FeatureComparison, ...]
+    anomalous: bool
+    elevated_features: tuple[str, ...]
     reason: str | None = None
     excluded_non_scope_records: int = 0
 
@@ -223,12 +254,31 @@ def assess_pattern(
             analysis_as_of=analysis_as_of,
             comparisons=(),
             differing=(),
+            anomalous=False,
+            elevated_features=(),
             reason=reason,
             excluded_non_scope_records=excluded,
         )
     assert model is not None
     features = occupational_features(days, analysis_as_of)
     score = float(model.forest.score_samples(np.asarray([features], dtype=np.float64))[0])
+    anomalous = score < model.threshold
+    elevated_features = (
+        tuple(
+            name
+            for name in ELEVATION_FEATURES
+            if features[FEATURE_NAMES.index(name)] > model.elevation_bounds[name]
+        )
+        if anomalous
+        else ()
+    )
+    status = PatternStatus.TYPICAL_RECORDED_PATTERN
+    if anomalous:
+        status = (
+            PatternStatus.ATYPICAL_ELEVATED_ACTIVITY
+            if elevated_features
+            else PatternStatus.ATYPICAL_REDUCED_ACTIVITY
+        )
     comparisons = tuple(
         FeatureComparison(
             name=name,
@@ -255,15 +305,13 @@ def assess_pattern(
         reverse=True,
     )[:3]
     return PatternResult(
-        status=(
-            PatternStatus.ATYPICAL_OCCUPATIONAL_PATTERN
-            if score < model.threshold
-            else PatternStatus.TYPICAL_RECORDED_PATTERN
-        ),
+        status=status,
         score=score,
         threshold=model.threshold,
         analysis_as_of=analysis_as_of,
         comparisons=comparisons,
         differing=tuple(differing),
+        anomalous=anomalous,
+        elevated_features=elevated_features,
         excluded_non_scope_records=excluded,
     )

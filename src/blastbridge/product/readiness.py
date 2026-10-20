@@ -85,17 +85,22 @@ def assess_readiness(
                 + recorded
             )
 
-    atypical = pattern is not None and pattern.status is PatternStatus.ATYPICAL_OCCUPATIONAL_PATTERN
+    elevated = pattern is not None and pattern.status is PatternStatus.ATYPICAL_ELEVATED_ACTIVITY
     if pattern is not None:
         if pattern.status is PatternStatus.PATTERN_NOT_AVAILABLE:
             evidence.append(
                 f"Occupational pattern (ML): comparison not available — {pattern.reason}"
             )
+        elif pattern.status is PatternStatus.ATYPICAL_REDUCED_ACTIVITY:
+            evidence.append(
+                "Occupational pattern (ML): unusual lower activity — informational only, "
+                "not a review signal"
+            )
         else:
             evidence.append(
-                "Occupational pattern (ML): atypical vs SME-informed fictional HIMARS "
-                "scenario reference"
-                if atypical
+                "Occupational pattern (ML): atypical elevated cadence vs the SME-informed "
+                "fictional HIMARS scenario reference"
+                if elevated
                 else "Occupational pattern (ML): typical recorded pattern"
             )
         if pattern.excluded_non_scope_records:
@@ -114,7 +119,7 @@ def assess_readiness(
     else:
         followup = FollowUpState.NO_FOLLOWUP_RULE_TRIGGERED if states else None
         overall = (
-            ReadinessStatus.REVIEW_PRIORITY if atypical else ReadinessStatus.ROUTINE_MONITORING
+            ReadinessStatus.REVIEW_PRIORITY if elevated else ReadinessStatus.ROUTINE_MONITORING
         )
     return ReadinessAssessment(
         person_id=person_id,

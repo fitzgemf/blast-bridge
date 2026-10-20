@@ -1,4 +1,4 @@
-"""Build deterministic occupational windows from the fictional simulation baseline scenario."""
+"""Build V0.5 sparse demo scenario (secondary stress-test data, not the readiness reference)."""
 
 import csv
 import json
@@ -108,7 +108,10 @@ def main() -> None:
         encoding="utf-8",
         newline="\n",
     )
-    print(f"Wrote {len(rows)} occupational windows for the fictional simulation baseline.")
+    print(
+        f"Wrote {len(rows)} occupational windows for the V0.5 sparse demo scenario "
+        "(secondary stress-test data, not the readiness reference)."
+    )
 
 
 if __name__ == "__main__":

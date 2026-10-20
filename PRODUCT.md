@@ -13,8 +13,8 @@ into one review workflow without merging them into a score.
    Local catalog and fictional-roster lookups ground the proposal; Python validates it.
 2. **Longitudinal occupational history:** reconstruct approved activity across dates, people, crews
    and roles, with persistent manual/live-AI/replay provenance.
-3. **ML occupational-pattern comparison:** compare event-day cadence with a fictional simulation
-   baseline and surface atypical recorded patterns for human review.
+3. **ML occupational-pattern comparison:** compare HIMARS event-day cadence with the SME-informed
+   fictional HIMARS scenario reference; only elevated atypical cadence surfaces an ML review signal.
 4. **Deterministic symptom/follow-up guidance:** record human-confirmed reports and apply the
    existing TBICoE/CDC guidance rules independently of the occupational-pattern model.
 
@@ -60,7 +60,7 @@ Readiness is computed on demand using **Analysis as of** in Home's **Demo / Adva
 
 1. A qualifying recorded danger sign → **Urgent evaluation**.
 2. Persistent, function-affecting structured symptoms → **Medical follow-up recommended**.
-3. An atypical occupational pattern → **Review priority**.
+3. An atypical elevated occupational cadence → **Review priority**.
 4. Otherwise → **Routine monitoring**.
 
 ML alone can only produce Review priority. No count value influences a medical-adjacent status.
@@ -97,9 +97,29 @@ Deliberately excluded:
 
 IsolationForest uses `n_estimators=100` and `random_state=20261019`, with scikit-learn 1.6.1.
 The prototype analytic threshold is the 5th percentile of fictional HIMARS scenario reference
-`score_samples`; lower values yield “Atypical occupational pattern.” This is not a clinical,
-blast or injury threshold. The score is never presented as a medical probability.
+`score_samples`; lower values are raw anomalies before directional interpretation. This is not a
+clinical, blast or injury threshold. The score is never presented as a medical probability.
 Feature medians, IQRs and differing features explain comparison context, not medical risk factors.
+
+Prototype interpretation rule: an atypical comparison is 'elevated' only when at least one
+recent-activity feature (30/90/365-day events, most events in 14 days, recent-minus-earlier cadence)
+exceeds the 95th percentile of the SME-informed fictional HIMARS scenario reference. Not clinical.
+Bounds use reference rows only and NumPy's default linear quantile method, with strict `>` checks;
+days since the previous event is excluded from direction. The forest, its parameters and the
+5th-percentile raw anomaly threshold are unchanged.
+
+The four interpreted statuses are:
+
+- **Not enough applicable recorded history for this prototype comparison.** Coverage/reference
+  unavailable; no ML readiness signal.
+- **Typical recorded pattern.** No raw anomaly; no ML readiness signal.
+- **Unusual lower activity pattern — informational only.** A raw anomaly without an activity
+  feature above its elevation bound; no ML readiness signal.
+- **Atypical elevated occupational cadence.** A raw anomaly with at least one activity feature
+  strictly above its bound; ML can contribute Review priority only.
+
+Only elevated atypical cadence can create Review priority; reduced activity is informational.
+This is an occupational-pattern observation, not a medical risk result.
 
 ### Reference provenance and coverage
 
@@ -132,8 +152,8 @@ The reference is fictional and is not an empirical military model or medical gro
 The analytic coverage rule requires HIMARS records beginning at least 365 days before the analysis
 date and at least one HIMARS day in the prior 365-day window. This avoids treating absent records
 as absent activity. It is not a medical threshold. Available results are “Typical recorded pattern”
-or “Atypical occupational pattern”; neither establishes injury or its absence.
-The third state is “Not enough applicable recorded history for this prototype comparison.”
+or one of the two directional atypical statuses; none establishes injury or its absence.
+The unavailable state is “Not enough applicable recorded history for this prototype comparison.”
 Its reason identifies out-of-scope history, a shorter recording window, no recent HIMARS record,
 or an unavailable reference. It contributes no ML readiness signal and is not reassurance.
 
@@ -188,6 +208,9 @@ identifies atypical recorded occupational patterns only
 - [Live intake report](examples/fictional/intake/eval_report_live.md).
 - [Deterministic intake report](examples/fictional/intake/eval_report_deterministic.md).
 - [Occupational-pattern report](examples/fictional/ml-reference-himars/reference_report.md).
+
+The [retired V0.5 sparse report](examples/fictional/ml-baseline/RETIRED_v05_sparse_eval_report.md)
+is historical only and does not evaluate the current readiness model.
 
 Intake reports distinguish model performance from scripted tests of the Python gate.
 Pattern hypotheses are fixed before evaluation; mismatches are retained rather than tuned away.

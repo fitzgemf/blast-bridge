@@ -1,6 +1,7 @@
 """Occupational-date features and source-separated readiness precedence."""
 
 import inspect
+from dataclasses import replace
 from datetime import date, timedelta
 
 import numpy as np
@@ -11,6 +12,8 @@ from blastbridge.models.training_tempo import ParticipationRole, TrainingContext
 from blastbridge.product.followup import FollowUpState
 from blastbridge.product.models import CrewPosition, HistoryEntry, IntakeSource
 from blastbridge.product.patterns import (
+    ELEVATION_FEATURES,
+    ELEVATION_QUANTILE,
     FEATURE_NAMES,
     REFERENCE_DIR,
     PatternResult,
@@ -37,7 +40,7 @@ from scripts.build_himars_reference import (
     reference_csv,
     reference_fingerprint,
 )
-from scripts.eval_patterns import sanity_histories
+from scripts.eval_patterns import sanity_histories, semantic_cases
 
 AS_OF = date(2026, 10, 19)
 PERSON_ID = "FIC-001"
@@ -82,13 +85,23 @@ def report(day=AS_OF, danger=False):
 
 
 def pattern(status):
+    anomalous = status in (
+        PatternStatus.ATYPICAL_REDUCED_ACTIVITY,
+        PatternStatus.ATYPICAL_ELEVATED_ACTIVITY,
+    )
     return PatternResult(
         status=status,
-        score=None if status is PatternStatus.PATTERN_NOT_AVAILABLE else -0.7,
+        score=(
+            None if status is PatternStatus.PATTERN_NOT_AVAILABLE else (-0.7 if anomalous else -0.2)
+        ),
         threshold=None if status is PatternStatus.PATTERN_NOT_AVAILABLE else -0.5,
         analysis_as_of=AS_OF,
         comparisons=(),
         differing=(),
+        anomalous=anomalous,
+        elevated_features=("events_90d",)
+        if status is PatternStatus.ATYPICAL_ELEVATED_ACTIVITY
+        else (),
         reason=(
             "pattern reference unavailable"
             if status is PatternStatus.PATTERN_NOT_AVAILABLE
@@ -103,6 +116,8 @@ def test_occupational_features_use_only_distinct_dates():
     assert occupational_features(days, AS_OF) == pytest.approx(expected)
     assert occupational_features(days + days_before(-1), AS_OF) == pytest.approx(expected)
     assert occupational_features([], AS_OF) == (0, 0, 0, 730, 0, 0)
+    assert occupational_features(days_before(30), AS_OF)[:2] == (0, 1)
+    assert occupational_features(days_before(29), AS_OF)[:2] == (1, 1)
     assert tuple(inspect.signature(occupational_features).parameters) == (
         "event_days",
         "analysis_as_of",
@@ -187,7 +202,7 @@ def test_pre_registered_sanity_gates_and_scope_coverage():
 
 
 def test_readiness_precedence_and_future_reports():
-    atypical = pattern(PatternStatus.ATYPICAL_OCCUPATIONAL_PATTERN)
+    atypical = pattern(PatternStatus.ATYPICAL_ELEVATED_ACTIVITY)
     ml_only = assess_readiness(PERSON_ID, [], [], atypical, AS_OF)
     assert ml_only.overall_readiness_status is ReadinessStatus.REVIEW_PRIORITY
     followup = assess_readiness(PERSON_ID, [], [report()], atypical, AS_OF)
@@ -198,6 +213,9 @@ def test_readiness_precedence_and_future_reports():
         if status is PatternStatus.PATTERN_NOT_AVAILABLE:
             assert result.overall_readiness_status is ReadinessStatus.ROUTINE_MONITORING
             assert any("comparison not available" in line for line in result.evidence_lines)
+        if status is PatternStatus.ATYPICAL_REDUCED_ACTIVITY:
+            assert result.overall_readiness_status is ReadinessStatus.ROUTINE_MONITORING
+            assert any("not a review signal" in line for line in result.evidence_lines)
         assert result.overall_readiness_status not in (
             ReadinessStatus.MEDICAL_FOLLOWUP_RECOMMENDED,
             ReadinessStatus.URGENT_EVALUATION,
@@ -220,3 +238,50 @@ def test_readiness_precedence_and_future_reports():
     )
     assert future.overall_readiness_status is ReadinessStatus.REVIEW_PRIORITY
     assert future.symptom_followup_status is None and not future.urgent_status
+
+
+def test_pre_registered_directional_semantics_and_future_leakage():
+    rows, metadata = load_reference()
+    model = fit_pattern_model(rows, metadata)
+    assert ELEVATION_QUANTILE == 0.95
+    assert model.elevation_bounds == {
+        name: float(np.quantile(rows[:, FEATURE_NAMES.index(name)], 0.95))
+        for name in ELEVATION_FEATURES
+    }
+    assert "days_since_previous_event" not in model.elevation_bounds
+    cases = {case.case_id: case for case in semantic_cases()}
+    results = {}
+    readiness = {}
+    for case in cases.values():
+        result = assess_pattern(model, case.entries, AS_OF)
+        overall = assess_readiness("FIC-EVAL", case.entries, case.reports, result, AS_OF)
+        assert result.status in case.expected_patterns, (case.case_id, result)
+        assert overall.overall_readiness_status is case.expected_readiness, case.case_id
+        if result.score is not None:
+            assert result.anomalous == (result.score < result.threshold)
+        if result.status is PatternStatus.ATYPICAL_ELEVATED_ACTIVITY:
+            assert result.anomalous and result.elevated_features
+            values = {item.name: item.value for item in result.comparisons}
+            assert result.elevated_features == tuple(
+                name for name in ELEVATION_FEATURES if values[name] > model.elevation_bounds[name]
+            )
+        else:
+            assert not result.elevated_features
+        results[case.case_id] = result
+        readiness[case.case_id] = overall
+    assert results["J"].comparisons == results["E"].comparisons
+    assert results["J"].excluded_non_scope_records == sum(
+        entry.weapon_system_id == "m270-mlrs" for entry in cases["J"].entries
+    )
+    assert results["K"] == results["C"]
+    assert readiness["K"] == readiness["C"]
+
+    # Equality at every bound is not elevated; a strict exceedance is required.
+    values = {item.name: item.value for item in results["E"].comparisons}
+    equal_bounds = {name: values[name] for name in ELEVATION_FEATURES}
+    equal = assess_pattern(replace(model, elevation_bounds=equal_bounds), cases["E"].entries, AS_OF)
+    assert equal.anomalous and equal.status is PatternStatus.ATYPICAL_REDUCED_ACTIVITY
+    exceeded = {**equal_bounds, "events_30d": float(np.nextafter(values["events_30d"], -np.inf))}
+    strict = assess_pattern(replace(model, elevation_bounds=exceeded), cases["E"].entries, AS_OF)
+    assert strict.status is PatternStatus.ATYPICAL_ELEVATED_ACTIVITY
+    assert strict.elevated_features == ("events_30d",)

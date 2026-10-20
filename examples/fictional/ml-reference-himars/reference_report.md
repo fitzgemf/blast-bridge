@@ -46,6 +46,8 @@ Fingerprint: `{"builder_constants_sha256": "141e71a84606c3351741f41a4665a59bbcad
 Model parameters: `{"n_estimators": 100, "random_state": 20261019}`.
 prototype analytic threshold: 5th percentile of reference score_samples; not clinical, blast or injury
 A comparison requires HIMARS-scope records beginning at least 365 days before analysis_as_of and at least one HIMARS event day in (analysis_as_of - 365 days, analysis_as_of]. This is an analytic coverage rule, not a medical threshold.
+Prototype interpretation rule: an atypical comparison is 'elevated' only when at least one recent-activity feature (30/90/365-day events, most events in 14 days, recent-minus-earlier cadence) exceeds the 95th percentile of the SME-informed fictional HIMARS scenario reference. Not clinical.
+Elevation bounds (reference rows only; strict greater-than comparison): {"events_30d": 1.0, "events_365d": 7.0, "events_90d": 3.0, "max_events_14d": 2.0, "recent_vs_earlier_cadence": 0.666667}
 Expected flagged reference-window share by construction: 5%. Actual share: 4.959%.
 Two independent fits: identical.
 
@@ -72,11 +74,31 @@ Held-out histories retain phase .35 and jitter ±7; they are not drawn from the 
 | --- | --- | --- | --- | --- |
 | distributed 4/year | Typical recorded pattern | Typical recorded pattern | PASS | Applicable HIMARS history |
 | distributed 5/year | Typical recorded pattern | Typical recorded pattern | PASS | Applicable HIMARS history |
-| clearly clustered recent | Atypical occupational pattern | Atypical occupational pattern | PASS | Applicable HIMARS history |
-| sharp recent increase | Atypical occupational pattern | Atypical occupational pattern | PASS | Applicable HIMARS history |
+| clearly clustered recent | Atypical elevated occupational cadence | Atypical elevated occupational cadence | PASS | Applicable HIMARS history |
+| sharp recent increase | Atypical elevated occupational cadence | Atypical elevated occupational cadence | PASS | Applicable HIMARS history |
 | history only 200 days long | Not enough applicable recorded history for this prototype comparison. | Not enough applicable recorded history for this prototype comparison. | PASS | recorded history shorter than the 365-day comparison window |
 | no recent HIMARS record | Not enough applicable recorded history for this prototype comparison. | Not enough applicable recorded history for this prototype comparison. | PASS | no HIMARS record in the prior 365 days |
 | M270-only history | Not enough applicable recorded history for this prototype comparison. | Not enough applicable recorded history for this prototype comparison. | PASS | outside the HIMARS prototype scope |
+
+## Pre-registered directional semantic cases
+
+The raw forest anomaly is separate from direction. Only elevated atypical cadence can create Review priority; reduced activity is informational.
+
+| Case | Expected pattern | Actual pattern | Expected readiness | Actual readiness | PASS/MISMATCH |
+| --- | --- | --- | --- | --- | --- |
+| A: Long history, one older recent event | Unusual lower activity pattern — informational only or Typical recorded pattern | Unusual lower activity pattern — informational only | Routine monitoring | Routine monitoring | PASS |
+| B: Long history, one event 20 days ago | Unusual lower activity pattern — informational only or Typical recorded pattern | Typical recorded pattern | Routine monitoring | Routine monitoring | PASS |
+| C: Distributed 4/year | Typical recorded pattern | Typical recorded pattern | Routine monitoring | Routine monitoring | PASS |
+| D: Distributed 5/year | Typical recorded pattern | Typical recorded pattern | Routine monitoring | Routine monitoring | PASS |
+| E: Tightly clustered recent | Atypical elevated occupational cadence | Atypical elevated occupational cadence | Review priority | Review priority | PASS |
+| F: Sharp recent increase | Atypical elevated occupational cadence | Atypical elevated occupational cadence | Review priority | Review priority | PASS |
+| G: Declining cadence | Unusual lower activity pattern — informational only or Typical recorded pattern | Unusual lower activity pattern — informational only | Routine monitoring | Routine monitoring | PASS |
+| H: Only 200 days of history | Not enough applicable recorded history for this prototype comparison. | Not enough applicable recorded history for this prototype comparison. | Routine monitoring | Routine monitoring | PASS |
+| I: M270-only history | Not enough applicable recorded history for this prototype comparison. | Not enough applicable recorded history for this prototype comparison. | Routine monitoring | Routine monitoring | PASS |
+| J: Clustered HIMARS plus M270 | Atypical elevated occupational cadence | Atypical elevated occupational cadence | Review priority | Review priority | PASS |
+| K: Future events and future danger sign | Typical recorded pattern | Typical recorded pattern | Routine monitoring | Routine monitoring | PASS |
+| L: Follow-up report plus reduced history | Unusual lower activity pattern — informational only or Typical recorded pattern | Unusual lower activity pattern — informational only | Medical follow-up recommended | Medical follow-up recommended | PASS |
+| M: Danger sign plus clustered history | Atypical elevated occupational cadence | Atypical elevated occupational cadence | Urgent evaluation | Urgent evaluation | PASS |
 
 There are no medical labels; this evaluation does not measure injury prediction.
 
@@ -93,7 +115,7 @@ Seeded fictional roster (HIMARS-scope event days only):
 | Taylor Brook (FICTIONAL) | 2.000000 | 2.000000 | 4.000000 | 6.000000 | 1.000000 | 0.444444 | Typical recorded pattern | Applicable HIMARS history |
 | Devon Ashby (FICTIONAL) | 1.000000 | 1.000000 | 3.000000 | 13.000000 | 1.000000 | 0.111111 | Not enough applicable recorded history for this prototype comparison. | recorded history shorter than the 365-day comparison window |
 | Quinn Halloway (FICTIONAL) | 1.000000 | 2.000000 | 5.000000 | 17.000000 | 1.000000 | 0.333333 | Typical recorded pattern | Applicable HIMARS history |
-| Reese Calder (FICTIONAL) | 3.000000 | 4.000000 | 7.000000 | 6.000000 | 3.000000 | 1.000000 | Atypical occupational pattern | Applicable HIMARS history |
+| Reese Calder (FICTIONAL) | 3.000000 | 4.000000 | 7.000000 | 6.000000 | 3.000000 | 1.000000 | Atypical elevated occupational cadence | Applicable HIMARS history |
 | Emerson Tull (FICTIONAL) | 1.000000 | 2.000000 | 5.000000 | 17.000000 | 1.000000 | 0.333333 | Typical recorded pattern | Applicable HIMARS history |
 | Harper Yoon (FICTIONAL) | 0.000000 | 0.000000 | 0.000000 | 730.000000 | 0.000000 | 0.000000 | Not enough applicable recorded history for this prototype comparison. | outside the HIMARS prototype scope |
 

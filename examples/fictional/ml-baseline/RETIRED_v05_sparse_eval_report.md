@@ -1,3 +1,5 @@
+> RETIRED / HISTORICAL — this evaluated the retired V0.5 sparse demo scenario model. It is NOT the current readiness model. Current evaluation: examples/fictional/ml-reference-himars/reference_report.md
+
 # Prototype longitudinal-pattern evaluation
 
 FICTIONAL SIMULATION BASELINE — NOT CLINICAL DATA

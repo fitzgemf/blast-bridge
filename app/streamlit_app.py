@@ -27,9 +27,11 @@ from blastbridge.product.calendar_view import (
     calendar_form_values,
     can_record_on,
     month_weeks,
-    next_action,
     organization_marks,
     person_marks,
+)
+from blastbridge.product.calendar_view import (
+    next_action as calendar_next_action,
 )
 from blastbridge.product.followup import (
     ABSENCE_NOTE,
@@ -59,7 +61,11 @@ from blastbridge.product.models import (
 from blastbridge.product.patterns import (
     CONTEXT_NOTE,
     DIFFERING_HEADING,
+    ELEVATION_RULE_TEXT,
+    FEATURE_LABELS,
+    OBSERVATION_NOTE,
     PATTERN_DISCLAIMER,
+    REDUCED_TEXT,
     REFERENCE_LABEL,
     PatternModel,
     PatternStatus,
@@ -237,7 +243,18 @@ def render_calendar(key: str, marks: dict[date, DayMarks], person: bool) -> date
 
 
 def label(value: StrEnum) -> str:
+    if value is TrainingContext.QUALIFICATION:
+        return "Qualification"
     return value.value.replace("_", " ").capitalize()
+
+
+def next_action(status: ReadinessStatus) -> str:
+    if status is ReadinessStatus.REVIEW_PRIORITY:
+        return (
+            "Recent HIMARS training cadence is elevated relative to the fictional scenario "
+            "reference. Review the record."
+        )
+    return calendar_next_action(status)
 
 
 def count_text(n: int | None) -> str:
@@ -1156,10 +1173,6 @@ def symptom_form(person_id: str) -> None:
     notice = s.pop("sym_notice", None)
     if notice:
         st.info(notice)
-    if st.button("Log Symptom Report"):
-        clear_symptom_state()
-        s["sym_person"] = person_id
-        s["sym_open"] = True
     if not s.get("sym_open"):
         return
     st.caption(BOUNDARY_NOTE)
@@ -1449,10 +1462,16 @@ def history() -> None:
         if pattern is None or pattern.status is PatternStatus.PATTERN_NOT_AVAILABLE:
             st.write(PatternStatus.PATTERN_NOT_AVAILABLE.label)
             st.caption(pattern.reason if pattern else "pattern reference unavailable")
-        elif pattern.status is PatternStatus.ATYPICAL_OCCUPATIONAL_PATTERN:
+        elif pattern.status is PatternStatus.ATYPICAL_ELEVATED_ACTIVITY:
             st.markdown(
-                '<span class="bb-pill review">Atypical recent HIMARS training cadence</span>',
+                '<span class="bb-pill review">Atypical elevated occupational cadence</span>',
                 unsafe_allow_html=True,
+            )
+        elif pattern.status is PatternStatus.ATYPICAL_REDUCED_ACTIVITY:
+            st.write("No elevated-cadence signal")
+            st.caption(
+                "An unusual lower-activity pattern is noted under 'Why was this surfaced?' "
+                "(informational)."
             )
         else:
             st.write("Recorded HIMARS training cadence within the fictional scenario reference")
@@ -1483,6 +1502,14 @@ def history() -> None:
         for evidence in assessment.evidence_lines:
             st.write(evidence)
         st.caption(PATTERN_DISCLAIMER)
+        st.caption(ELEVATION_RULE_TEXT)
+        if pattern and pattern.status is PatternStatus.ATYPICAL_REDUCED_ACTIVITY:
+            st.write(REDUCED_TEXT)
+            st.caption(OBSERVATION_NOTE)
+        elif pattern and pattern.status is PatternStatus.ATYPICAL_ELEVATED_ACTIVITY:
+            st.write("Elevated features")
+            for name in pattern.elevated_features:
+                st.write(FEATURE_LABELS[name])
         if pattern and pattern.comparisons:
             st.dataframe(
                 [

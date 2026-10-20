@@ -2,6 +2,7 @@
 
 import json
 import random
+from dataclasses import dataclass
 from datetime import date, timedelta
 
 import numpy as np
@@ -13,6 +14,7 @@ from blastbridge.product.models import CrewPosition, HistoryEntry, IntakeSource
 from blastbridge.product.patterns import (
     COVERAGE_RULE,
     DELIBERATELY_EXCLUDED,
+    ELEVATION_RULE_TEXT,
     FEATURE_NAMES,
     HIMARS_SCOPE,
     MODEL_PARAMS,
@@ -26,7 +28,18 @@ from blastbridge.product.patterns import (
     load_reference,
     occupational_features,
 )
+from blastbridge.product.readiness import ReadinessStatus, assess_readiness
 from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE
+from blastbridge.product.symptoms import (
+    DangerSign,
+    FunctionalImpact,
+    Persistence,
+    Symptom,
+    SymptomReport,
+    SymptomReportDraft,
+    SymptomSource,
+    TemporalRelationship,
+)
 
 ANALYSIS_AS_OF = date(2026, 10, 19)
 
@@ -61,7 +74,7 @@ def distributed_days(rate: int, years: int = 3) -> list[date]:
 
 def sanity_histories() -> list[tuple[str, list[HistoryEntry], PatternStatus]]:
     typical = PatternStatus.TYPICAL_RECORDED_PATTERN
-    atypical = PatternStatus.ATYPICAL_OCCUPATIONAL_PATTERN
+    atypical = PatternStatus.ATYPICAL_ELEVATED_ACTIVITY
     unavailable = PatternStatus.PATTERN_NOT_AVAILABLE
     four = distributed_days(4)
     older_two = [day for day in distributed_days(2) if day <= ANALYSIS_AS_OF - timedelta(days=365)]
@@ -97,6 +110,101 @@ def sanity_histories() -> list[tuple[str, list[HistoryEntry], PatternStatus]]:
     return [
         (name, [fictional_entry(day, i, weapon) for i, day in enumerate(days)], expected)
         for name, days, weapon, expected in scenarios
+    ]
+
+
+@dataclass(frozen=True)
+class SemanticCase:
+    case_id: str
+    title: str
+    entries: list[HistoryEntry]
+    reports: list[SymptomReport]
+    expected_patterns: tuple[PatternStatus, ...]
+    expected_readiness: ReadinessStatus
+
+
+def semantic_report(*, danger: bool = False, future: bool = False) -> SymptomReport:
+    return SymptomReport(
+        report_id="SYM-FICTIONAL-SEMANTIC",
+        confirmed_at="2026-10-19T00:00:00+00:00",
+        draft=SymptomReportDraft(
+            person_id="FIC-EVAL",
+            report_date=ANALYSIS_AS_OF + timedelta(days=1 if future else -1),
+            source=SymptomSource.SELF_REPORTED,
+            symptoms=(Symptom.HEADACHES,),
+            danger_signs=(DangerSign.REPEATED_VOMITING,) if danger else (),
+            temporal_relationship=TemporalRelationship.NOT_LINKED_TO_EVENT,
+            persistence=Persistence.STILL_PRESENT,
+            functional_impact=FunctionalImpact.YES,
+        ),
+    )
+
+
+def semantic_cases() -> list[SemanticCase]:
+    """Fixed A–M adversarial histories; no demo-person evaluation enters their construction."""
+    gates = sanity_histories()
+    typical = (PatternStatus.TYPICAL_RECORDED_PATTERN,)
+    lower_or_typical = (PatternStatus.ATYPICAL_REDUCED_ACTIVITY, *typical)
+    elevated = (PatternStatus.ATYPICAL_ELEVATED_ACTIVITY,)
+    unavailable = (PatternStatus.PATTERN_NOT_AVAILABLE,)
+    routine = ReadinessStatus.ROUTINE_MONITORING
+    review = ReadinessStatus.REVIEW_PRIORITY
+    a = [
+        fictional_entry(ANALYSIS_AS_OF - timedelta(days=d), i)
+        for i, d in enumerate((700, 600, 500, 400, 300))
+    ]
+    b = [
+        fictional_entry(ANALYSIS_AS_OF - timedelta(days=d), i)
+        for i, d in enumerate((700, 600, 500, 400, 20))
+    ]
+    declining = [
+        fictional_entry(ANALYSIS_AS_OF - timedelta(days=d), i)
+        for i, d in enumerate((700, 657, 614, 571, 529, 486, 443, 400, 200))
+    ]
+    c, d, e, f = [gate[1] for gate in gates[:4]]
+    mixed = e + [
+        fictional_entry(ANALYSIS_AS_OF - timedelta(days=offset), 1000 + i, "m270-mlrs")
+        for i, offset in enumerate(range(1, 361, 9))
+    ]
+    future = c + [
+        fictional_entry(ANALYSIS_AS_OF + timedelta(days=offset), 1000 + offset)
+        for offset in range(1, 7)
+    ]
+    return [
+        SemanticCase("A", "Long history, one older recent event", a, [], lower_or_typical, routine),
+        SemanticCase("B", "Long history, one event 20 days ago", b, [], lower_or_typical, routine),
+        SemanticCase("C", "Distributed 4/year", c, [], typical, routine),
+        SemanticCase("D", "Distributed 5/year", d, [], typical, routine),
+        SemanticCase("E", "Tightly clustered recent", e, [], elevated, review),
+        SemanticCase("F", "Sharp recent increase", f, [], elevated, review),
+        SemanticCase("G", "Declining cadence", declining, [], lower_or_typical, routine),
+        SemanticCase("H", "Only 200 days of history", gates[4][1], [], unavailable, routine),
+        SemanticCase("I", "M270-only history", gates[6][1], [], unavailable, routine),
+        SemanticCase("J", "Clustered HIMARS plus M270", mixed, [], elevated, review),
+        SemanticCase(
+            "K",
+            "Future events and future danger sign",
+            future,
+            [semantic_report(danger=True, future=True)],
+            typical,
+            routine,
+        ),
+        SemanticCase(
+            "L",
+            "Follow-up report plus reduced history",
+            a,
+            [semantic_report()],
+            lower_or_typical,
+            ReadinessStatus.MEDICAL_FOLLOWUP_RECOMMENDED,
+        ),
+        SemanticCase(
+            "M",
+            "Danger sign plus clustered history",
+            e,
+            [semantic_report(danger=True)],
+            elevated,
+            ReadinessStatus.URGENT_EVALUATION,
+        ),
     ]
 
 
@@ -144,6 +252,9 @@ def main() -> None:
             f"Model parameters: `{json.dumps(MODEL_PARAMS, sort_keys=True)}`.",
             metadata["threshold_rule"],
             COVERAGE_RULE,
+            ELEVATION_RULE_TEXT,
+            "Elevation bounds (reference rows only; strict greater-than comparison): "
+            + json.dumps(first.elevation_bounds, sort_keys=True),
             "Expected flagged reference-window share by construction: 5%. "
             f"Actual share: {float(np.mean(scores < first.threshold)) * 100:.3f}%.",
             "Two independent fits: " + ("identical." if identical else "different scores."),
@@ -178,6 +289,41 @@ def main() -> None:
         lines.append(
             f"| {name} | {expected.label} | {result.status.label} | {outcome} | "
             f"{result.reason or 'Applicable HIMARS history'} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Pre-registered directional semantic cases",
+            "",
+            "The raw forest anomaly is separate from direction. Only elevated atypical cadence "
+            "can create Review priority; reduced activity is informational.",
+            "",
+            "| Case | Expected pattern | Actual pattern | Expected readiness | "
+            "Actual readiness | PASS/MISMATCH |",
+            "| --- | --- | --- | --- | --- | --- |",
+        ]
+    )
+    observed = {}
+    for case in semantic_cases():
+        result = assess_pattern(first, case.entries, ANALYSIS_AS_OF)
+        readiness = assess_readiness("FIC-EVAL", case.entries, case.reports, result, ANALYSIS_AS_OF)
+        passed = (
+            result.status in case.expected_patterns
+            and readiness.overall_readiness_status is case.expected_readiness
+        )
+        if case.case_id == "J":
+            passed = passed and result.comparisons == observed["E"][0].comparisons
+            passed = passed and result.excluded_non_scope_records == sum(
+                entry.weapon_system_id == "m270-mlrs" for entry in case.entries
+            )
+        elif case.case_id == "K":
+            passed = passed and (result, readiness) == observed["C"]
+        observed[case.case_id] = (result, readiness)
+        expected = " or ".join(status.label for status in case.expected_patterns)
+        lines.append(
+            f"| {case.case_id}: {case.title} | {expected} | {result.status.label} | "
+            f"{case.expected_readiness.label} | {readiness.overall_readiness_status.label} | "
+            f"{'PASS' if passed else 'MISMATCH'} |"
         )
     lines.extend(
         [
