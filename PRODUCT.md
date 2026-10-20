@@ -31,9 +31,13 @@ Occupational records and routine monitoring use neutral styling.
 
 ## Recorder workflow
 
-The organization calendar shows approved records on their recorded dates. Its attention markers
-reflect the participants' current readiness assessment at the selected analysis date.
-Select a past or current day to begin a training record with that date prefilled.
+Top navigation has **Home**, **People** and **Review**. Home starts with a full-width organization
+calendar and a compact selected-day card. Neutral dots mark approved training dates; red dots
+mark only the date of a confirmed urgent danger-sign report, within the analysis date.
+Current readiness never colors historical training dates. Blue diamonds on a person's calendar
+mark confirmed symptom reports; neither calendar uses amber attention markers.
+Select a past or current day and **+ Log** to describe a training event with AI or enter manually,
+with the selected date prefilled. **View record** opens the hidden Training record page.
 Future days are visible but disabled and have no markers.
 Choose AI-assisted intake or enter manually; both paths lead to the same review screen.
 “Load example narrative” fills the input with real text. Empty/short text never calls the model.
@@ -42,10 +46,17 @@ Approve/Edit/Reject controls bind to the reviewed revision; approval is atomic a
 Drafts and rejected events never enter personnel history.
 The person's calendar supports explicitly human symptom entry, review and Confirm.
 Confirmed reports and approved training events retain separate records and provenance.
+People opens as a searchable roster. A selected person has a full-width calendar and three
+separate insight cards: Exposure pattern, Symptoms and Follow-up. Evidence, reference metadata,
+guidance/sources and chronological detail remain in collapsed expanders.
+Review has **Training drafts** and **Follow-up** tabs; the hidden logging, training-record and
+Follow-up routes remain available. Human approval and symptom confirmation stay explicit.
+Home's **Demo / Advanced** expander holds the analysis date, recorded-events table and confirmed
+demo reset. Reset restores the fictional records and the 19 Oct 2026 analysis/calendar date.
 
 ## Readiness precedence
 
-Readiness is computed on demand using the sidebar's **Analysis as of** date:
+Readiness is computed on demand using **Analysis as of** in Home's **Demo / Advanced**:
 
 1. A qualifying recorded danger sign → **Urgent evaluation**.
 2. Persistent, function-affecting structured symptoms → **Medical follow-up recommended**.
@@ -129,6 +140,7 @@ or an unavailable reference. It contributes no ML readiness signal and is not re
 Three earlier, explicitly fictional demo events (7 Oct 2025, 21 Jan 2026 and 10 Mar 2026) backfill
 the demo's recorded-history window. Some people intentionally retain short or M270-only history
 to demonstrate the unavailable state honestly. The original events and symptom reports are retained.
+EVT-DEMO-C1/C2/C3 add an explicitly fictional October cadence example, not tuned to the model.
 The V0.5 sparse demo scenario is now only a secondary stress test.
 
 ## Research → product mapping

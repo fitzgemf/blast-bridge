@@ -83,17 +83,17 @@ Seeded fictional roster (HIMARS-scope event days only):
 
 | Person | events_30d | events_90d | events_365d | days_since_previous_event | max_events_14d | recent_vs_earlier_cadence | Status | Reason |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Avery Kestrel (FICTIONAL) | 1.000000 | 1.000000 | 4.000000 | 27.000000 | 1.000000 | 0.000000 | Typical recorded pattern | Applicable HIMARS history |
+| Avery Kestrel (FICTIONAL) | 2.000000 | 2.000000 | 5.000000 | 6.000000 | 1.000000 | 0.333333 | Typical recorded pattern | Applicable HIMARS history |
 | Jordan Pike (FICTIONAL) | 1.000000 | 2.000000 | 4.000000 | 27.000000 | 1.000000 | 0.444444 | Typical recorded pattern | Applicable HIMARS history |
 | Riley Marsh (FICTIONAL) | 1.000000 | 2.000000 | 5.000000 | 27.000000 | 1.000000 | 0.333333 | Typical recorded pattern | Applicable HIMARS history |
 | Sam Okafor-Lind (FICTIONAL) | 0.000000 | 1.000000 | 2.000000 | 55.000000 | 1.000000 | 0.222222 | Not enough applicable recorded history for this prototype comparison. | recorded history shorter than the 365-day comparison window |
-| Casey Thorne (FICTIONAL) | 1.000000 | 1.000000 | 5.000000 | 27.000000 | 1.000000 | -0.111111 | Typical recorded pattern | Applicable HIMARS history |
+| Casey Thorne (FICTIONAL) | 2.000000 | 2.000000 | 6.000000 | 13.000000 | 1.000000 | 0.222222 | Typical recorded pattern | Applicable HIMARS history |
 | Morgan Vale (FICTIONAL) | 1.000000 | 1.000000 | 5.000000 | 27.000000 | 1.000000 | -0.111111 | Typical recorded pattern | Applicable HIMARS history |
-| Taylor Brook (FICTIONAL) | 1.000000 | 1.000000 | 3.000000 | 27.000000 | 1.000000 | 0.111111 | Typical recorded pattern | Applicable HIMARS history |
-| Devon Ashby (FICTIONAL) | 0.000000 | 0.000000 | 2.000000 | 118.000000 | 1.000000 | -0.222222 | Not enough applicable recorded history for this prototype comparison. | recorded history shorter than the 365-day comparison window |
-| Quinn Halloway (FICTIONAL) | 0.000000 | 1.000000 | 4.000000 | 55.000000 | 1.000000 | 0.000000 | Typical recorded pattern | Applicable HIMARS history |
-| Reese Calder (FICTIONAL) | 0.000000 | 1.000000 | 4.000000 | 55.000000 | 1.000000 | 0.000000 | Typical recorded pattern | Applicable HIMARS history |
-| Emerson Tull (FICTIONAL) | 0.000000 | 1.000000 | 4.000000 | 55.000000 | 1.000000 | 0.000000 | Typical recorded pattern | Applicable HIMARS history |
+| Taylor Brook (FICTIONAL) | 2.000000 | 2.000000 | 4.000000 | 6.000000 | 1.000000 | 0.444444 | Typical recorded pattern | Applicable HIMARS history |
+| Devon Ashby (FICTIONAL) | 1.000000 | 1.000000 | 3.000000 | 13.000000 | 1.000000 | 0.111111 | Not enough applicable recorded history for this prototype comparison. | recorded history shorter than the 365-day comparison window |
+| Quinn Halloway (FICTIONAL) | 1.000000 | 2.000000 | 5.000000 | 17.000000 | 1.000000 | 0.333333 | Typical recorded pattern | Applicable HIMARS history |
+| Reese Calder (FICTIONAL) | 3.000000 | 4.000000 | 7.000000 | 6.000000 | 3.000000 | 1.000000 | Atypical occupational pattern | Applicable HIMARS history |
+| Emerson Tull (FICTIONAL) | 1.000000 | 2.000000 | 5.000000 | 17.000000 | 1.000000 | 0.333333 | Typical recorded pattern | Applicable HIMARS history |
 | Harper Yoon (FICTIONAL) | 0.000000 | 0.000000 | 0.000000 | 730.000000 | 0.000000 | 0.000000 | Not enough applicable recorded history for this prototype comparison. | outside the HIMARS prototype scope |
 
 V0.5 sparse demo scenario — secondary stress test only; not the reference

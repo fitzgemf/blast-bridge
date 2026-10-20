@@ -29,7 +29,8 @@ FIRST_WINDOW_OFFSET_DAYS = 365
 CAREER_START = date(2015, 1, 1)
 LABEL = "SME-INFORMED FICTIONAL HIMARS SCENARIO REFERENCE — NOT CLINICAL DATA"
 CONSTRUCTION_ROUTE = (
-    "A deterministic date-fixture builder is used because V5-2 executes independent binding_offsets "
+    "A deterministic date-fixture builder is used because V5-2 executes independent "
+    "binding_offsets "
     "draws and has no executable evenly_spaced algorithm for career-wide session placement. "
     "The simulation engine is unchanged."
 )

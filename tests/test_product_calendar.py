@@ -1,4 +1,4 @@
-"""Recorded dates and supplied readiness assessments determine calendar marks."""
+"""Recorded dates determine marks; current readiness remains separate from the calendar."""
 
 from datetime import date, timedelta
 
@@ -7,8 +7,10 @@ from blastbridge.models.training_tempo import ParticipationRole, TrainingContext
 from blastbridge.product import store
 from blastbridge.product.calendar_view import (
     DEMO_STORY_DATE,
+    calendar_form_values,
     can_record_on,
     month_weeks,
+    next_action,
     organization_marks,
     person_marks,
 )
@@ -47,7 +49,7 @@ def assessment(person_id, status):
     )
 
 
-def test_organization_marks_use_only_approved_dates_and_supplied_statuses():
+def test_training_dates_are_neutral_regardless_of_current_readiness():
     events = [
         TrainingEvent(
             event_id=event_id,
@@ -68,17 +70,20 @@ def test_organization_marks_use_only_approved_dates_and_supplied_statuses():
     ]
     assessments = {
         "FIC-001": assessment("FIC-001", ReadinessStatus.REVIEW_PRIORITY),
-        "FIC-002": assessment("FIC-002", ReadinessStatus.URGENT_EVALUATION),
+        "FIC-002": assessment("FIC-002", ReadinessStatus.MEDICAL_FOLLOWUP_RECOMMENDED),
     }
-    marks = organization_marks(events, assessments, DEMO_STORY_DATE)
+    assert all(
+        item.overall_readiness_status is not ReadinessStatus.ROUTINE_MONITORING
+        for item in assessments.values()
+    )
+    marks = organization_marks(events, [], DEMO_STORY_DATE)
     assert set(marks) == {events[0].draft.event_date}
     mark = marks[events[0].draft.event_date]
-    assert mark.training == 1 and mark.symptom == 0 and mark.attention and mark.urgent
+    assert mark.training == 1 and mark.symptom == 0
+    assert not mark.attention and not mark.urgent
     assert mark.people == frozenset(
         member.person_id for crew in events[0].draft.crews for member in crew.members
     )
-    assert not organization_marks(events, {}, DEMO_STORY_DATE)[events[0].draft.event_date].attention
-    assert not organization_marks(events, {}, DEMO_STORY_DATE)[events[0].draft.event_date].urgent
 
 
 def test_person_marks_separate_records_and_report_guidance():
@@ -117,7 +122,7 @@ def test_person_marks_separate_records_and_report_guidance():
     marks = person_marks([entry], reports, DEMO_STORY_DATE)
     assert marks[training_day].training == 1 and marks[training_day].symptom == 0
     suggested = marks[training_day + timedelta(days=1)]
-    assert suggested.symptom == 1 and suggested.attention and not suggested.urgent
+    assert suggested.symptom == 1 and not suggested.attention and not suggested.urgent
     urgent = marks[training_day + timedelta(days=2)]
     assert urgent.symptom == 1 and urgent.urgent and not urgent.attention
     resolved = marks[training_day + timedelta(days=3)]
@@ -128,6 +133,21 @@ def test_person_marks_separate_records_and_report_guidance():
         for day, mark in earlier_marks.items()
         if day > training_day
     )
+    event_id, draft = DEMO_EVENTS[0]
+    event = TrainingEvent(
+        event_id=event_id,
+        draft=draft.model_copy(update={"event_date": training_day}),
+        revision=1,
+        intake_source=IntakeSource.MANUAL,
+        status=EventStatus.APPROVED,
+    )
+    organization = organization_marks([event], reports, DEMO_STORY_DATE)
+    danger_day = training_day + timedelta(days=2)
+    assert set(organization) == {training_day, danger_day}
+    assert not organization[training_day].attention and not organization[training_day].urgent
+    assert organization[danger_day].urgent and organization[danger_day].training == 0
+    assert not organization[danger_day].attention
+    assert set(organization_marks([event], reports, training_day)) == {training_day}
 
 
 def test_month_weeks_are_sunday_first_and_future_days_cannot_record():
@@ -165,6 +185,7 @@ def test_demo_reset_reproduces_calendar_and_readiness():
         snapshots = []
         for _ in range(2):
             store.reset_demo(conn, DEMO_PEOPLE, DEMO_EVENTS, DEMO_SYMPTOMS)
+            assert len(store.list_events(conn, EventStatus.APPROVED, limit=-1)) == 12
             assessments = {}
             for person in DEMO_PEOPLE:
                 entries = store.member_history(conn, person.person_id)
@@ -185,7 +206,7 @@ def test_demo_reset_reproduces_calendar_and_readiness():
                 (
                     organization_marks(
                         store.list_events(conn, EventStatus.APPROVED, limit=-1),
-                        assessments,
+                        store.list_symptom_reports(conn),
                         DEMO_STORY_DATE,
                     ),
                     {
@@ -198,3 +219,31 @@ def test_demo_reset_reproduces_calendar_and_readiness():
         assert set(snapshots[0][1]) == {person.person_id for person in DEMO_PEOPLE}
     finally:
         conn.close()
+
+
+def test_contextual_entry_prefills_only_and_still_requires_approval():
+    conn = store.connect(":memory:")
+    try:
+        store.init_db(conn)
+        store.seed_people(conn, DEMO_PEOPLE)
+        before = tuple(conn.iterdump())
+        values = calendar_form_values(DEMO_STORY_DATE)
+        assert values["f_date"] == DEMO_STORY_DATE
+        assert tuple(conn.iterdump()) == before
+        draft = DEMO_EVENTS[0][1].model_copy(update={"event_date": values["f_date"]})
+        event_id = store.save_draft(conn, draft)
+        assert store.get_event(conn, event_id).status is EventStatus.DRAFT
+        assert store.member_history(conn, "FIC-001") == []
+        store.approve_event(conn, event_id, 1)
+        assert store.member_history(conn, "FIC-001")[0].event_date == DEMO_STORY_DATE
+    finally:
+        conn.close()
+
+
+def test_every_readiness_status_has_a_bounded_next_action():
+    for status in ReadinessStatus:
+        sentence = next_action(status)
+        assert sentence
+        assert not any(
+            term in sentence.casefold() for term in ("normal", "safe", "low risk", "probability")
+        )

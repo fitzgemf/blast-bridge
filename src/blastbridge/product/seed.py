@@ -174,6 +174,35 @@ DEMO_EVENTS: tuple[tuple[str, TrainingEventDraft], ...] = (
             ),
         ),
     ),
+    # FICTIONAL demo pattern example added in T-0017 so the prototype shows one
+    # atypical-cadence comparison; not tuned to the model.
+    (
+        "EVT-DEMO-C1",
+        _demo_draft(
+            "2026-10-02",
+            TrainingContext.QUALIFICATION,
+            (("Launcher 3", (9, 10, 11), 6),),
+            south=True,
+        ),
+    ),
+    (
+        "EVT-DEMO-C2",
+        _demo_draft(
+            "2026-10-06",
+            TrainingContext.QUALIFICATION,
+            (("Launcher 3", (5, 10, 8), 4),),
+            south=True,
+        ),
+    ),
+    (
+        "EVT-DEMO-C3",
+        _demo_draft(
+            "2026-10-13",
+            TrainingContext.QUALIFICATION,
+            (("Launcher 3", (1, 10, 7), None),),
+            south=True,
+        ),
+    ),
 )
 
 DEMO_SYMPTOMS: tuple[tuple[str, SymptomReportDraft], ...] = (

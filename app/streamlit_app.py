@@ -24,8 +24,10 @@ from blastbridge.product.anthropic_provider import AnthropicProvider, live_avail
 from blastbridge.product.calendar_view import (
     DEMO_STORY_DATE,
     DayMarks,
+    calendar_form_values,
     can_record_on,
     month_weeks,
+    next_action,
     organization_marks,
     person_marks,
 )
@@ -58,12 +60,12 @@ from blastbridge.product.patterns import (
     CONTEXT_NOTE,
     DIFFERING_HEADING,
     PATTERN_DISCLAIMER,
+    REFERENCE_LABEL,
     PatternModel,
     PatternStatus,
     assess_pattern,
     fit_pattern_model,
     load_reference,
-    occupational_features,
 )
 from blastbridge.product.readiness import ReadinessAssessment, ReadinessStatus, assess_readiness
 from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE, DEMO_SYMPTOMS
@@ -83,30 +85,31 @@ DB_PATH = Path(
 )
 POSITIONS = (CrewPosition.CHIEF, CrewPosition.GUNNER, CrewPosition.DRIVER)
 
-st.set_page_config(page_title="BlastBridge", page_icon="◆", layout="wide")
+st.set_page_config(page_title="BlastBridge", layout="wide", initial_sidebar_state="collapsed")
 st.markdown(
     """
 <style>
-.block-container {max-width: 1100px; padding-top: 2.2rem;}
+.block-container {max-width: 1100px; padding-top: 2rem; padding-bottom: 3rem;}
+h1 {font-size: 2.1rem;}
+h2, h3 {margin-top: 1rem;}
 .bb-sub {opacity: .72; margin: -.6rem 0 1rem 0;}
-.bb-banner {background: rgba(128,128,128,.10); border: 1px solid rgba(128,128,128,.35);
-  padding: .55rem .9rem; border-radius: 8px; font-size: .9rem; margin-bottom: 1.2rem;}
-.bb-banner b {letter-spacing: .06em;}
+.bb-banner {background: rgba(128,128,128,.10); border: 1px solid rgba(128,128,128,.25);
+  padding: .55rem .9rem; border-radius: 12px; font-size: .85rem; margin-bottom: 1rem;}
 .bb-pill {display: inline-block; padding: .12rem .65rem; border-radius: 999px;
-  font-size: .8rem; font-weight: 600; border: 1px solid rgba(128,128,128,.35);}
-.bb-pill.approved, .bb-pill.draft {background: rgba(128,128,128,.12);}
-[data-testid="stMetric"] {border: 1px solid rgba(128,128,128,.25);
-  border-radius: 12px; padding: .8rem;}
-[data-testid="stVerticalBlockBorderWrapper"] {border-radius: 12px;
-  border-color: rgba(128,128,128,.25);}
-.st-key-cal-org button, .st-key-cal-person button {min-height: 2.6rem; padding: .2rem;}
-.bb-pill.routine {background: rgba(128,128,128,.10);}
-.bb-pill.review {background: rgba(194,137,31,.10); border-color: rgba(194,137,31,.30);}
-.bb-pill.medical {background: rgba(194,137,31,.18); border-color: rgba(194,137,31,.65);}
-.bb-pill.urgent {background: rgba(180,45,45,.13); border-color: rgba(180,45,45,.65);}
+  font-size: .8rem; font-weight: 600; border: 1px solid rgba(128,128,128,.25);}
+.bb-pill.approved, .bb-pill.draft, .bb-pill.routine {background: rgba(128,128,128,.10);}
+.bb-pill.fictional {background: transparent; border-color: rgba(31,41,51,.30);}
+.bb-pill.review {background: rgba(201,138,43,.15); border-color: rgba(201,138,43,.20);}
+.bb-pill.medical {background: rgba(201,138,43,.15); border-color: rgba(201,138,43,.65);}
+.bb-pill.urgent {background: rgba(192,57,43,.10); border-color: #C0392B; color: #C0392B;}
+[data-testid="stMetric"] {border: 1px solid rgba(31,41,51,.07);
+  border-radius: 16px; padding: .8rem;}
+[data-testid="stVerticalBlockBorderWrapper"] {background: white; border-radius: 16px;
+  border: 1px solid rgba(31,41,51,.07); box-shadow: 0 1px 2px rgba(0,0,0,.04);}
+.st-key-cal-org button, .st-key-cal-person button {min-height: 2.8rem;
+  padding: .2rem; border-radius: 12px;}
 .bb-label {font-size: .78rem; opacity: .65; text-transform: uppercase; letter-spacing: .05em;}
 .bb-value {font-size: 1.02rem; margin-bottom: .55rem;}
-.bb-name {font-size: 1.45rem; font-weight: 600; margin-bottom: .1rem;}
 </style>
 """,
     unsafe_allow_html=True,
@@ -142,11 +145,9 @@ if st.session_state.pop("reset_demo_view", False):
     for calendar_key in ("org", "person"):
         st.session_state[f"{calendar_key}_month"] = DEMO_STORY_DATE.replace(day=1)
         st.session_state[f"{calendar_key}_day"] = DEMO_STORY_DATE
-st.session_state.setdefault("analysis_as_of", date.today())
-ANALYSIS_AS_OF = st.sidebar.date_input(
-    "Analysis as of", key="analysis_as_of", max_value=date.today()
-)
-st.sidebar.caption("Readiness and the occupational-pattern result are computed as of this date.")
+# Keep the analysis date when its Home-only widget is absent on another page.
+st.session_state["analysis_as_of"] = st.session_state.get("analysis_as_of", date.today())
+ANALYSIS_AS_OF = st.session_state["analysis_as_of"]
 
 
 @st.cache_resource
@@ -213,8 +214,6 @@ def render_calendar(key: str, marks: dict[date, DayMarks], person: bool) -> date
                     text += " :gray[●]"
                 if person and mark.symptom:
                     text += " :blue[◆]"
-                if mark.attention:
-                    text += " :orange[●]"
                 if mark.urgent:
                     text += " :red[●]"
                 if column.button(
@@ -229,8 +228,7 @@ def render_calendar(key: str, marks: dict[date, DayMarks], person: bool) -> date
         st.caption(
             ":gray[●] occupational record · "
             + (":blue[◆] symptom report · " if person else "")
-            + ":orange[●] (amber) personnel needing review/follow-up · "
-            ":red[●] (red) urgent danger sign only"
+            + ":red[●] urgent danger sign recorded"
         )
         st.caption(
             "Records after the analysis date are shown but are not part of the current assessment."
@@ -279,7 +277,9 @@ def crew_names(event: TrainingEvent) -> str:
 # ---- navigation helpers -------------------------------------------------------------------------
 
 
-def form_values(d: TrainingEventDraft | None = None) -> dict[str, object]:
+def form_values(
+    d: TrainingEventDraft | None = None, on_date: date | None = None
+) -> dict[str, object]:
     values = {
         "f_date": d.event_date if d else date.today(),
         "f_type": d.event_type if d else EventType.WEAPON_FIRING,
@@ -289,6 +289,8 @@ def form_values(d: TrainingEventDraft | None = None) -> dict[str, object]:
         "f_crews": list(range(len(d.crews))) if d else [0],
         "f_next_crew": len(d.crews) if d else 1,
     }
+    if on_date is not None:
+        values.update(calendar_form_values(on_date))
     for i in values["f_crews"]:
         crew = d.crews[i] if d else None
         members = {m.position: m.person_id for m in crew.members} if crew else {}
@@ -331,11 +333,15 @@ def change_crews(remove: int | None = None) -> None:
     st.rerun()
 
 
-def open_form(event: TrainingEvent | None = None, on_date: date | None = None) -> None:
+def open_form(
+    event: TrainingEvent | None = None,
+    on_date: date | None = None,
+    mode: str | None = None,
+) -> None:
     if event is None:
         clear_ai_state()
-    st.session_state["form_init"] = form_values(event.draft if event else None)
-    st.session_state["form_init"]["f_mode"] = (
+    st.session_state["form_init"] = form_values(event.draft if event else None, on_date)
+    st.session_state["form_init"]["f_mode"] = mode or (
         "Enter manually" if event else "Describe / paste training record"
     )
     st.session_state.pop("calendar_date", None)
@@ -357,142 +363,109 @@ def open_review(event_id: str) -> None:
 
 def open_history(person_id: str) -> None:
     st.session_state["history_person_id"] = person_id
+    st.session_state["people_person"] = person_id
+    st.session_state["person_day"] = ANALYSIS_AS_OF
+    st.session_state["person_month"] = ANALYSIS_AS_OF.replace(day=1)
     st.switch_page(PAGES["history"])
 
 
 # ---- pages --------------------------------------------------------------------------------------
 
 
-def dashboard() -> None:
-    title, action = st.columns([3, 1], vertical_alignment="center")
-    with title:
-        st.title("BlastBridge")
-        st.write("Brain-health readiness from longitudinal occupational exposure records")
-    if action.button("+ Record Training Event", type="primary"):
-        open_form()
-    demo_banner()
-    st.caption(f"Analysis as of {ANALYSIS_AS_OF:%d %b %Y}")
-    st.write(
-        "An AI-assisted occupational brain-health readiness system that reconstructs longitudinal "
-        "blast-exposure history and surfaces service members whose recorded exposure patterns "
-        "or symptoms deserve attention."
-    )
-    st.caption(
-        "Four separate signals: AI-assisted record intake · longitudinal occupational history · "
-        "ML occupational-pattern result · deterministic symptom/follow-up guidance. "
-        "No combined score."
-    )
-    approved = store.list_events(CONN, EventStatus.APPROVED, limit=-1)
-    drafts = store.list_events(CONN, EventStatus.DRAFT, limit=-1)
-    assessments = all_readiness(ANALYSIS_AS_OF)
-    statuses = Counter(item.overall_readiness_status for item in assessments.values())
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Personnel monitored", len(PEOPLE))
-    c2.metric("Review priority", statuses[ReadinessStatus.REVIEW_PRIORITY])
-    c3.metric("Medical follow-up", statuses[ReadinessStatus.MEDICAL_FOLLOWUP_RECOMMENDED])
-    c4.metric("Urgent", statuses[ReadinessStatus.URGENT_EVALUATION])
-    if pattern_model() is None:
-        st.info("Occupational-pattern model unavailable (reference not built)")
-    marks = organization_marks(approved, assessments, ANALYSIS_AS_OF)
-    calendar, detail = st.columns([2, 1])
-    with calendar:
-        st.subheader("Organization calendar")
-        selected = render_calendar("org", marks, person=False)
-        st.caption(
-            "Recorded dates only; attention markers reflect readiness as of the analysis date."
-        )
-    with detail:
-        st.subheader("Selected day")
-        if selected:
-            st.write(f"**{selected:%d %b %Y}**")
-            day_events = [event for event in approved if event.draft.event_date == selected]
-            if not day_events:
-                st.write("No approved occupational records on this date.")
-            for event in day_events:
-                with st.container(border=True):
-                    st.write(
-                        f"**{event.draft.weapon_name}** · {label(event.draft.training_context)}"
-                    )
-                    st.write(f"{event.draft.participant_count} participants")
-                    for crew in event.draft.crews:
-                        st.write(
-                            f"{crew.crew_name}: {count_text(crew.physical_event_count)} "
-                            "physical events"
-                        )
-                        for member in crew.members:
-                            st.caption(
-                                f"{PEOPLE[member.person_id].display_name} · {member.position.label}"
-                            )
-                    st.caption(provenance_text(event.intake_source, event.status))
-            people = marks.get(selected, DayMarks()).people
-            needing_attention = [
-                person_id
-                for person_id in sorted(people)
-                if assessments[person_id].overall_readiness_status
-                is not ReadinessStatus.ROUTINE_MONITORING
-            ]
-            if needing_attention:
-                st.write(
-                    f"{len(needing_attention)} people associated with this day currently "
-                    "need review or follow-up"
-                )
-                for person_id in needing_attention:
-                    st.write(PEOPLE[person_id].display_name)
-                    readiness_pill(assessments[person_id].overall_readiness_status)
-                    if st.button("Open history", key=f"day-history-{person_id}"):
-                        open_history(person_id)
-            if can_record_on(selected, date.today()):
-                if st.button("Record training event for this date"):
-                    open_form(on_date=selected)
-    st.subheader("Priority review")
+def fictional_pill() -> None:
+    st.markdown('<span class="bb-pill fictional">FICTIONAL DEMO</span>', unsafe_allow_html=True)
+
+
+def short_provenance(source: IntakeSource, status: EventStatus) -> str:
+    origin = {
+        IntakeSource.MANUAL: "Manually entered",
+        IntakeSource.AI_LIVE: "AI-assisted",
+        IntakeSource.AI_REPLAY: "Validated demo replay",
+    }[source]
+    if status is EventStatus.REJECTED:
+        return "Rejected · not part of personnel history"
+    suffix = "human approved" if status is EventStatus.APPROVED else "awaiting human approval"
+    return f"{origin} · {suffix}"
+
+
+def priority_people(assessments: dict[str, ReadinessAssessment]) -> list[ReadinessAssessment]:
     order = {
         ReadinessStatus.URGENT_EVALUATION: 0,
         ReadinessStatus.MEDICAL_FOLLOWUP_RECOMMENDED: 1,
         ReadinessStatus.REVIEW_PRIORITY: 2,
     }
-    priority = sorted(
+    return sorted(
         (item for item in assessments.values() if item.overall_readiness_status in order),
         key=lambda item: (
             order[item.overall_readiness_status],
             PEOPLE[item.person_id].display_name,
         ),
     )
-    if not priority:
-        st.write("No personnel currently surfaced from the recorded information.")
-    for assessment in priority:
+
+
+def dashboard() -> None:
+    st.title("BlastBridge")
+    fictional_pill()
+    st.caption("Occupational brain-health readiness")
+    approved = store.list_events(CONN, EventStatus.APPROVED, limit=-1)
+    reports = store.list_symptom_reports(CONN)
+    assessments = all_readiness(ANALYSIS_AS_OF)
+    statuses = Counter(item.overall_readiness_status for item in assessments.values())
+    urgent = statuses[ReadinessStatus.URGENT_EVALUATION]
+    urgent_style = "urgent" if urgent else "routine"
+    st.markdown(
+        '<span class="bb-pill review">Review '
+        f"{statuses[ReadinessStatus.REVIEW_PRIORITY]}</span> · "
+        '<span class="bb-pill medical">Follow-up '
+        f"{statuses[ReadinessStatus.MEDICAL_FOLLOWUP_RECOMMENDED]}</span> · "
+        f'<span class="bb-pill {urgent_style}">Urgent {urgent}</span>',
+        unsafe_allow_html=True,
+    )
+    st.page_link(PAGES["inbox"], label="Review", icon=":material/inbox:")
+    marks = organization_marks(approved, reports, ANALYSIS_AS_OF)
+    selected = render_calendar("org", marks, person=False)
+    if selected:
         with st.container(border=True):
-            st.write(f"**{PEOPLE[assessment.person_id].display_name}** · FICTIONAL")
-            readiness_pill(assessment.overall_readiness_status)
-            for evidence in assessment.evidence_lines:
-                st.write(evidence)
-            st.caption(
-                "ML: "
-                + (
-                    assessment.ml_pattern.status.label
-                    if assessment.ml_pattern
-                    else "unavailable (reference not built)"
-                )
-            )
-            if st.button("Review history", key=f"priority-{assessment.person_id}"):
-                open_history(assessment.person_id)
-
-    if drafts:
-        st.subheader("Awaiting review")
-        for event in drafts:
-            with st.container(border=True):
-                left, right = st.columns([5, 1], vertical_alignment="center")
+            st.subheader(f"{selected:%d %B %Y}")
+            day_events = [event for event in approved if event.draft.event_date == selected]
+            urgent_day = marks.get(selected, DayMarks()).urgent
+            if not day_events and not urgent_day:
+                st.caption("No records on this date.")
+            for event in day_events:
                 d = event.draft
-                left.markdown(
-                    f"**{d.weapon_name}** · {d.event_date:%d %b %Y} · "
-                    f"{label(d.training_context)}  \n"
-                    f"{crew_names(event)}"
-                )
-                if right.button("Review", key=f"review-{event.event_id}"):
+                st.write(f"**{d.weapon_name}** · {label(d.training_context)}")
+                st.caption(f"{len(d.crews)} crews · {d.participant_count} personnel")
+                st.caption(short_provenance(event.intake_source, event.status))
+                if st.button("View record", key=f"day-record-{event.event_id}"):
                     open_review(event.event_id)
+            if urgent_day:
+                st.write("An urgent danger sign was recorded on this date")
+                st.page_link(PAGES["inbox"], label="Review urgent guidance")
+            if can_record_on(selected, date.today()):
+                with st.popover("+ Log"):
+                    if st.button("Training event · describe with AI"):
+                        open_form(on_date=selected, mode="Describe / paste training record")
+                    if st.button("Training event · enter manually"):
+                        open_form(on_date=selected, mode="Enter manually")
 
-    with st.expander("Recorded training events"):
-        if not approved:
-            st.info("No approved events yet. Record a training event to begin.")
+    st.subheader("Needs attention")
+    priority = priority_people(assessments)
+    if not priority:
+        st.caption("No personnel currently surfaced from the recorded information.")
+    for item in priority[:5]:
+        with st.container(border=True):
+            details, action = st.columns([5, 1], vertical_alignment="center")
+            with details:
+                st.write(f"**{PEOPLE[item.person_id].display_name}**")
+                readiness_pill(item.overall_readiness_status)
+                st.write(next_action(item.overall_readiness_status))
+            if action.button("Open", key=f"home-person-{item.person_id}"):
+                open_history(item.person_id)
+    st.page_link(PAGES["inbox"], label="See all in Review")
+    with st.expander("Demo / Advanced"):
+        st.date_input("Analysis as of", key="analysis_as_of", max_value=date.today())
+        st.caption("Readiness and the occupational-pattern result are computed as of this date.")
+        st.subheader("Recorded training events")
         st.dataframe(
             [
                 {
@@ -500,15 +473,14 @@ def dashboard() -> None:
                     "Weapon": event.draft.weapon_name,
                     "Context": label(event.draft.training_context),
                     "Physical events": count_text(event.draft.physical_event_count),
-                    "Participants": event.draft.participant_count,
+                    "Personnel": event.draft.participant_count,
                     "Crews": len(event.draft.crews),
                 }
-                for event in approved[:15]
+                for event in approved
             ],
             hide_index=True,
             width="stretch",
         )
-    with st.expander("Demo data"):
         confirmed = st.checkbox("I understand this deletes all recorded events")
         if st.button("Reset to demo state", disabled=not confirmed):
             try:
@@ -521,6 +493,8 @@ def dashboard() -> None:
                     "last_decided",
                     "form_init",
                     "calendar_date",
+                    "people_person",
+                    "history_person_id",
                 ):
                     del st.session_state[key]
             st.session_state["reset_demo_view"] = True
@@ -647,7 +621,6 @@ def ai_intake() -> None:
             if key == "f_weapon" and value:
                 value = weapons().get(value, value)
             st.write(f"{title}: {value if value is not None else 'Needs review'}")
-            st.caption(f"Origin: {result.origins.get(title, 'unresolved')}")
         rows = []
         for i in values.get("f_crews", []):
             prefix = f"f_c{i}_"
@@ -679,12 +652,19 @@ def ai_intake() -> None:
                         "Physical events": str(count),
                     }
                 )
-        st.dataframe(rows, hide_index=True, width="stretch")
+        for row in rows:
+            st.write(
+                f"**{row['Crew']}** · {row['Position']} · {row['Person']} "
+                f"(as written: {row['As written']!r})"
+            )
+            st.caption(f"Physical events: {row['Physical events']}")
         if result.issues:
             st.write("NEEDS REVIEW")
             for issue in sorted(result.issues, key=lambda item: not item.blocking):
                 st.write(f"{'Required · ' if issue.blocking else ''}{issue.message}")
-        with st.expander("How BlastBridge built this draft"):
+        with st.expander("How BlastBridge structured this"):
+            for field_name, origin in result.origins.items():
+                st.caption(f"{field_name}: {origin}")
             for step in result.trace:
                 st.write(f"{'✓' if step.ok else '!'} {step.text}")
         continue_col, edit_col, start_col = st.columns(3)
@@ -730,7 +710,7 @@ def new_event() -> None:
         st.session_state[key] = value
     editing = st.session_state.get("editing_event_id")
 
-    header("New training event", "Record what the crew physically did. You will review it next.")
+    header("Log training event", "Record what the crew physically did. You will review it next.")
     mode = st.radio(
         "Entry mode",
         ["Describe / paste training record", "Enter manually"],
@@ -940,6 +920,22 @@ def decide(action: str, event: TrainingEvent) -> None:
     st.rerun()
 
 
+def training_crew_rows(draft: TrainingEventDraft) -> None:
+    for crew in draft.crews:
+        st.write(f"**{crew.crew_name}**")
+        for member in crew.members:
+            st.write(f"{member.position.label} · {PEOPLE[member.person_id].display_name}")
+        associations = (
+            crew.physical_event_count * len(crew.members)
+            if crew.physical_event_count is not None
+            else None
+        )
+        st.caption(
+            f"Physical events: {count_text(crew.physical_event_count)} · "
+            f"{len(crew.members)} participants · Associations: {count_text(associations)}"
+        )
+
+
 def show_decision(event_id: str) -> None:
     try:
         event = store.get_event(CONN, event_id)
@@ -959,6 +955,8 @@ def show_decision(event_id: str) -> None:
             return
         st.caption(provenance_text(event.intake_source, event.status))
         st.info("Approved. Each participant's history now includes this event.")
+        st.write(f"{label(d.training_context)} · {d.location_unit or 'Location not recorded'}")
+        training_crew_rows(d)
         members = [m for crew in d.crews for m in crew.members]
         for start in range(0, len(members), 4):
             row = members[start : start + 4]
@@ -968,13 +966,15 @@ def show_decision(event_id: str) -> None:
 
 
 def review() -> None:
-    header("Review training event", "Nothing enters personnel history until you approve it.")
+    header("Training record", "Nothing enters personnel history until you approve it.")
     notice = st.session_state.pop("review_notice", None)
     if notice:
         st.warning(notice)
     decided = st.session_state.get("last_decided")
     if decided:
         show_decision(decided)
+        st.page_link(PAGES["inbox"], label="Back to Review")
+        return
 
     drafts = store.list_events(CONN, EventStatus.DRAFT, limit=50)
     event_id = st.session_state.get("review_event_id")
@@ -1049,34 +1049,7 @@ def review() -> None:
         )
         if unknown_people:
             links.caption(f"+ {unknown_people} people with unknown count")
-        st.dataframe(
-            [
-                {
-                    "Crew": crew.crew_name,
-                    **{
-                        pos.label: next(
-                            (
-                                PEOPLE[m.person_id].display_name
-                                for m in crew.members
-                                if m.position == pos
-                            ),
-                            "Not recorded",
-                        )
-                        for pos in POSITIONS
-                    },
-                    "Physical events": count_text(crew.physical_event_count),
-                    "Participants": len(crew.members),
-                    "Associations": count_text(
-                        crew.physical_event_count * len(crew.members)
-                        if crew.physical_event_count is not None
-                        else None
-                    ),
-                }
-                for crew in d.crews
-            ],
-            hide_index=True,
-            width="stretch",
-        )
+        training_crew_rows(d)
         st.caption(
             "Launches are counted once per crew; associations link people to those launches "
             "and are not additional launches. When a crew's count is unknown, that crew's "
@@ -1320,9 +1293,7 @@ def symptom_form(person_id: str) -> None:
         st.rerun()
 
 
-def followup() -> None:
-    header("Follow-up", "Confirmed reports for fictional personnel.")
-    st.caption(f"Analysis as of {ANALYSIS_AS_OF:%d %b %Y}")
+def followup_list(key: str) -> None:
     reports = [
         report
         for report in store.list_symptom_reports(CONN)
@@ -1344,127 +1315,171 @@ def followup() -> None:
         with st.container(border=True):
             report_fields(report.draft)
             followup_card(evaluate(report.draft))
-            if st.button("Open history", key=f"followup-{report.report_id}"):
+            if st.button("Open person", key=f"{key}-{report.report_id}"):
                 open_history(report.draft.person_id)
-    st.subheader("Official resources")
+
+
+def guidance_resources() -> None:
     official_resources()
     st.caption(BOUNDARY_NOTE)
     st.caption(PRIVACY_NOTE)
 
 
+def followup() -> None:
+    header("Follow-up", "Confirmed reports for fictional personnel.")
+    st.caption(f"Analysis as of {ANALYSIS_AS_OF:%d %b %Y}")
+    followup_list("followup")
+    with st.expander("Official resources"):
+        guidance_resources()
+
+
+def inbox() -> None:
+    st.title("Review")
+    fictional_pill()
+    training, guidance = st.tabs(["Training drafts", "Follow-up"])
+    with training:
+        drafts = store.list_events(CONN, EventStatus.DRAFT, limit=-1)
+        if not drafts:
+            st.caption("No training drafts awaiting review.")
+        for event in drafts:
+            with st.container(border=True):
+                d = event.draft
+                details, action = st.columns([5, 1], vertical_alignment="center")
+                details.write(f"**{d.event_date:%d %b %Y} · {d.weapon_name}**")
+                details.caption(f"{len(d.crews)} crews · {d.participant_count} personnel")
+                details.caption(short_provenance(event.intake_source, event.status))
+                if action.button("Open", key=f"inbox-{event.event_id}"):
+                    open_review(event.event_id)
+    with guidance:
+        followup_list("inbox-followup")
+        with st.expander("Official resources"):
+            guidance_resources()
+
+
 def history() -> None:
-    header("Personnel history", "Occupational records, symptoms and guidance shown separately.")
     chosen = st.session_state.pop("history_person_id", None)
     if chosen:
-        st.session_state["h_person"] = chosen
-    person_id = st.selectbox("Person", list(PEOPLE), format_func=person_text, key="h_person")
+        st.session_state["people_person"] = chosen
+    person_id = st.session_state.get("people_person")
+    if person_id not in PEOPLE:
+        st.title("People")
+        fictional_pill()
+        query = st.text_input("Search people", key="people_search").strip().casefold()
+        assessments = all_readiness(ANALYSIS_AS_OF)
+        matches = [
+            p
+            for p in PEOPLE.values()
+            if query in f"{p.display_name} {p.callsign} {p.section}".casefold()
+        ]
+        if not matches:
+            st.caption("No fictional personnel match your search.")
+        for p in matches:
+            with st.container(border=True):
+                details, action = st.columns([5, 1], vertical_alignment="center")
+                with details:
+                    st.write(f"**{p.display_name}** · {p.section}")
+                    readiness_pill(assessments[p.person_id].overall_readiness_status)
+                if action.button("Open", key=f"people-{p.person_id}"):
+                    open_history(p.person_id)
+        return
+
+    if st.button("← All people"):
+        st.session_state.pop("people_person", None)
+        clear_symptom_state()
+        st.rerun()
     p = PEOPLE[person_id]
     entries = store.member_history(CONN, person_id)
     reports = store.list_symptom_reports(CONN, person_id)
-    assessment = readiness_for(person_id, ANALYSIS_AS_OF)
-    visible_entries = [entry for entry in entries if entry.event_date <= ANALYSIS_AS_OF]
     visible_reports = [report for report in reports if report.draft.report_date <= ANALYSIS_AS_OF]
-
+    assessment = readiness_for(person_id, ANALYSIS_AS_OF)
+    pattern = assessment.ml_pattern
     with st.container(border=True):
-        a, b, c = st.columns([2, 1, 1])
-        with a:
-            st.markdown(f'<div class="bb-name">{p.display_name}</div>', unsafe_allow_html=True)
-            st.markdown(
-                f'<span class="bb-pill">FICTIONAL</span> &nbsp; “{p.callsign}” · {p.person_id}',
-                unsafe_allow_html=True,
-            )
-        with b:
-            field("Unit", p.unit)
-            field("Section", p.section)
-        with c:
-            field("Usual position", p.home_position.label)
-            roles = Counter(e.position for e in visible_entries)
-            field(
-                "Roles held",
-                " · ".join(f"{pos.label} ×{roles[pos]}" for pos in POSITIONS if roles[pos])
-                or "No approved records",
-            )
+        st.title(p.display_name)
+        fictional_pill()
+        st.caption(f"{p.section} · {p.unit}")
         readiness_pill(assessment.overall_readiness_status)
+        st.write(next_action(assessment.overall_readiness_status))
         st.caption(f"Analysis as of {ANALYSIS_AS_OF:%d %b %Y}")
-        st.write(" · ".join(assessment.evidence_lines) or "No current rule-based or pattern signal")
-
-    calendar, detail = st.columns([2, 1])
-    with calendar:
-        st.subheader("Calendar")
-        selected = render_calendar(
-            "person",
-            person_marks(entries, reports, ANALYSIS_AS_OF),
-            person=True,
-        )
-        st.caption("Calendars show recorded dates; readiness uses the selected analysis date.")
-    with detail:
-        st.subheader("Selected day")
-        if selected:
-            st.write(f"**{selected:%d %b %Y}**")
+    selected = render_calendar(
+        "person", person_marks(entries, reports, ANALYSIS_AS_OF), person=True
+    )
+    if selected:
+        with st.container(border=True):
+            st.subheader(f"{selected:%d %B %Y}")
             day_entries = [entry for entry in entries if entry.event_date == selected]
             day_reports = [report for report in reports if report.draft.report_date == selected]
             if not day_entries and not day_reports:
                 st.caption("No records on this date.")
             for entry in day_entries:
-                st.write(f"{entry.position.label} · {entry.weapon_name}")
-                st.write(f"Physical events: {count_text(entry.physical_event_count)}")
-                st.caption(provenance_text(entry.intake_source, EventStatus.APPROVED))
+                st.write(f"**{entry.weapon_name}** · {entry.position.label}")
+                st.caption(f"Physical events: {count_text(entry.physical_event_count)}")
+                st.caption(short_provenance(entry.intake_source, EventStatus.APPROVED))
             for report in day_reports:
-                st.write("Symptom report")
-                report_fields(report.draft)
+                st.write("**Symptom report**")
+                st.write(
+                    ", ".join(item.label for item in report.draft.symptoms)
+                    or "No symptoms recorded"
+                )
+                st.caption(report.draft.temporal_relationship.label)
+                st.caption(
+                    f"{report.draft.persistence.label} · {report.draft.functional_impact.label}"
+                )
                 followup_card(evaluate(report.draft))
             if can_record_on(selected, date.today()):
-                if st.button("Log symptom report for this date"):
+                if st.button("+ Log symptom"):
                     clear_symptom_state()
                     st.session_state["sym_person"] = person_id
                     st.session_state["sym_open"] = True
                     st.session_state["sym_restore"] = {"sym_w_date": selected}
     symptom_form(person_id)
 
-    with st.container(border=True):
-        st.subheader("Occupational exposure")
-        st.metric("Career record count", len(visible_entries))
-        features = occupational_features((entry.event_date for entry in entries), ANALYSIS_AS_OF)
-        for column, name, value in zip(
-            st.columns(4),
-            (
-                "Events · 30 days",
-                "Events · 90 days",
-                "Events · 365 days",
-                "Days since previous event",
-            ),
-            features[:4],
-            strict=True,
-        ):
-            column.metric(name, int(value))
-        st.caption(
-            "Occupational events are distinct recorded event days. Elapsed days are capped at 730; "
-            "730 also represents no prior recorded event."
-        )
-        for note in assessment.data_quality_notes:
-            st.caption(note)
-        pattern = assessment.ml_pattern
-        if pattern is None:
-            st.info("Occupational-pattern model unavailable (reference not built)")
-        elif pattern.status is PatternStatus.PATTERN_NOT_AVAILABLE:
-            st.write(pattern.status.label)
-            st.caption(pattern.reason)
-        else:
-            style = (
-                "review"
-                if pattern.status is PatternStatus.ATYPICAL_OCCUPATIONAL_PATTERN
-                else "routine"
-            )
+    exposure, symptoms, guidance = st.columns(3)
+    with exposure, st.container(border=True):
+        st.subheader("Exposure pattern")
+        if pattern is None or pattern.status is PatternStatus.PATTERN_NOT_AVAILABLE:
+            st.write(PatternStatus.PATTERN_NOT_AVAILABLE.label)
+            st.caption(pattern.reason if pattern else "pattern reference unavailable")
+        elif pattern.status is PatternStatus.ATYPICAL_OCCUPATIONAL_PATTERN:
             st.markdown(
-                f'<span class="bb-pill {style}">{pattern.status.label}</span>',
+                '<span class="bb-pill review">Atypical recent HIMARS training cadence</span>',
                 unsafe_allow_html=True,
             )
+        else:
+            st.write("Recorded HIMARS training cadence within the fictional scenario reference")
+    with symptoms, st.container(border=True):
+        st.subheader("Symptoms")
+        if visible_reports:
+            latest = visible_reports[0].draft
+            st.write(", ".join(item.label for item in latest.symptoms) or "No structured symptoms")
+            st.caption(f"{latest.persistence.label} · reported {latest.report_date:%d %b %Y}")
+        else:
+            st.write("No confirmed symptom reports")
+    with guidance, st.container(border=True):
+        st.subheader("Follow-up")
+        if assessment.symptom_followup_status is FollowUpState.URGENT_EVALUATION_RECOMMENDED:
+            st.markdown(
+                '<span class="bb-pill urgent">Urgent medical evaluation recommended</span>',
+                unsafe_allow_html=True,
+            )
+        elif assessment.symptom_followup_status is FollowUpState.FOLLOW_UP_SUGGESTED:
+            st.markdown(
+                '<span class="bb-pill medical">Medical follow-up recommended</span>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.caption("No rule-based follow-up signal")
+
+    with st.expander("Why was this surfaced?"):
+        for evidence in assessment.evidence_lines:
+            st.write(evidence)
+        st.caption(PATTERN_DISCLAIMER)
+        if pattern and pattern.comparisons:
             st.dataframe(
                 [
                     {
                         "Feature": item.label,
                         "Recorded": item.value,
-                        "Fictional HIMARS scenario reference median": item.median,
+                        "Reference median": item.median,
                         "IQR q25–q75": f"{item.q25:g}–{item.q75:g}",
                     }
                     for item in pattern.comparisons
@@ -1480,38 +1495,52 @@ def history() -> None:
                 )
             if not pattern.differing:
                 st.caption(
-                    "No features outside the fictional HIMARS scenario reference's percentile ranges."
+                    "No features outside the fictional HIMARS scenario reference's "
+                    "percentile ranges."
                 )
-            model = pattern_model()
-            st.caption(
-                f"Model: IsolationForest on {model.baseline_rows} SME-informed fictional HIMARS "
-                "scenario reference windows · prototype analytic threshold: 5th percentile"
-            )
-        st.caption(PATTERN_DISCLAIMER)
+        elif pattern:
+            st.caption(pattern.reason)
         st.caption(CONTEXT_NOTE)
-
-    with st.container(border=True):
-        st.subheader("Symptoms")
-        st.caption(f"Confirmed reports as of {ANALYSIS_AS_OF:%d %b %Y}")
-        if not visible_reports:
-            st.write("No confirmed symptom reports.")
-        for report in visible_reports:
-            with st.container(border=True):
-                report_fields(report.draft)
-    with st.container(border=True):
-        st.subheader("Follow-up")
+        for note in assessment.data_quality_notes:
+            st.caption(note)
+        st.caption(
+            "IsolationForest · 100 trees · prototype analytic threshold: "
+            "5th percentile of reference scores"
+        )
+    with st.expander("Research details"):
+        st.write(REFERENCE_LABEL)
+        model = pattern_model()
+        if model is None:
+            st.caption("Occupational-pattern model unavailable (reference not built)")
+        else:
+            metadata = model.metadata
+            st.write(f"Evidence: {metadata.get('evidence_id', 'Not documented')}")
+            for limitation in metadata.get("source_limitations", []):
+                st.write(limitation)
+            st.write("Scenario assumptions")
+            for name, assumption in metadata.get("scenario_assumptions", {}).items():
+                st.caption(f"{name}: {assumption['value']} · {assumption['basis']}")
+            st.write(
+                f"{metadata.get('independent_fictional_careers')} independent fictional careers · "
+                f"{metadata.get('repeated_analysis_windows')} repeated analysis windows"
+            )
+            st.caption(metadata.get("observation_note", ""))
+            st.write("Fingerprint")
+            st.json(metadata.get("fingerprint", {}))
+            st.caption(f"scikit-learn {metadata.get('sklearn_version_pinned')}")
+    with st.expander("Follow-up guidance & sources"):
+        st.page_link(PAGES["followup"], label="Open Follow-up")
         st.caption(
             "Deterministic guidance from TBICoE/CDC sources; "
             "independent of the occupational-pattern model."
         )
+        if not visible_reports:
+            st.caption("No confirmed symptom reports.")
         for report in visible_reports:
             st.write(f"Report: {report.draft.report_date:%d %b %Y}")
+            report_fields(report.draft)
             followup_card(evaluate(report.draft))
-        if reports:
-            with st.expander("Official resources"):
-                official_resources()
-    st.caption(BOUNDARY_NOTE)
-    st.caption(PRIVACY_NOTE)
+        guidance_resources()
 
     with st.expander("Chronological detail"):
         training_by_id = {entry.event_id: entry for entry in entries}
@@ -1540,14 +1569,21 @@ def history() -> None:
 
 
 PAGES = {
-    "dashboard": st.Page(dashboard, title="Dashboard", icon=":material/dashboard:", default=True),
-    "new": st.Page(new_event, title="New Training Event", icon=":material/add_circle:"),
-    "review": st.Page(review, title="Review / Approve", icon=":material/fact_check:"),
-    "history": st.Page(history, title="Personnel History", icon=":material/person_search:"),
-    "followup": st.Page(followup, title="Follow-up", icon=":material/assignment_ind:"),
+    "dashboard": st.Page(dashboard, title="Home", icon=":material/calendar_month:", default=True),
+    "history": st.Page(history, title="People", icon=":material/groups:"),
+    "inbox": st.Page(inbox, title="Review", icon=":material/inbox:"),
+    "new": st.Page(
+        new_event, title="Log training event", icon=":material/add_circle:", visibility="hidden"
+    ),
+    "review": st.Page(
+        review, title="Training record", icon=":material/fact_check:", visibility="hidden"
+    ),
+    "followup": st.Page(
+        followup, title="Follow-up", icon=":material/assignment_ind:", visibility="hidden"
+    ),
 }
 
 try:
-    st.navigation(list(PAGES.values())).run()
+    st.navigation(list(PAGES.values()), position="top").run()
 finally:
     CONN.close()
