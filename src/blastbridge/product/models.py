@@ -89,8 +89,6 @@ class TrainingEventDraft(ProductModel):
 
     @model_validator(mode="after")
     def unique_participants(self) -> Self:
-        if self.event_date > date.today():
-            raise ValueError("event date cannot be in the future")
         names = [c.crew_name for c in self.crews]
         if len(names) != len(set(names)):
             raise ValueError("crew names must be unique within an event")

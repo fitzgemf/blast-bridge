@@ -241,7 +241,11 @@ def dashboard() -> None:
     with st.expander("Demo data"):
         confirmed = st.checkbox("I understand this deletes all recorded events")
         if st.button("Reset to demo state", disabled=not confirmed):
-            store.reset_demo(CONN, DEMO_PEOPLE, DEMO_EVENTS)
+            try:
+                store.reset_demo(CONN, DEMO_PEOPLE, DEMO_EVENTS)
+            except (store.StoreError, sqlite3.Error) as exc:
+                st.error(f"Could not reset demo data: {exc}")
+                return
             for key in list(st.session_state):
                 if key.startswith(("review", "editing", "f_")) or key in (
                     "last_decided",
@@ -323,6 +327,9 @@ def new_event() -> None:
         return
 
     s = st.session_state
+    if s["f_date"] > date.today():
+        st.error("Event date cannot be in the future.")
+        return
     missing = [
         f"{s[f'f_c{i}_name']} · {pos.label}"
         for i in s["f_crews"]
@@ -506,7 +513,10 @@ def review() -> None:
         a.metric("Crews", len(d.crews))
         b.metric("Unique participants", d.participant_count)
         c.metric("Physical events (launches)", count_text(d.physical_event_count))
-        links.metric("Participant-event associations", str(known_links))
+        links.metric(
+            "Participant-event associations",
+            str(known_links) if d.unknown_crew_count < len(d.crews) else "Unknown",
+        )
         if unknown_people:
             links.caption(f"+ {unknown_people} people with unknown count")
         st.dataframe(
@@ -540,8 +550,13 @@ def review() -> None:
         st.caption(
             "Launches are counted once per crew; associations link people to those launches "
             "and are not additional launches. When a crew's count is unknown, that crew's "
-            f"associations are unknown, never zero. The known crews' total is {known_links} "
-            f"associations across {d.known_physical_event_count} physical launches."
+            "associations are unknown, never zero."
+            + (
+                f" The known crews' total is {known_links} associations across "
+                f"{d.known_physical_event_count} physical launches."
+                if d.unknown_crew_count < len(d.crews)
+                else ""
+            )
         )
 
     with st.container(border=True):

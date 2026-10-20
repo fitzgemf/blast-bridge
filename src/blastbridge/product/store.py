@@ -187,6 +187,8 @@ def _require_draft(conn: sqlite3.Connection, event_id: str, revision: int) -> No
 def save_draft(
     conn: sqlite3.Connection, draft: TrainingEventDraft, event_id: str | None = None
 ) -> str:
+    if draft.event_date > date.today():
+        raise StoreError("event date cannot be in the future")
     if event_id is None:
         event_id = f"EVT-{uuid4().hex[:8].upper()}"
     with _transaction(conn):
@@ -203,11 +205,25 @@ def seed_demo_events(
 ) -> int:
     added = 0
     for event_id, draft in events:
-        if conn.execute("SELECT 1 FROM training_events WHERE event_id = ?", (event_id,)).fetchone():
-            continue
-        save_draft(conn, draft, event_id)
-        approve_event(conn, event_id, 1)
-        added += 1
+        row = conn.execute(
+            "SELECT status, revision FROM training_events WHERE event_id = ?", (event_id,)
+        ).fetchone()
+        if row is None:
+            try:
+                save_draft(conn, draft, event_id)
+            except sqlite3.IntegrityError:
+                row = conn.execute(
+                    "SELECT status, revision FROM training_events WHERE event_id = ?", (event_id,)
+                ).fetchone()
+                if row is None:
+                    raise
+            else:
+                added += 1
+                row = conn.execute(
+                    "SELECT status, revision FROM training_events WHERE event_id = ?", (event_id,)
+                ).fetchone()
+        if row is not None and row["status"] == EventStatus.DRAFT:
+            approve_event(conn, event_id, row["revision"])
     return added
 
 
@@ -229,6 +245,8 @@ def update_draft(
     conn: sqlite3.Connection, event_id: str, draft: TrainingEventDraft, revision: int
 ) -> None:
     """Replace a draft's content and crews; the revision advances so stale reviews are refused."""
+    if draft.event_date > date.today():
+        raise StoreError("event date cannot be in the future")
     with _transaction(conn):
         _require_draft(conn, event_id, revision)
         conn.execute(

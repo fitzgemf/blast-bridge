@@ -146,14 +146,17 @@ def test_demo_events_are_idempotent(conn):
     }
 
 
-def test_future_event_date_is_refused():
-    with pytest.raises(ValueError, match="event date cannot be in the future"):
-        TrainingEventDraft(
-            **{
-                **draft(6).model_dump(),
-                "event_date": date.today() + timedelta(days=1),
-            }
-        )
+def test_future_event_date_is_refused(conn):
+    tomorrow = TrainingEventDraft(
+        **{
+            **draft(6).model_dump(),
+            "event_date": date.today() + timedelta(days=1),
+        }
+    )
+    with pytest.raises(store.StoreError, match="event date cannot be in the future"):
+        store.save_draft(conn, tomorrow)
+    for table in ("training_events", "crews", "crew_members", "participant_exposures"):
+        assert conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
 
 
 def test_person_cannot_appear_in_two_crews():
