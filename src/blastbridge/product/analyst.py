@@ -440,15 +440,15 @@ FIELD_POLICY = {
         ),
         (
             "DIAGNOSIS_INJURY",
-            r"m?tbi|cte|concuss\w*|injur\w*|diagnos\w*|prognos\w*|brain\w*|damage\w*|harm\w*"
-            r"|blast\s+pressure",
+            r"m?tbi|cte|concuss\w*|injur\w*|diagnos\w*|prognos\w*|brain\w*|damage\w*"
+            r"|harm(?:ed|ful|s)?|blast\s+pressure",
         ),
         ("TREATMENT", r"treatment\w*|medication\w*|therap\w*|prescri\w*|rehab\w*"),
         (
             "MEDICAL_RISK",
             r"(?:injury|medical|health|brain|tbi|cte|concussion|harm)\s+risk\w*"
             r"|risk\s+of\s+(?:injury|harm|tbi|cte|concussion|brain|damage)"
-            r"|probabilit\w*|likelihood",
+            r"|probabilit\w*|likelihood|at\s+risk",
         ),
         (
             "SYMPTOM_INTERPRETATION",
@@ -535,7 +535,18 @@ def render_deterministic_relays(response: AgentResponse, session: ToolSession) -
 def render_medical_section(response: AgentResponse, session: ToolSession) -> AgentResponse:
     person_id = response.person_id
     if person_id is None:
-        return response
+        brief = response.brief
+        if brief is not None:
+            brief = brief.model_copy(
+                update={
+                    "sections": [
+                        section
+                        for section in brief.sections
+                        if section.heading not in MEDICAL_HEADINGS
+                    ]
+                }
+            )
+        return response.model_copy(update={"symptom_followup_summary": None, "brief": brief})
     returned = [
         item
         for values in session.evidence.values()

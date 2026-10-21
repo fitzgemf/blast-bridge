@@ -1431,6 +1431,7 @@ def test_review2_1_unscoped_person_evidence_is_rejected(env, tool, ref):
         ("Reese is within normal limits.", "REASSURANCE"),
         ("Reese is asymptomatic.", "SYMPTOM_INTERPRETATION"),
         ("Reese is not a cause for concern.", "REASSURANCE"),
+        ("Nothing in the record suggests Reese is at risk.", "MEDICAL_RISK"),
     ],
 )
 @pytest.mark.parametrize("location", ["answer_summary", "brief.sections.0.text"])
@@ -1473,6 +1474,7 @@ def test_review2_2_fixtures_remain_grounded_with_category_checks(env, name):
         "Records of concern: two events with Unknown activity counts.",
         "The draft is due to the section chief by Friday.",
         "The records fit the reference window.",
+        "Harmonize the two records.",
     ],
 )
 def test_review2_2_benign_workflow_wording_passes(env, text):
@@ -1802,3 +1804,48 @@ def test_global_fallback_uses_returned_attention_labels(env):
         for item in result.evidence
         if item.kind == "attention"
     ]
+
+
+@pytest.mark.parametrize("fallback", [False, True])
+@pytest.mark.parametrize("brief_kind", ["none", "medical", "mixed"])
+def test_global_response_strips_medical_fields(env, fallback, brief_kind):
+    refs = ["attention:FIC-002", "attention:FIC-010"]
+    text = "Reese looks fine; no follow-up is needed. Jordan should see a medic."
+    medical = {"text": text, "evidence_refs": refs}
+    sections = [
+        {"heading": heading, **medical}
+        for heading in ("SYMPTOMS", "FOLLOW-UP", "SYMPTOMS / FOLLOW-UP")
+    ]
+    if brief_kind == "mixed":
+        sections.append(
+            {"heading": "WHAT CHANGED", "text": "Evidence reviewed.", "evidence_refs": refs}
+        )
+    payload = answer(
+        refs=refs,
+        intent="LIST_ATTENTION",
+        answer_summary="Reese looks fine." if fallback else "Evidence reviewed.",
+        symptom_followup_summary=medical,
+        brief=None if brief_kind == "none" else {"sections": sections},
+    )
+    turns = [tool_turn(("get_attention_queue", {})), text_turn(payload)]
+    if fallback:
+        turns.append(text_turn(payload))
+    result = run(env, turns)
+    assert result.grounded and result.error is None and result.fallback is fallback
+    response = result.response
+    assert response.symptom_followup_summary is None
+    rendered = response.model_dump(exclude_none=True)
+    assert "symptom_followup_summary" not in rendered
+    assert text not in response.model_dump_json()
+    assert "Reese looks fine" not in response.model_dump_json()
+    if brief_kind == "none":
+        assert response.brief is None
+    else:
+        assert [section.heading for section in response.brief.sections] == (
+            ["WHAT CHANGED"] if brief_kind == "mixed" else []
+        )
+    assert response.evidence_refs == refs
+    if fallback:
+        assert all(item.code == "MEDICAL_CONTENT" for item in result.validation)
+    else:
+        assert result.validation == []
