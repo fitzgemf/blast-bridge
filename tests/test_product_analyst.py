@@ -28,6 +28,8 @@ from blastbridge.product.analyst import (
     evidence_fingerprint,
     is_stale,
     load_analyst_replay,
+    render_deterministic_relays,
+    render_medical_section,
     replay_providers,
     validate_response,
 )
@@ -45,7 +47,7 @@ from blastbridge.product.models import EventStatus, IntakeSource
 from blastbridge.product.patterns import PatternStatus, fit_pattern_model, load_reference
 from blastbridge.product.readiness import ATTENTION_PRECEDENCE, ReadinessStatus
 from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE, DEMO_SYMPTOMS
-from blastbridge.product.symptoms import DangerSign
+from blastbridge.product.symptoms import DangerSign, SymptomReport
 
 ROOT = Path(__file__).resolve().parents[1]
 TODAY = DEMO_STORY_DATE
@@ -374,7 +376,7 @@ def test_j_routine_has_no_forced_recommendation_and_no_safety_claim(env):
     assert validate_response(response, state) == []
     for phrase in ("is safe", "is healthy", "is normal"):
         bad = response.model_copy(update={"answer_summary": f"This person {phrase}."})
-        assert any(item.code == "BANNED_CLAIM" for item in validate_response(bad, state))
+        assert any(item.code == "MEDICAL_CONTENT" for item in validate_response(bad, state))
 
 
 def test_k_unavailable_pattern_cannot_be_claimed_typical(env):
@@ -785,17 +787,17 @@ def test_recommendation_exclusivity_staleness_and_language_backstops(env):
         response = AgentResponse.model_validate(
             answer("FIC-010", ["facts:FIC-010"], answer_summary=phrase)
         )
-        assert any(item.code == "BANNED_CLAIM" for item in validate_response(response, state))
+        assert any(item.code == "MEDICAL_CONTENT" for item in validate_response(response, state))
     response = AgentResponse.model_validate(
         answer("FIC-010", ["facts:FIC-010"], answer_summary="This is not a diagnosis.")
     )
-    assert any(item.code == "BANNED_CLAIM" for item in validate_response(response, state))
+    assert any(item.code == "MEDICAL_CONTENT" for item in validate_response(response, state))
     rec = recommendation("RUN_UPDATED_ANALYSIS", ["facts:FIC-010"])
     rec["rationale"] = "See a doctor and seek medical care."
     response = AgentResponse.model_validate(
         answer("FIC-010", ["facts:FIC-010"], recommendations=[rec])
     )
-    assert any(item.code == "BANNED_CLAIM" for item in validate_response(response, state))
+    assert any(item.code == "MEDICAL_CONTENT" for item in validate_response(response, state))
 
 
 def test_uncertain_save_is_never_repeated(env):
@@ -980,8 +982,15 @@ def test_replay_reese_brief_is_grounded_with_workflow_recommendations(env):
         rec.authority == "AI_WORKFLOW_RECOMMENDATION" for rec in result.response.recommendations
     )
     assert outer_sequence(result) == PERSON_SEQUENCE
-    words = " ".join(section.text for section in result.response.brief.sections).split()
-    assert 120 <= len(words) <= 220
+    assert result.grounded and not result.fallback and result.validation == []
+    assert result.response.symptom_followup_summary.text == next(
+        section.text
+        for section in result.response.brief.sections
+        if section.heading == "SYMPTOMS / FOLLOW-UP"
+    )
+    assert "BlastBridge currently shows no rule-based follow-up signal." in (
+        result.response.symptom_followup_summary.text
+    )
     assert activity_lines(result) == [
         "Occupational history — 8 records reviewed",
         "Pattern assessment — Atypical elevated occupational cadence",
@@ -1007,8 +1016,11 @@ def test_replay_jordan_brief_is_grounded_with_deterministic_relay(env):
     assert result.response.data_quality_summary.text == (
         "No material issue was identified in the evidence reviewed."
     )
-    words = " ".join(section.text for section in result.response.brief.sections).split()
-    assert 120 <= len(words) <= 220
+    assert result.grounded and not result.fallback and result.validation == []
+    assert "BlastBridge's deterministic follow-up rules recommend medical follow-up" in (
+        result.response.symptom_followup_summary.text
+    )
+    assert not any(trace.scope == "validation" for trace in result.tool_trace)
 
 
 def test_replay_attention_preserves_deterministic_order_without_new_score(env):
@@ -1243,7 +1255,7 @@ def test_review_2_medical_and_safety_repros_are_rejected_in_all_model_text(env, 
     else:
         payload[field] = text
     failures = validate_response(AgentResponse.model_validate(payload), state)
-    assert any(item.code == "BANNED_CLAIM" for item in failures)
+    assert any(item.code == "MEDICAL_CONTENT" for item in failures)
 
 
 def test_review_2_urgent_requires_returned_guidance_and_tbicoe_is_not_tbi(env):
@@ -1258,7 +1270,7 @@ def test_review_2_urgent_requires_returned_guidance_and_tbicoe_is_not_tbi(env):
     )
     assert validate_response(good, state) == []
     bad = good.model_copy(update={"answer_summary": "An urgent follow-up status is recorded."})
-    assert any(item.code == "BANNED_CLAIM" for item in validate_response(bad, state))
+    assert any(item.code == "MEDICAL_CONTENT" for item in validate_response(bad, state))
     report = state.data.symptom_reports("FIC-010")[0]
     draft = report.draft.model_copy(update={"danger_signs": (DangerSign.WORSENING_HEADACHE,)})
     state.data = replace(
@@ -1271,7 +1283,7 @@ def test_review_2_urgent_requires_returned_guidance_and_tbicoe_is_not_tbi(env):
             "followup_state": FollowUpState.URGENT_EVALUATION_RECOMMENDED,
         }
     )
-    assert validate_response(allowed, state) == []
+    assert any(item.code == "MEDICAL_CONTENT" for item in validate_response(allowed, state))
     assert ANALYST_DISCLAIMER == (
         "BlastBridge does not diagnose concussion or TBI or estimate injury risk."
     )
@@ -1299,7 +1311,7 @@ def test_review_3_relay_text_comes_from_rules_not_the_model(env):
             ),
         ],
     )
-    assert result.grounded and result.validation == []
+    assert result.grounded and result.validation == [] and not result.fallback
     rendered = result.response.recommendations[0]
     assert rendered.title == FollowUpState.FOLLOW_UP_SUGGESTED.label
     expected = "\n\n".join(
@@ -1402,56 +1414,43 @@ def test_review2_1_unscoped_person_evidence_is_rejected(env, tool, ref):
 
 
 @pytest.mark.parametrize(
-    "text",
+    "text,category",
     [
-        "Reese is fit for duty and cleared for live fire.",
-        "Reese needs no further evaluation; nothing to worry about.",
-        "Reese may have mTBI or brain damage from repeated firing.",
-        "Send Reese to the ER for a CT scan today.",
-        "Followup unnecessary for Reese.",
-        "Reese does not need followup.",
-        "Reese is fine and well.",
-        "Clearance and duty status are unchanged.",
-        "Return to duty with no cause for concern.",
-        "Reese is okay and unaffected.",
-        "Hospital imaging and physician referral are suggested.",
-        "No need for any further action.",
-        "Follow-up is not required.",
-        "Proceed without requiring care.",
-        "No action is required for Jordan's symptoms.",
-        "Reese's symptoms are nothing serious.",
-        "Jordan can safely continue firing.",
-        "Reese's symptoms are not serious.",
-        "Jordan's symptoms are minor and insignificant.",
-        "Jordan can continue live fire.",
-        "Jordan can continue training.",
-        "Jordan can continue duty.",
-        "Reese does not require medical follow-up.",
-        "Reese needs no medical follow-up.",
-        "The firing triggered Jordan's headaches.",
-        "Jordan's symptoms are due to blast exposure.",
-        "Reese is ready to fire.",
-        "Reese can keep firing.",
-        "Reese can return to the range.",
-        "Reese's tinnitus is not a concern.",
-        "Reese has no symptoms of concern.",
-        "Jordan should be seen by medical today.",
-        "Jordan should go to sick call.",
+        ("Follow-up is not warranted.", "MEDICAL_STATUS"),
+        ("Jordan should see a medic.", "MEDICAL_STATUS"),
+        ("Reese can resume firing.", "CLEARANCE"),
+        ("Reese looks fine.", "REASSURANCE"),
+        ("Follow-up is not indicated for Reese.", "MEDICAL_STATUS"),
+        ("Reese does not need to be seen.", "MEDICAL_STATUS"),
+        ("Reese can go back to the range.", "CLEARANCE"),
+        ("Reese is fit.", "CLEARANCE"),
+        ("Jordan should be evaluated today.", "MEDICAL_STATUS"),
+        ("Jordan should report to the aid station.", "MEDICAL_STATUS"),
+        ("Get Jordan seen as soon as possible.", "URGENCY"),
+        ("Jordan's headaches are related to the firing.", "SYMPTOM_INTERPRETATION"),
+        ("Reese is within normal limits.", "REASSURANCE"),
+        ("Reese is asymptomatic.", "SYMPTOM_INTERPRETATION"),
+        ("Reese is not a cause for concern.", "REASSURANCE"),
     ],
 )
-@pytest.mark.parametrize("location", ["answer", "recommendation"])
-def test_review2_2_category_backstop_rejects_paraphrases(env, text, location):
+@pytest.mark.parametrize("location", ["answer_summary", "brief.sections.0.text"])
+def test_medical_policy_names_field_and_category(env, text, category, location):
     state = session(env)
     execute(state, "get_person_record")
     payload = answer("FIC-010", ["facts:FIC-010"])
-    if location == "answer":
-        payload["answer_summary"] = text
+    if location == "answer_summary":
+        payload[location] = text
     else:
-        rec = recommendation("REVIEW_RECORD", ["facts:FIC-010"])
-        rec["rationale"] = text
-        payload["recommendations"] = [rec]
-    response = AgentResponse.model_validate(payload)
-    assert any(item.code == "BANNED_CLAIM" for item in validate_response(response, state))
+        payload["brief"] = {
+            "sections": [
+                {"heading": "WHAT CHANGED", "text": text, "evidence_refs": ["facts:FIC-010"]}
+            ]
+        }
+    failures = validate_response(AgentResponse.model_validate(payload), state)
+    assert any(
+        item.code == "MEDICAL_CONTENT" and item.path == f"{location}:{category}"
+        for item in failures
+    )
 
 
 @pytest.mark.parametrize(
@@ -1459,7 +1458,7 @@ def test_review2_2_category_backstop_rejects_paraphrases(env, text, location):
 )
 def test_review2_2_fixtures_remain_grounded_with_category_checks(env, name):
     for result in replay_fixture(env, name):
-        assert result.grounded and result.validation == []
+        assert result.grounded and result.validation == [] and not result.fallback
 
 
 @pytest.mark.parametrize(
@@ -1469,13 +1468,23 @@ def test_review2_2_fixtures_remain_grounded_with_category_checks(env, name):
         "Review the three clustered October training records.",
         "Verify whether the missing activity count exists in the source record.",
         "Review this draft before recording it.",
+        "Due to the Unknown activity count, verify the record.",
+        "This review was triggered by the atypical elevated cadence.",
+        "Records of concern: two events with Unknown activity counts.",
+        "The draft is due to the section chief by Friday.",
+        "The records fit the reference window.",
     ],
 )
 def test_review2_2_benign_workflow_wording_passes(env, text):
     state = session(env)
     execute(state, "get_person_record")
     response = AgentResponse.model_validate(
-        answer("FIC-010", ["facts:FIC-010"], answer_summary=text)
+        answer(
+            "FIC-010",
+            ["facts:FIC-010"],
+            answer_summary=text,
+            what_changed={"text": text, "evidence_refs": ["facts:FIC-010"]},
+        )
     )
     assert validate_response(response, state) == []
 
@@ -1495,7 +1504,7 @@ def test_review_5_missing_information_uses_a_focused_audit_sequence(env):
 @pytest.mark.parametrize("name", ["reese_brief", "jordan_brief", "log_event", "attention"])
 def test_review_6_updated_fixtures_are_grounded_without_validation_failures(env, name):
     for result in replay_fixture(env, name):
-        assert result.grounded and result.validation == []
+        assert result.grounded and result.validation == [] and not result.fallback
 
 
 def test_review_6_logging_replay_binds_ids_after_a_previous_question(env):
@@ -1526,8 +1535,270 @@ def test_review_6_logging_replay_binds_ids_after_a_previous_question(env):
             conversation=conversation,
             ledger=ledger,
         )
-        assert result.grounded and result.validation == []
+        assert result.grounded and result.validation == [] and not result.fallback
     assert result.created_draft.intake_result.narrative == "\n".join(
         step.utterance for step in fixture.steps
     )
     assert len(store.list_events(env[0], EventStatus.DRAFT)) == 1
+
+
+@pytest.mark.parametrize(
+    "person_id,urgent,no_reports,status",
+    [
+        (
+            "FIC-010",
+            False,
+            False,
+            "BlastBridge currently shows no rule-based follow-up signal.",
+        ),
+        (
+            "FIC-002",
+            False,
+            False,
+            "BlastBridge's deterministic follow-up rules recommend medical follow-up based on "
+            "the recorded symptom information.",
+        ),
+        (
+            "FIC-010",
+            True,
+            False,
+            "Urgent medical evaluation recommended — from BlastBridge's deterministic "
+            "follow-up rules based on the recorded symptom information.",
+        ),
+        ("FIC-010", False, True, "No symptom reports are recorded in BlastBridge."),
+    ],
+)
+def test_medical_section_is_rendered_from_structured_evidence(
+    env, person_id, urgent, no_reports, status
+):
+    state = session(env)
+    if no_reports:
+        state.data = replace(state.data, symptom_reports=lambda _: [])
+    elif urgent:
+        symptom_report = state.data.symptom_reports(person_id)[0]
+        urgent_report = SymptomReport(
+            report_id=symptom_report.report_id,
+            draft=symptom_report.draft.model_copy(
+                update={"danger_signs": (DangerSign.WORSENING_HEADACHE,)}
+            ),
+            confirmed_at=symptom_report.confirmed_at,
+        )
+        state.data = replace(state.data, symptom_reports=lambda _: [urgent_report])
+    guidance = execute(state, "get_followup_assessment", person_id)
+    refs = [f"followup:{person_id}"]
+    recommendations = []
+    if urgent or person_id == "FIC-002":
+        recommendations = [
+            recommendation(
+                "RELAY_URGENT_GUIDANCE" if urgent else "RELAY_MEDICAL_FOLLOWUP",
+                refs,
+                "DETERMINISTIC_GUIDANCE_RELAY",
+            )
+        ]
+    response = AgentResponse.model_validate(
+        answer(
+            person_id,
+            refs,
+            followup_state=guidance["state"],
+            symptom_followup_summary={
+                "text": "No follow-up is needed; Reese is fine.",
+                "evidence_refs": refs,
+            },
+            brief={
+                "sections": [
+                    {"heading": heading, "text": "Reese looks fine.", "evidence_refs": refs}
+                    for heading in ("SYMPTOMS", "FOLLOW-UP", "SYMPTOMS / FOLLOW-UP")
+                ]
+            },
+            recommendations=recommendations,
+        )
+    )
+    assert validate_response(response, state) == []
+    calls = state.outer_calls
+    rendered = render_medical_section(render_deterministic_relays(response, state), state)
+    section = rendered.symptom_followup_summary
+    assert status in section.text.splitlines()
+    assert "Recorded symptoms are not inputs to the occupational-pattern model." in section.text
+    assert (
+        "BlastBridge does not determine medical clearance, fitness for duty or return to firing."
+        in section.text
+    )
+    assert "Reese is fine" not in rendered.model_dump_json()
+    assert "Reese looks fine" not in rendered.model_dump_json()
+    assert all(part.text == section.text for part in rendered.brief.sections)
+    reports = [
+        item for values in state.evidence.values() for item in values if item.kind == "report"
+    ]
+    assert section.evidence_refs == refs + [item.ref for item in reports]
+    for report in reports:
+        facts = report.payload
+        line = (
+            f"{facts['date']} · {facts['source']}: {'; '.join(facts['symptoms'])}"
+            f" · Persistence: {facts['persistence']}"
+            f" · Functional impact: {facts['functional_impact']}"
+        )
+        if facts["danger_signs"]:
+            line += " · Danger signs: " + "; ".join(facts["danger_signs"])
+        assert line in section.text.splitlines()
+    assert state.outer_calls == calls
+    assert any(trace.scope == "rendering" for trace in state.trace)
+    if recommendations:
+        relay = rendered.recommendations[0]
+        assert relay.title == FollowUpState(guidance["state"]).label
+        for report in guidance["reports"]:
+            if report["state"] == guidance["state"]:
+                assert report["headline"] in section.text and report["headline"] in relay.rationale
+    if urgent:
+        assert "Urgent medical evaluation recommended" in section.text
+        assert rendered.recommendations[0].title == "Urgent medical evaluation recommended"
+    result = run(
+        (env[0], state.data, env[2]),
+        [
+            tool_turn(("get_followup_assessment", {"person_id": person_id})),
+            text_turn(response.model_dump(mode="json")),
+        ],
+    )
+    assert result.grounded and not result.fallback and result.validation == []
+    assert result.response.symptom_followup_summary.text == section.text
+
+
+def test_medical_content_only_failure_gets_grounded_fallback(env):
+    refs = ["facts:FIC-010"]
+    payload = answer("FIC-010", refs, answer_summary="Reese looks fine.")
+    result = run(
+        env,
+        [
+            tool_turn(("get_person_record", {"person_id": "FIC-010"})),
+            text_turn(payload),
+            text_turn(payload),
+        ],
+    )
+    assert result.grounded and result.fallback and result.error is None
+    assert result.response.answer_summary == (
+        "Showing grounded facts from BlastBridge tools; generated wording was withheld."
+    )
+    assert result.response.evidence_refs == refs
+    assert "Reese looks fine" not in result.response.model_dump_json()
+    assert [(item.code, item.path) for item in result.validation] == [
+        ("MEDICAL_CONTENT", "answer_summary:REASSURANCE")
+    ]
+    assert result.counts.outer_model_turns == 3
+    assert any(step.tool == "fallback" and step.scope == "rendering" for step in result.tool_trace)
+
+
+def test_grounding_failure_does_not_get_fallback(env):
+    payload = answer("FIC-010", ["missing"], answer_summary="Reese looks fine.")
+    result = invalid_twice(env, [("get_person_record", {"person_id": "FIC-010"})], payload)
+    assert not result.fallback and result.error
+    assert any(item.code == "UNKNOWN_REF" for item in result.validation)
+
+
+def test_clearance_question_gets_fixed_code_boundary(env):
+    result = run(
+        env,
+        [
+            tool_turn(("get_followup_assessment", {"person_id": "FIC-010"})),
+            text_turn(answer("FIC-010", ["followup:FIC-010"])),
+        ],
+        question="Is Reese okay to keep firing?",
+    )
+    assert result.grounded and not result.fallback and result.validation == []
+    assert (
+        "BlastBridge does not determine medical clearance, fitness for duty or return to firing."
+        in result.response.symptom_followup_summary.text
+    )
+    assert result.counts.outer_tool_calls == 1
+
+
+def test_ineligible_relay_remains_rejected(env):
+    state = session(env)
+    execute(state, "get_followup_assessment")
+    refs = ["followup:FIC-010"]
+    response = AgentResponse.model_validate(
+        answer(
+            "FIC-010",
+            refs,
+            followup_state=FollowUpState.NO_FOLLOWUP_RULE_TRIGGERED,
+            recommendations=[
+                recommendation("RELAY_MEDICAL_FOLLOWUP", refs, "DETERMINISTIC_GUIDANCE_RELAY")
+            ],
+        )
+    )
+    assert any(
+        item.code == "INELIGIBLE_RECOMMENDATION" for item in validate_response(response, state)
+    )
+
+
+def test_fallback_replaces_each_violating_field_and_preserves_refs(env):
+    refs = ["pattern:FIC-010", "facts:FIC-010", "quality:FIC-010"]
+    section = {"text": "Reese looks fine.", "evidence_refs": refs}
+    rec = recommendation("REVIEW_ELEVATED_PATTERN", ["pattern:FIC-010"])
+    rec.update(title="Reese looks fine.", rationale="Reese looks fine.")
+    payload = answer(
+        "FIC-010",
+        refs,
+        pattern_state=PatternStatus.ATYPICAL_ELEVATED_ACTIVITY,
+        what_changed=section,
+        why_surfaced=section,
+        occupational_summary=section,
+        data_quality_summary=section,
+        limitations=["Reese looks fine.", "Recorded information only."],
+        clarification="Reese looks fine?",
+        recommendations=[rec],
+        brief={
+            "sections": [
+                {"heading": heading, **section}
+                for heading in (
+                    "WHAT CHANGED",
+                    "WHY THIS PERSON WAS SURFACED",
+                    "EVIDENCE QUALITY",
+                    "RECOMMENDED NEXT ACTIONS",
+                )
+            ]
+        },
+    )
+    result = run(
+        env,
+        [
+            tool_turn(
+                ("get_pattern_assessment", {"person_id": "FIC-010"}),
+                ("get_person_record", {"person_id": "FIC-010"}),
+                ("audit_record_quality", {"person_id": "FIC-010"}),
+            ),
+            text_turn(payload),
+            text_turn(payload),
+        ],
+    )
+    assert result.grounded and result.fallback and result.error is None
+    response = result.response
+    assert "Reese looks fine" not in response.model_dump_json()
+    assert response.clarification is None and response.limitations == ["Recorded information only."]
+    assert response.answer_summary == "Evidence reviewed."
+    assert response.what_changed.evidence_refs == refs
+    assert "activity count Unknown" in response.data_quality_summary.text
+    assert "{" not in response.data_quality_summary.text
+    assert "Atypical elevated occupational cadence" in response.occupational_summary.text
+    facts = next(item.payload for item in result.evidence if item.kind == "facts")
+    for fact in facts["features"]:
+        assert f"{fact['label']}: {fact['value']}" in response.what_changed.text
+    assert response.recommendations[0].title == "Review elevated occupational pattern"
+    assert response.recommendations[0].evidence_refs == ["pattern:FIC-010"]
+    assert all(part.evidence_refs == refs for part in response.brief.sections)
+    assert all(item.code == "MEDICAL_CONTENT" for item in result.validation)
+    assert any(item.path == "recommendations.0.rationale:REASSURANCE" for item in result.validation)
+
+
+def test_global_fallback_uses_returned_attention_labels(env):
+    refs = ["attention:FIC-002", "attention:FIC-010"]
+    payload = answer(refs=refs, intent="LIST_ATTENTION", answer_summary="Reese looks fine.")
+    result = run(
+        env,
+        [tool_turn(("get_attention_queue", {})), text_turn(payload), text_turn(payload)],
+    )
+    assert result.grounded and result.fallback and result.error is None
+    assert result.response.evidence_refs == refs
+    assert result.response.answer_summary.splitlines() == [
+        f"{item.payload['display_name']} — {item.payload['status_label']}"
+        for item in result.evidence
+        if item.kind == "attention"
+    ]

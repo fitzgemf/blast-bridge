@@ -657,6 +657,8 @@ def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
         return
     response = run.response
     st.write(response.answer_summary)
+    if run.fallback:
+        st.caption("Generated wording was withheld; showing grounded facts from BlastBridge tools.")
     if response.clarification:
         st.info(response.clarification)
     for title, section in (
