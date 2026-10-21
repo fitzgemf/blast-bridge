@@ -27,6 +27,13 @@ class ReadinessStatus(StrEnum):
         }[self]
 
 
+ATTENTION_PRECEDENCE: dict[ReadinessStatus, int] = {
+    ReadinessStatus.URGENT_EVALUATION: 0,
+    ReadinessStatus.MEDICAL_FOLLOWUP_RECOMMENDED: 1,
+    ReadinessStatus.REVIEW_PRIORITY: 2,
+}
+
+
 @dataclass(frozen=True)
 class ReadinessAssessment:
     person_id: str

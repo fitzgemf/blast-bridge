@@ -1,0 +1,38 @@
+{
+  "name": "attention",
+  "label": "Demo replay",
+  "provenance": "Scripted model turns authored for the fictional demo — not a live recording. Tools, intake and validation run for real.",
+  "analysis_as_of": "2026-10-19",
+  "reference_date": "2026-10-19",
+  "page": "home",
+  "selected_person_id": null,
+  "steps": [
+    {
+      "utterance": "Who needs attention?",
+      "outer_turns": [
+        {
+          "stop_reason": "tool_use",
+          "blocks": [
+            {
+              "type": "tool_use",
+              "id": "analyst-1",
+              "name": "get_attention_queue",
+              "input": {}
+            }
+          ],
+          "model": "scripted-demo-analyst"
+        },
+        {
+          "stop_reason": "end_turn",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "{\"intent\":\"LIST_ATTENTION\",\"person_id\":null,\"answer_summary\":\"Jordan Pike, then Reese Calder, appear in the existing deterministic attention queue. This preserves the returned readiness precedence and name ordering; no new score or ranking was calculated.\",\"recommendations\":[],\"clarification\":null,\"brief\":null,\"evidence_refs\":[\"attention:FIC-002\",\"attention:FIC-010\"],\"limitations\":[\"This queue reflects the currently recorded information as of October 19, 2026.\"]}"
+            }
+          ],
+          "model": "scripted-demo-analyst"
+        }
+      ]
+    }
+  ]
+}

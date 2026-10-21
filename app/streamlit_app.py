@@ -6,6 +6,7 @@ from datetime import date, datetime
 from enum import StrEnum
 from html import escape
 from pathlib import Path
+from uuid import uuid4
 
 import streamlit as st
 import ui
@@ -20,6 +21,20 @@ from blastbridge.product.agent import (
     IntakeResult,
     load_replay,
     run_intake,
+)
+from blastbridge.product.analyst import (
+    AgentContext,
+    AnalystData,
+    AnalystRun,
+    Conversation,
+    EvidenceSection,
+    activity_lines,
+    ask,
+    evidence_count,
+    evidence_fingerprint,
+    is_stale,
+    load_analyst_replay,
+    replay_providers,
 )
 from blastbridge.product.anthropic_provider import AnthropicProvider, live_available
 from blastbridge.product.calendar_view import (
@@ -74,7 +89,12 @@ from blastbridge.product.patterns import (
     fit_pattern_model,
     load_reference,
 )
-from blastbridge.product.readiness import ReadinessAssessment, ReadinessStatus, assess_readiness
+from blastbridge.product.readiness import (
+    ATTENTION_PRECEDENCE,
+    ReadinessAssessment,
+    ReadinessStatus,
+    assess_readiness,
+)
 from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE, DEMO_SYMPTOMS
 from blastbridge.product.symptoms import (
     DangerSign,
@@ -131,6 +151,10 @@ if st.session_state.pop("reset_demo_view", False):
     for calendar_key in ("org", "person"):
         st.session_state[f"{calendar_key}_month"] = DEMO_STORY_DATE.replace(day=1)
         st.session_state[f"{calendar_key}_day"] = DEMO_STORY_DATE
+    for session_key in list(st.session_state):
+        if session_key.startswith(("ask_conversation_", "ask_run_", "ask_replay_", "ask_notice_")):
+            del st.session_state[session_key]
+    st.session_state.pop("ask_ledger", None)
 # Keep the analysis date when its Home-only widget is absent on another page.
 st.session_state["analysis_as_of"] = st.session_state.get("analysis_as_of", date.today())
 ANALYSIS_AS_OF = st.session_state["analysis_as_of"]
@@ -415,11 +439,7 @@ def short_provenance(source: IntakeSource, status: EventStatus) -> str:
 
 
 def priority_people(assessments: dict[str, ReadinessAssessment]) -> list[ReadinessAssessment]:
-    order = {
-        ReadinessStatus.URGENT_EVALUATION: 0,
-        ReadinessStatus.MEDICAL_FOLLOWUP_RECOMMENDED: 1,
-        ReadinessStatus.REVIEW_PRIORITY: 2,
-    }
+    order = ATTENTION_PRECEDENCE
     return sorted(
         (item for item in assessments.values() if item.overall_readiness_status in order),
         key=lambda item: (
@@ -427,6 +447,278 @@ def priority_people(assessments: dict[str, ReadinessAssessment]) -> list[Readine
             PEOPLE[item.person_id].display_name,
         ),
     )
+
+
+def analyst_context(person_id: str | None, *, stale: bool = False) -> AgentContext:
+    return AgentContext(
+        analysis_as_of=ANALYSIS_AS_OF,
+        reference_date=ANALYSIS_AS_OF,
+        selected_person_id=person_id,
+        selected_calendar_date=st.session_state.get("person_day" if person_id else "org_day"),
+        page="person" if person_id else "home",
+        prior_analysis_stale=stale,
+    )
+
+
+def analyst_data(*, include_catalog: bool) -> AnalystData:
+    return AnalystData(
+        people=tuple(PEOPLE.values()),
+        member_history=lambda person_id: store.member_history(CONN, person_id),
+        symptom_reports=lambda person_id: store.list_symptom_reports(CONN, person_id),
+        pattern_model=pattern_model(),
+        catalog=(
+            load_weapon_catalog(ROOT / "data/reference/weapons.json") if include_catalog else ()
+        ),
+        save_draft=lambda draft, source: store.save_draft(CONN, draft, intake_source=source),
+    )
+
+
+def analyst_suggestions(person_id: str | None) -> list[tuple[str, str]]:
+    if person_id is None:
+        return [("Log a training event", "log_event"), ("Who needs attention?", "attention")]
+    if person_id == "FIC-010":
+        return [("Summarize Reese for review", "reese_brief")]
+    if person_id == "FIC-002":
+        return [("Create a brief for Jordan", "jordan_brief")]
+    return []
+
+
+def submit_analyst(
+    scope: str,
+    person_id: str | None,
+    question: str | None,
+    *,
+    replay_name: str | None = None,
+    replay_index: int = 0,
+    stale: bool = False,
+) -> None:
+    s = st.session_state
+    conversation_key = f"ask_conversation_{scope}"
+    replay_key = f"ask_replay_{scope}"
+    notice_key = f"ask_notice_{scope}"
+    s.pop(notice_key, None)
+    try:
+        if live_available():
+            provider, intake_provider = AnthropicProvider(), AnthropicProvider()
+        else:
+            if question is None:
+                replay_name, replay_index = s.get(replay_key, (None, 0))
+            if replay_name is None and question is not None:
+                names = [name for _, name in analyst_suggestions(person_id)]
+                for name in names:
+                    fixture = load_analyst_replay(name)
+                    for index, step in enumerate(fixture.steps):
+                        if question == step.utterance:
+                            replay_name, replay_index = name, index
+                            break
+                    if replay_name is not None:
+                        break
+            if replay_name is None:
+                raise ValueError(
+                    "Demo replay covers the suggested requests. "
+                    "Live AI isn't available in this demo."
+                )
+            fixture = load_analyst_replay(replay_name, analysis_as_of=ANALYSIS_AS_OF)
+            step = fixture.steps[replay_index]
+            if replay_index and question is not None:
+                previous = s.get(f"ask_run_{scope}")
+                if (
+                    s.get(replay_key) != (replay_name, replay_index - 1)
+                    or previous is None
+                    or previous.response is None
+                    or not previous.response.clarification
+                ):
+                    raise ValueError("Start with the suggested training-event request.")
+            if question is not None:
+                question = step.utterance
+                if replay_index == 0:
+                    s[conversation_key] = Conversation(uuid4().hex)
+            s[replay_key] = (replay_name, replay_index)
+            provider, intake_provider = replay_providers(step)
+        conversation = s.setdefault(conversation_key, Conversation(uuid4().hex))
+        ledger = s.setdefault("ask_ledger", {})
+        with st.spinner("Reviewing BlastBridge evidence…"):
+            s[f"ask_run_{scope}"] = ask(
+                question,
+                context=analyst_context(person_id, stale=stale),
+                data=analyst_data(include_catalog=True),
+                provider=provider,
+                intake_provider=intake_provider,
+                conversation=conversation,
+                ledger=ledger,
+            )
+    except (OSError, ValueError, IndexError) as exc:
+        s[notice_key] = str(exc)
+    st.rerun()
+
+
+def analyst_section(title: str, section: EvidenceSection, run: AnalystRun) -> None:
+    refs = set(section.evidence_refs)
+    records = {item.ref for item in run.evidence if item.kind == "record" and item.ref in refs}
+    ui.analyst_section(title, section.text, len(records), len(refs))
+
+
+def analyst_draft(run: AnalystRun, scope: str) -> None:
+    draft = run.created_draft
+    if draft is None:
+        return
+    with st.container(key=f"ask-draft-{scope}"):
+        if draft.kind == "needs_review":
+            st.write(draft.status)
+            st.page_link(PAGES["inbox"], label="Open Review queue")
+            return
+        st.write("**Draft — awaiting human review · not yet recorded**")
+        for issue in draft.issues:
+            ui.compact_line(str(issue["message"]), muted=True)
+        for unresolved in draft.unresolved:
+            ui.compact_line(unresolved, muted=True)
+        if draft.recovered:
+            st.caption("Recovered the existing draft; no second draft was created.")
+        if draft.event_id:
+            if st.button("Open in Review", key=f"ask-open-review-{scope}", type="primary"):
+                open_review(draft.event_id)
+        elif draft.intake_result is not None:
+            if st.button("Open proposed draft", key=f"ask-open-proposed-{scope}"):
+                clear_ai_state()
+                st.session_state["ai_result"] = draft.intake_result
+                st.session_state["ai_narrative"] = draft.intake_result.narrative
+                st.session_state["form_init"] = {"f_mode": "Describe / paste training record"}
+                st.session_state["editing_event_id"] = None
+                st.session_state["editing_revision"] = None
+                st.session_state.pop("calendar_date", None)
+                st.switch_page(PAGES["new"])
+
+
+def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
+    label = "Demo replay" if run.mode == "replay" else f"Live AI · {run.model or 'unavailable'}"
+    st.caption(f"{label} · Analysis as of {run.analysis_as_of:%d %b %Y}")
+    ui.analyst_activity(activity_lines(run))
+    checks = evidence_count(run)
+    if checks or run.tool_trace:
+        details_label = (
+            f"{checks} evidence {'check' if checks == 1 else 'checks'} · View evidence & actions"
+            if checks
+            else "View evidence & actions"
+        )
+        with st.expander(details_label):
+            if run.mode == "replay":
+                st.caption(
+                    "Scripted model turns authored for the fictional demo — not a live recording. "
+                    "Tools, intake and validation run for real."
+                )
+            for step in run.tool_trace:
+                st.write(f"**{step.tool}** · {step.scope} · {'ok' if step.ok else 'error'}")
+                st.json({"input": step.input, "refs": step.evidence_refs, "summary": step.summary})
+            st.json(
+                {
+                    "mode": run.mode,
+                    "model": run.model,
+                    "outer_model_turns": run.counts.outer_model_turns,
+                    "outer_tool_calls": run.counts.outer_tool_calls,
+                    "nested_intake_model_calls": run.counts.nested_intake_model_calls,
+                    "nested_intake_tool_calls": run.counts.nested_intake_tool_calls,
+                    "grounded": run.grounded,
+                    "validation": [
+                        {"code": item.code, "path": item.path} for item in run.validation
+                    ],
+                }
+            )
+    if not run.grounded or run.response is None:
+        st.write("BlastBridge couldn't produce a grounded answer.")
+        if run.error:
+            st.caption(run.error)
+        if st.button("Retry", key=f"ask-retry-{scope}"):
+            submit_analyst(scope, person_id, None)
+        analyst_draft(run, scope)
+        return
+    response = run.response
+    st.write(response.answer_summary)
+    if response.clarification:
+        st.info(response.clarification)
+    for title, section in (
+        ("What changed", response.what_changed),
+        ("Why surfaced", response.why_surfaced),
+        ("Occupational summary", response.occupational_summary),
+        ("Symptoms & follow-up", response.symptom_followup_summary),
+        ("Evidence quality", response.data_quality_summary),
+    ):
+        if section:
+            analyst_section(title, section, run)
+    if response.brief:
+        with st.expander("Readiness brief"):
+            for section in response.brief.sections:
+                analyst_section(section.heading.capitalize(), section, run)
+    if response.recommendations:
+        st.write("**Recommended next actions**")
+        for i, recommendation in enumerate(response.recommendations):
+            ui.analyst_recommendation(
+                recommendation.title,
+                recommendation.rationale,
+                medical=recommendation.authority == "DETERMINISTIC_GUIDANCE_RELAY",
+                key=f"{scope}-{i}",
+            )
+    for limitation in response.limitations:
+        st.caption(limitation)
+    analyst_draft(run, scope)
+
+
+def ask_workspace(person_id: str | None = None) -> None:
+    scope = person_id or "home"
+    s = st.session_state
+    with st.container(key=f"ask-workspace-{scope}"):
+        title = (
+            f"Ask about {PEOPLE[person_id].display_name.split()[0]}"
+            if person_id
+            else "Ask BlastBridge"
+        )
+        st.subheader(title)
+        with st.form(f"ask-form-{scope}", clear_on_submit=True):
+            question = st.text_input(
+                "Ask BlastBridge",
+                placeholder="What would you like to do?",
+                key=f"ask-question-{scope}",
+                label_visibility="collapsed",
+            )
+            submitted = st.form_submit_button("Ask", type="primary")
+        if submitted and question.strip():
+            submit_analyst(scope, person_id, question)
+        with st.container(horizontal=True, gap="small"):
+            for label, name in analyst_suggestions(person_id):
+                if st.button(label, key=f"ask-suggest-{scope}-{name}", type="tertiary"):
+                    submit_analyst(scope, person_id, label, replay_name=name)
+        run = s.get(f"ask_run_{scope}")
+        if s.get(f"ask_notice_{scope}"):
+            st.caption(s[f"ask_notice_{scope}"])
+        if run is not None:
+            if person_id and run.fingerprint is not None:
+                fingerprint = evidence_fingerprint(
+                    person_id, analyst_context(person_id), analyst_data(include_catalog=False)
+                )
+                if is_stale(run, fingerprint):
+                    st.info("Evidence changed since this analysis.")
+                    if st.button("Run updated analysis", key=f"ask-update-{scope}"):
+                        conversation = s[f"ask_conversation_{scope}"]
+                        last = next(
+                            turn.text
+                            for turn in reversed(conversation.turns)
+                            if turn.role == "user"
+                        )
+                        submit_analyst(scope, person_id, last, stale=True)
+            analyst_result(run, scope, person_id)
+            if (
+                run.grounded
+                and run.response
+                and run.response.clarification
+                and s.get(f"ask_replay_{scope}") == ("log_event", 0)
+                and not live_available()
+            ):
+                reply = "Launcher 1. Launcher 2 fired too but I don't know how many."
+                if st.button(reply, key=f"ask-clarify-{scope}", type="tertiary"):
+                    submit_analyst(scope, person_id, reply, replay_name="log_event", replay_index=1)
+            if st.button("Start over", key=f"ask-start-over-{scope}", type="tertiary"):
+                for prefix in ("ask_conversation", "ask_run", "ask_replay", "ask_notice"):
+                    s.pop(f"{prefix}_{scope}", None)
+                st.rerun()
 
 
 def dashboard() -> None:
@@ -492,6 +784,7 @@ def dashboard() -> None:
             avatar=True,
         ):
             open_history(item.person_id)
+    ask_workspace()
     ui.demo_details(DEMO_ARRANGEMENT_NOTE)
     with st.expander("Demo / Advanced"):
         st.date_input("Analysis as of", key="analysis_as_of", max_value=date.today())
@@ -1567,6 +1860,7 @@ def history() -> None:
         with ui.insight("Follow-up", summary, tone):
             st.caption("See Follow-up guidance & sources for confirmed reports and guidance.")
 
+    ask_workspace(person_id)
     with st.expander("Why was this surfaced?"):
         for evidence in assessment.evidence_lines:
             st.write(evidence)

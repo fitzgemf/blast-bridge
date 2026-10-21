@@ -228,12 +228,23 @@ input, textarea {background:white!important;}
 .st-key-empty-review [data-testid="stIconMaterial"] {color:var(--bb-muted); font-size:24px;}
 .bb-empty-title {font-size:17px; font-weight:600; margin:0 0 8px;}
 .bb-empty-body {font-size:14px; color:var(--bb-muted); margin:0;}
+[class*="st-key-ask-workspace-"] {background:white; border:1px solid var(--bb-line);
+  border-radius:16px; padding:24px; margin:16px 0; gap:8px;}
+[class*="st-key-ask-workspace-"] h3 {font-size:20px!important;}
+[class*="st-key-ask-workspace-"] [data-testid="stForm"] {border:0; padding:0;}
+.bb-ask-activity {font-size:13.5px; color:var(--bb-muted); line-height:1.5;}
+.bb-ask-section {font-size:15.5px; font-weight:600; margin:8px 0 0;}
+.bb-ask-count {font-size:13.5px; color:var(--bb-muted);}
+[class*="st-key-ask-workflow-"] {padding:8px 0; border-bottom:1px solid var(--bb-line);}
+[class*="st-key-ask-medical-"] {background:#FBF1E4; border-radius:16px; padding:16px;}
+[class*="st-key-ask-draft-"] {background:#FFF0F4; border-radius:16px; padding:16px;}
 @media (max-width:850px) {
   .block-container {padding:1rem 1.25rem 4rem;}
   h1 {font-size:30px!important;}
   .st-key-app-nav {padding:.25rem .5rem; max-width:100%;}
   [class*="st-key-surface-"] {padding:16px;}
   .st-key-ai-workspace, .st-key-proposed-draft {padding:16px;}
+  [class*="st-key-ask-workspace-"] {padding:16px;}
 }
 </style>
 """
@@ -346,6 +357,37 @@ def compact_line(text: str, *, muted: bool = False) -> None:
 
 def crew_heading(text: str) -> None:
     st.markdown(f'<div class="bb-crew-heading">{escape(text)}</div>', unsafe_allow_html=True)
+
+
+def analyst_activity(lines: list[str]) -> None:
+    for line in lines:
+        st.markdown(f'<div class="bb-ask-activity">✓ {escape(line)}</div>', unsafe_allow_html=True)
+
+
+def analyst_section(title: str, text: str, records: int, checks: int) -> None:
+    count = (
+        f"{records} {'record' if records == 1 else 'records'} used"
+        if records
+        else f"{checks} evidence {'check' if checks == 1 else 'checks'}"
+    )
+    st.markdown(
+        f'<div class="bb-ask-section">{escape(title)}</div>'
+        f'<div class="bb-ask-count">{escape(count)}</div>',
+        unsafe_allow_html=True,
+    )
+    st.write(text)
+
+
+def analyst_recommendation(title: str, rationale: str, *, medical: bool, key: str) -> None:
+    style = "medical" if medical else "workflow"
+    with st.container(key=f"ask-{style}-{key}"):
+        st.caption(
+            "Medical guidance — from the deterministic follow-up rules"
+            if medical
+            else "Workflow recommendation"
+        )
+        st.write(f"**{markdown_text(title)}**")
+        st.write(rationale)
 
 
 def action(label: str, container_key: str, *, primary: bool = False) -> bool:

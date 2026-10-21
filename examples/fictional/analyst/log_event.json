@@ -1,0 +1,132 @@
+{
+  "name": "log_event",
+  "label": "Demo replay",
+  "provenance": "Scripted model turns authored for the fictional demo — not a live recording. Tools, intake and validation run for real.",
+  "analysis_as_of": "2026-10-19",
+  "reference_date": "2026-10-19",
+  "page": "home",
+  "selected_person_id": null,
+  "steps": [
+    {
+      "utterance": "Log yesterday's HIMARS live-fire qualification at Demo Range North. Launcher 1 was Avery Kestrel as chief, Jordan Pike on the gun and Riley Marsh driving. Launcher 2 was Casey Thorne, Morgan Vale and Taylor Brook. We fired six.",
+      "outer_turns": [
+        {
+          "stop_reason": "end_turn",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "{\"intent\":\"CREATE_TRAINING_DRAFT\",\"person_id\":null,\"answer_summary\":\"One count detail affects the proposed training record.\",\"clarification\":\"Was six the count for Launcher 1, Launcher 2, or the whole event?\",\"recommendations\":[],\"brief\":null,\"evidence_refs\":[],\"limitations\":[]}"
+            }
+          ],
+          "model": "scripted-demo-analyst"
+        }
+      ]
+    },
+    {
+      "utterance": "Launcher 1. Launcher 2 fired too but I don't know how many.",
+      "outer_turns": [
+        {
+          "stop_reason": "tool_use",
+          "blocks": [
+            {
+              "type": "tool_use",
+              "id": "analyst-1",
+              "name": "create_training_event_draft",
+              "input": {
+                "utterance_ids": [
+                  "U1",
+                  "U2"
+                ]
+              }
+            }
+          ],
+          "model": "scripted-demo-analyst"
+        },
+        {
+          "stop_reason": "end_turn",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "{\"intent\":\"CREATE_TRAINING_DRAFT\",\"person_id\":null,\"answer_summary\":\"A training-event draft was created for human review and is not yet recorded. Launcher 1 has six physical events; Launcher 2's count remains Unknown.\",\"data_quality_summary\":{\"text\":\"Launcher 2's Unknown count is preserved, never zero or estimated.\",\"evidence_refs\":[\"{{draft_ref}}\"]},\"recommendations\":[{\"type\":\"OPEN_TRAINING_DRAFT\",\"title\":\"Review the training draft\",\"rationale\":\"Human review is required before this draft enters personnel history.\",\"evidence_refs\":[\"{{draft_ref}}\"],\"authority\":\"AI_WORKFLOW_RECOMMENDATION\",\"action_target\":\"{{review_destination}}\"}],\"clarification\":null,\"brief\":null,\"evidence_refs\":[\"{{draft_ref}}\"],\"limitations\":[\"The draft is not approved. Unknown activity counts remain Unknown.\"]}"
+            }
+          ],
+          "model": "scripted-demo-analyst"
+        }
+      ],
+      "intake_turns": [
+        {
+          "stop_reason": "tool_use",
+          "blocks": [
+            {
+              "type": "tool_use",
+              "id": "analyst-1",
+              "name": "search_weapon_catalog",
+              "input": {
+                "query": "HIMARS"
+              }
+            },
+            {
+              "type": "tool_use",
+              "id": "analyst-2",
+              "name": "search_roster",
+              "input": {
+                "query": "Avery Kestrel"
+              }
+            },
+            {
+              "type": "tool_use",
+              "id": "analyst-3",
+              "name": "search_roster",
+              "input": {
+                "query": "Jordan Pike"
+              }
+            },
+            {
+              "type": "tool_use",
+              "id": "analyst-4",
+              "name": "search_roster",
+              "input": {
+                "query": "Riley Marsh"
+              }
+            },
+            {
+              "type": "tool_use",
+              "id": "analyst-5",
+              "name": "search_roster",
+              "input": {
+                "query": "Casey Thorne"
+              }
+            },
+            {
+              "type": "tool_use",
+              "id": "analyst-6",
+              "name": "search_roster",
+              "input": {
+                "query": "Morgan Vale"
+              }
+            },
+            {
+              "type": "tool_use",
+              "id": "analyst-7",
+              "name": "search_roster",
+              "input": {
+                "query": "Taylor Brook"
+              }
+            }
+          ],
+          "model": "scripted-demo-analyst"
+        },
+        {
+          "stop_reason": "end_turn",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "{\"event_date\":\"2026-10-18\",\"event_type\":\"weapon_firing\",\"training_context\":\"qualification_certification\",\"weapon_system_id\":\"m142-himars\",\"location_unit\":\"Demo Range North\",\"crews\":[{\"crew_name\":\"Launcher 1\",\"count_status\":\"explicit_exact\",\"launch_count\":6,\"count_text\":\"six\",\"members\":[{\"position\":\"chief\",\"name_text\":\"Avery Kestrel\",\"person_id\":\"FIC-001\"},{\"position\":\"gunner\",\"name_text\":\"Jordan Pike\",\"person_id\":\"FIC-002\"},{\"position\":\"driver\",\"name_text\":\"Riley Marsh\",\"person_id\":\"FIC-003\"}]},{\"crew_name\":\"Launcher 2\",\"count_status\":\"explicitly_unknown\",\"launch_count\":null,\"count_text\":\"I don't know how many\",\"members\":[{\"position\":\"chief\",\"name_text\":\"Casey Thorne\",\"person_id\":\"FIC-005\"},{\"position\":\"gunner\",\"name_text\":\"Morgan Vale\",\"person_id\":\"FIC-006\"},{\"position\":\"driver\",\"name_text\":\"Taylor Brook\",\"person_id\":\"FIC-007\"}]}],\"unresolved\":[]}"
+            }
+          ],
+          "model": "scripted-demo-analyst"
+        }
+      ]
+    }
+  ]
+}
