@@ -29,14 +29,18 @@ from blastbridge.product.analyst import (
     AnalystRun,
     Conversation,
     EvidenceSection,
+    UIAction,
     activity_lines,
     ask,
     evidence_count,
     evidence_fingerprint,
     is_stale,
     load_analyst_replay,
+    navigation_action,
+    recommendation_action,
     replay_providers,
 )
+from blastbridge.product.analyst_tools import SymptomProposal
 from blastbridge.product.anthropic_provider import AnthropicProvider, live_available
 from blastbridge.product.calendar_view import (
     DEMO_STORY_DATE,
@@ -579,6 +583,95 @@ def analyst_section(title: str, section: EvidenceSection, run: AnalystRun) -> No
     ui.analyst_section(title, section.text, len(records), len(refs))
 
 
+def open_proposed_draft(result: IntakeResult) -> None:
+    clear_ai_state()
+    st.session_state["ai_result"] = result
+    st.session_state["ai_narrative"] = result.narrative
+    st.session_state["form_init"] = {"f_mode": "Describe / paste training record"}
+    st.session_state["editing_event_id"] = None
+    st.session_state["editing_revision"] = None
+    st.session_state.pop("calendar_date", None)
+    st.switch_page(PAGES["new"])
+
+
+def perform_ui_action(action: UIAction, proposal: SymptomProposal | None) -> None:
+    s = st.session_state
+    if action.kind == "OPEN_REVIEW":
+        if action.event_id:
+            open_review(action.event_id)
+        else:
+            st.switch_page(PAGES["inbox"])
+    elif action.kind == "OPEN_PROPOSED_DRAFT":
+        result = s.get("ask_proposed_result")
+        if result is not None:
+            open_proposed_draft(result)
+    elif action.kind == "OPEN_FOLLOWUP":
+        st.switch_page(PAGES["followup"])
+    elif action.person_id in PEOPLE:
+        person_id = action.person_id
+        if action.kind == "OPEN_PERSON":
+            open_history(person_id)
+        elif action.kind in ("OPEN_RECORD", "OPEN_SYMPTOM_FORM"):
+            if action.kind == "OPEN_SYMPTOM_FORM":
+                clear_symptom_state()
+                s["sym_person"] = person_id
+                s["sym_open"] = True
+                s["sym_ai_proposal"] = True
+                restore = {}
+                if proposal is not None and proposal.person_id == person_id:
+                    for key, value in (
+                        ("sym_w_event", proposal.event_id),
+                        ("sym_w_relationship", proposal.temporal_relationship),
+                        ("sym_w_date", proposal.report_date),
+                        ("sym_w_persistence", proposal.persistence),
+                        ("sym_w_impact", proposal.functional_impact),
+                        ("sym_w_source", proposal.source),
+                        ("sym_w_note", proposal.note),
+                    ):
+                        if value is not None:
+                            restore[key] = value
+                    restore.update({f"sym_w_s_{item.value}": True for item in proposal.symptoms})
+                    restore.update(
+                        {f"sym_w_d_{item.value}": True for item in proposal.danger_signs}
+                    )
+                s["sym_restore"] = restore
+            on_date = action.on_date or ANALYSIS_AS_OF
+            s["history_person_id"] = person_id
+            s["people_person"] = person_id
+            s["person_day"] = on_date
+            s["person_month"] = on_date.replace(day=1)
+            st.switch_page(PAGES["history"])
+
+
+def analyst_symptom_proposal(proposal: SymptomProposal, action: UIAction, scope: str) -> None:
+    with st.container(border=True):
+        st.write("**Symptom report proposal**")
+        st.write(PEOPLE[proposal.person_id].display_name)
+        st.write("Symptoms: " + ("; ".join(item.label for item in proposal.symptoms) or "Not set"))
+        if proposal.danger_signs:
+            st.write("Danger signs: " + "; ".join(item.label for item in proposal.danger_signs))
+        if proposal.report_date is not None:
+            st.write(f"Report date: {proposal.report_date:%d %b %Y}")
+        if proposal.event_id is not None:
+            st.write("Linked event: " + linked_event_text(proposal.event_id))
+        for label_text, value in (
+            ("Relationship", proposal.temporal_relationship),
+            ("Persistence", proposal.persistence),
+            ("Functional impact", proposal.functional_impact),
+            ("Source", proposal.source),
+        ):
+            if value is not None:
+                st.write(f"{label_text}: {value.label}")
+        if proposal.note is not None:
+            st.write("Note: " + proposal.note)
+        if proposal.missing():
+            st.write("Still needs: " + "; ".join(proposal.missing()))
+        for reason in proposal.dropped:
+            st.caption(reason)
+        if st.button("Review symptom report", key=f"ask-symptom-{scope}", type="primary"):
+            perform_ui_action(action, proposal)
+
+
 def analyst_draft(run: AnalystRun, scope: str) -> None:
     draft = run.created_draft
     if draft is None:
@@ -602,14 +695,7 @@ def analyst_draft(run: AnalystRun, scope: str) -> None:
                 open_review(draft.event_id)
         elif draft.intake_result is not None:
             if st.button("Open proposed draft", key=f"ask-open-proposed-{scope}"):
-                clear_ai_state()
-                st.session_state["ai_result"] = draft.intake_result
-                st.session_state["ai_narrative"] = draft.intake_result.narrative
-                st.session_state["form_init"] = {"f_mode": "Describe / paste training record"}
-                st.session_state["editing_event_id"] = None
-                st.session_state["editing_revision"] = None
-                st.session_state.pop("calendar_date", None)
-                st.switch_page(PAGES["new"])
+                open_proposed_draft(draft.intake_result)
 
 
 def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
@@ -677,12 +763,44 @@ def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
     if response.recommendations:
         st.write("**Recommended next actions**")
         for i, recommendation in enumerate(response.recommendations):
-            ui.analyst_recommendation(
-                recommendation.title,
-                recommendation.rationale,
-                medical=recommendation.authority == "DETERMINISTIC_GUIDANCE_RELAY",
-                key=f"{scope}-{i}",
-            )
+            action = recommendation_action(recommendation, run)
+            labels = {
+                "OPEN_REVIEW": "Open in Review",
+                "OPEN_PROPOSED_DRAFT": "Open proposed draft",
+                "OPEN_RECORD": "Open record",
+                "OPEN_PERSON": "Open person",
+                "OPEN_FOLLOWUP": "Open Follow-up",
+            }
+            if run.created_draft is not None:
+                st.session_state["ask_proposed_result"] = run.created_draft.intake_result
+            if (
+                ui.analyst_recommendation(
+                    recommendation.title,
+                    recommendation.rationale,
+                    medical=recommendation.authority == "DETERMINISTIC_GUIDANCE_RELAY",
+                    key=f"{scope}-{i}",
+                    action_label=labels.get(action.kind) if action else None,
+                )
+                and action is not None
+            ):
+                perform_ui_action(action, run.symptom_proposal)
+    action = navigation_action(run)
+    if action is not None:
+        if run.symptom_proposal is not None:
+            analyst_symptom_proposal(run.symptom_proposal, action, scope)
+        else:
+            label_text = {
+                "OPEN_REVIEW": "Open Review",
+                "OPEN_FOLLOWUP": "Open Follow-up",
+                "OPEN_SYMPTOM_FORM": "Log symptom report",
+                "OPEN_PERSON": (
+                    f"Open {PEOPLE[action.person_id].display_name.split()[0]}"
+                    if action.person_id in PEOPLE
+                    else "Open person"
+                ),
+            }[action.kind]
+            if st.button(label_text, key=f"ask-navigation-{scope}", type="primary"):
+                perform_ui_action(action, None)
     for limitation in response.limitations:
         st.caption(limitation)
     analyst_draft(run, scope)
@@ -1531,6 +1649,8 @@ def symptom_form(person_id: str) -> None:
         st.info(notice)
     if not s.get("sym_open"):
         return
+    if s.get("sym_ai_proposal"):
+        st.info("AI-assisted proposal — review before confirming")
     st.caption(BOUNDARY_NOTE)
     pending = s.get("sym_review")
     if pending is not None:

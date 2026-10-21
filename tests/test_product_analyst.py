@@ -24,6 +24,7 @@ from blastbridge.product.analyst import (
     AgentContext,
     AgentResponse,
     AnalystData,
+    AnalystRun,
     Conversation,
     ValidationFailure,
     activity_lines,
@@ -33,6 +34,8 @@ from blastbridge.product.analyst import (
     extract_json_object,
     is_stale,
     load_analyst_replay,
+    navigation_action,
+    recommendation_action,
     render_deterministic_relays,
     render_fallback,
     render_medical_section,
@@ -42,6 +45,7 @@ from blastbridge.product.analyst import (
 from blastbridge.product.analyst_tools import (
     TOOL_DEFINITIONS,
     ActionEntry,
+    CreatedDraft,
     Evidence,
     ToolSession,
     action_key,
@@ -55,7 +59,14 @@ from blastbridge.product.models import EventStatus, IntakeSource
 from blastbridge.product.patterns import PatternStatus, fit_pattern_model, load_reference
 from blastbridge.product.readiness import ATTENTION_PRECEDENCE, ReadinessStatus
 from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE, DEMO_SYMPTOMS
-from blastbridge.product.symptoms import DangerSign, SymptomReport
+from blastbridge.product.symptoms import (
+    DangerSign,
+    FunctionalImpact,
+    Persistence,
+    Symptom,
+    SymptomReport,
+    TemporalRelationship,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 TODAY = DEMO_STORY_DATE
@@ -2145,3 +2156,281 @@ def test_fallback_formats_display_without_mutating_evidence(env):
     assert [fact["value"] for fact in features] == values
     assert features[0]["value"] == 0.4444444444444444
     assert state.evidence["pattern:FIC-010"][0].payload["reason"] is None
+
+
+def test_symptom_proposal_is_session_only_and_preserves_confirmed_results(env):
+    state = session(env)
+    text = "Log tinnitus for Jordan. It's still present and affecting his daily work."
+    utterance_id = state.conversation.add_user(text)
+    count = len(store.list_symptom_reports(env[0]))
+    before = [
+        state.execute(name, arguments)[0]
+        for name, arguments in (
+            ("get_symptom_history", {"person_id": "FIC-002"}),
+            ("get_followup_assessment", {"person_id": "FIC-002"}),
+            ("get_attention_queue", {}),
+        )
+    ]
+    fingerprint = evidence_fingerprint("FIC-002", env[2], env[1])
+    args = {
+        "person_id": "FIC-002",
+        "utterance_ids": [utterance_id],
+        "symptoms": ["tinnitus"],
+        "persistence": "still_present",
+        "functional_impact": "yes",
+    }
+    payload, error = state.execute("prepare_symptom_report", args)
+    assert not error, payload
+    proposal = state.symptom_proposal
+    assert proposal.symptoms == (Symptom.TINNITUS,) and proposal.danger_signs == ()
+    assert proposal.persistence is Persistence.STILL_PRESENT
+    assert proposal.functional_impact is FunctionalImpact.YES
+    assert proposal.missing() == ["report date", "relationship to a recorded event", "source"]
+    assert proposal.event_id is None and proposal.note is None
+    assert proposal.source_utterance_ids == (utterance_id,)
+    assert state.nested_model_calls == state.nested_tool_calls == 0
+    after = [
+        state.execute(name, arguments)[0]
+        for name, arguments in (
+            ("get_symptom_history", {"person_id": "FIC-002"}),
+            ("get_followup_assessment", {"person_id": "FIC-002"}),
+            ("get_attention_queue", {}),
+        )
+    ]
+    assert before == after and len(store.list_symptom_reports(env[0])) == count
+    assert evidence_fingerprint("FIC-002", env[2], env[1]) == fingerprint
+    assert state.execute("prepare_symptom_report", args)[1]
+
+
+def test_symptom_proposal_runs_through_existing_analyst(env):
+    args = {"person_id": "FIC-002", "utterance_ids": ["U1"], "symptoms": ["tinnitus"]}
+    count = len(store.list_symptom_reports(env[0]))
+    result = run(
+        env,
+        [
+            tool_turn(("prepare_symptom_report", args)),
+            text_turn(
+                answer(
+                    "FIC-002",
+                    ["symptom_proposal:FIC-002"],
+                    intent="PREPARE_SYMPTOM_REPORT",
+                    answer_summary="The proposed fields are ready for your review.",
+                )
+            ),
+        ],
+        question="Log tinnitus for Jordan.",
+    )
+    assert result.grounded and result.validation == []
+    assert result.symptom_proposal.symptoms == (Symptom.TINNITUS,)
+    assert result.response.symptom_followup_summary is None
+    assert navigation_action(result).kind == "OPEN_SYMPTOM_FORM"
+    assert navigation_action(result).person_id == "FIC-002"
+    assert len(store.list_symptom_reports(env[0])) == count
+    for path in ("analyst.py", "analyst_tools.py"):
+        assert "confirm_symptom_report" not in (ROOT / "src/blastbridge/product" / path).read_text()
+
+
+def test_symptom_proposal_leaves_unstated_fields_unset_and_drops_invalid_values(env):
+    state = session(env)
+    state.conversation.add_user("Log tinnitus for Jordan.")
+    payload, error = state.execute(
+        "prepare_symptom_report",
+        {
+            "person_id": "FIC-002",
+            "utterance_ids": ["U1"],
+            "symptoms": ["tinnitus"],
+            "report_date": (TODAY + timedelta(days=1)).isoformat(),
+            "note": "Generated narrative never stated by the user.",
+        },
+    )
+    assert not error, payload
+    proposal = state.symptom_proposal
+    assert proposal.report_date is proposal.source is proposal.persistence is None
+    assert proposal.temporal_relationship is proposal.functional_impact is proposal.note is None
+    assert len(proposal.dropped) == 2
+
+
+@pytest.mark.parametrize("case", ["nonexistent", "wrong_person", "after", "nearby"])
+def test_symptom_proposal_drops_ineligible_event_links(env, case):
+    state = session(env)
+    event = state.data.member_history("FIC-010")[0]
+    event_id = event.event_id
+    if case == "nonexistent":
+        event_id = "no-such-event"
+    elif case == "wrong_person":
+        jordan_ids = {entry.event_id for entry in state.data.member_history("FIC-002")}
+        event_id = next(
+            entry.event_id
+            for entry in state.data.member_history("FIC-010")
+            if entry.event_id not in jordan_ids
+        )
+    person_id = "FIC-002" if case == "wrong_person" else "FIC-010"
+    utterance = "Log tinnitus near that training day." if case == "nearby" else f"Log {event_id}."
+    state.conversation.add_user(utterance)
+    args = {
+        "person_id": person_id,
+        "utterance_ids": ["U1"],
+        "event_id": event_id,
+        "symptoms": ["tinnitus"],
+        "temporal_relationship": "after_recorded_event",
+    }
+    if case == "after":
+        args["report_date"] = (event.event_date - timedelta(days=1)).isoformat()
+    payload, error = state.execute("prepare_symptom_report", args)
+    assert not error, payload
+    assert state.symptom_proposal.event_id is None
+    assert state.symptom_proposal.temporal_relationship is None
+    assert len(state.symptom_proposal.dropped) == 2
+
+
+@pytest.mark.parametrize(
+    "style", ["id", "iso", "day_short", "short_day", "day_full", "full_day", "selected"]
+)
+def test_symptom_proposal_keeps_only_explicit_event_link(env, style):
+    state = session(env)
+    event = state.data.member_history("FIC-010")[0]
+    mentions = {
+        "id": event.event_id,
+        "iso": event.event_date.isoformat(),
+        "day_short": f"{event.event_date.day} {event.event_date:%b}",
+        "short_day": f"{event.event_date:%b} {event.event_date.day}",
+        "day_full": f"{event.event_date.day} {event.event_date:%B}",
+        "full_day": f"{event.event_date:%B} {event.event_date.day}",
+        "selected": "selected event",
+    }
+    if style == "selected":
+        state.context = replace(state.context, selected_calendar_date=event.event_date)
+    utterance = f"Log tinnitus after {mentions[style]}."
+    state.conversation.add_user(utterance)
+    payload, error = state.execute(
+        "prepare_symptom_report",
+        {
+            "person_id": "FIC-010",
+            "utterance_ids": ["U1"],
+            "event_id": event.event_id,
+            "symptoms": ["tinnitus"],
+            "temporal_relationship": "after_recorded_event",
+            "note": utterance,
+        },
+    )
+    assert not error, payload
+    assert state.symptom_proposal.event_id == event.event_id
+    assert state.symptom_proposal.temporal_relationship is TemporalRelationship.AFTER_RECORDED_EVENT
+    assert state.symptom_proposal.note == utterance and state.symptom_proposal.dropped == ()
+
+
+@pytest.mark.parametrize(
+    "action,person_id,target,valid",
+    [
+        ("OPEN_PERSON", "FIC-010", "FIC-010", True),
+        ("OPEN_SYMPTOM_FORM", "FIC-002", "FIC-002", True),
+        ("OPEN_REVIEW", None, None, True),
+        ("OPEN_FOLLOWUP", None, None, True),
+        ("OPEN_PERSON", "FIC-010", "missing", False),
+        ("OPEN_PERSON", "FIC-010", "FIC-002", False),
+        ("OPEN_REVIEW", "FIC-010", "FIC-010", False),
+        ("OPEN_FOLLOWUP", "FIC-010", "FIC-010", False),
+    ],
+)
+def test_navigation_is_person_validated_without_tools(env, action, person_id, target, valid):
+    payload = answer(
+        person_id,
+        intent="RECOMMEND_NEXT_ACTION",
+        navigation={"action": action, "person_id": target},
+    )
+    result = run(env, [text_turn(payload)] if valid else [text_turn(payload), text_turn(payload)])
+    assert result.grounded is valid
+    if valid:
+        assert result.counts.outer_tool_calls == 0
+        assert navigation_action(result).kind == action
+    else:
+        assert any(item.code == "NAVIGATION_PERSON" for item in result.validation)
+        assert navigation_action(result) is None
+
+
+@pytest.mark.parametrize(
+    "kind",
+    [
+        "REVIEW_RECORD",
+        "VERIFY_UNKNOWN",
+        "REVIEW_ELEVATED_PATTERN",
+        "RELAY_MEDICAL_FOLLOWUP",
+        "RELAY_URGENT_GUIDANCE",
+        "RUN_UPDATED_ANALYSIS",
+        "NO_ACTIONABLE_RECOMMENDATION",
+    ],
+)
+def test_recommendation_actions_use_only_validated_evidence(env, kind):
+    state = session(env)
+    audit = execute(state, "audit_record_quality")
+    execute(state, "get_pattern_assessment")
+    execute(state, "get_followup_assessment")
+    issue = next(item for item in audit["issues"] if item["code"] == "UNKNOWN_ACTIVITY_COUNT")
+    refs = [issue["evidence_ref"]]
+    expected = "OPEN_RECORD"
+    if kind == "REVIEW_ELEVATED_PATTERN":
+        refs, expected = ["pattern:FIC-010"], "OPEN_PERSON"
+    elif kind.startswith("RELAY_"):
+        refs, expected = ["followup:FIC-010"], "OPEN_FOLLOWUP"
+    elif kind in ("RUN_UPDATED_ANALYSIS", "NO_ACTIONABLE_RECOMMENDATION"):
+        expected = None
+    rec = recommendation(kind, refs, target="https://untrusted.invalid/anything")
+    response = AgentResponse.model_validate(answer("FIC-010", refs, recommendations=[rec]))
+    result = AnalystRun(
+        TODAY,
+        "replay",
+        response=response,
+        grounded=True,
+        evidence=[item for values in state.evidence.values() for item in values],
+    )
+    action = recommendation_action(response.recommendations[0], result)
+    assert (action.kind if action else None) == expected
+    if expected == "OPEN_RECORD":
+        assert action.event_id == issue["event_ref"] and action.person_id == "FIC-010"
+    result.evidence = []
+    assert recommendation_action(response.recommendations[0], result) is None
+
+
+@pytest.mark.parametrize(
+    "kind,expected", [("review", "OPEN_REVIEW"), ("proposed", "OPEN_PROPOSED_DRAFT")]
+)
+def test_draft_recommendation_actions_use_native_draft(env, kind, expected):
+    draft = CreatedDraft(kind, "action", "Awaiting review", "review:known", event_id="known")
+    refs = ["draft:action"]
+    response = AgentResponse.model_validate(
+        answer(refs=refs, recommendations=[recommendation("OPEN_TRAINING_DRAFT", refs)])
+    )
+    result = AnalystRun(
+        TODAY,
+        "replay",
+        response=response,
+        grounded=True,
+        created_draft=draft,
+        evidence=[Evidence("draft:action", None, "draft", draft.payload())],
+    )
+    action = recommendation_action(response.recommendations[0], result)
+    assert action.kind == expected
+    assert action.event_id == ("known" if kind == "review" else None)
+
+
+@pytest.mark.parametrize(
+    "person_id,utterance_ids",
+    [("missing", ["U1"]), ("FIC-002", ["U2"]), ("FIC-002", ["U1", "U1"])],
+)
+def test_symptom_proposal_requires_known_person_and_user_provenance(env, person_id, utterance_ids):
+    state = session(env)
+    state.conversation.add_user("Log tinnitus for Jordan.")
+    state.conversation.add_assistant("Proposed fields.", None)
+    payload, error = state.execute(
+        "prepare_symptom_report", {"person_id": person_id, "utterance_ids": utterance_ids}
+    )
+    assert error, payload
+    assert state.symptom_proposal is None
+
+
+def test_prepare_intent_requires_the_scoped_proposal_reference(env):
+    state = session(env)
+    response = AgentResponse.model_validate(answer("FIC-002", intent="PREPARE_SYMPTOM_REPORT"))
+    assert any(
+        item.code == "SYMPTOM_PROPOSAL_REQUIRED" for item in validate_response(response, state)
+    )

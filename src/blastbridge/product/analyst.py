@@ -15,6 +15,7 @@ from .agent import IntakeProvider, ProviderError, ProviderTurn, ScriptedProvider
 from .analyst_tools import (
     TOOL_DEFINITIONS,
     Evidence,
+    SymptomProposal,
     ToolSession,
     ToolTrace,
     canonical_json,
@@ -47,6 +48,11 @@ retrieve the corresponding tool first. No pattern result means no invented typic
 Ask at most ONE clarification, only if it changes the draft or whether an action happens.
 Prefer a reviewable draft with unresolved fields over interrogation. Never ask for estimates.
 Use create_training_event_draft only when the user asked to log/record a training event.
+Use prepare_symptom_report only when asked to log/record a symptom. Map only explicitly stated
+facts to enum values; never infer symptoms, danger signs, persistence, functional impact, event
+relationship or a specific event. Leave unknowns unset and cite the proposal. Your own text must
+not name symptoms: code renders the proposal. For pure navigation, return RECOMMEND_NEXT_ACTION
+with navigation and no tool call.
 Pass ids of relevant USER turns, never rewritten narratives. Tools inject application dates.
 Recommendations need actual cited eligibility evidence. Never reinterpret a rejected type.
 No material issue identified means only no material issue was identified in the evidence reviewed;
@@ -73,6 +79,7 @@ ANALYST_DISCLAIMER = "BlastBridge does not diagnose concussion or TBI or estimat
 
 type Intent = Literal[
     "CREATE_TRAINING_DRAFT",
+    "PREPARE_SYMPTOM_REPORT",
     "EXPLAIN_PERSON_STATUS",
     "INVESTIGATE_PERSON",
     "COMPARE_RECENT_HISTORY",
@@ -128,6 +135,12 @@ class Recommendation(BaseModel):
     authority: Literal["AI_WORKFLOW_RECOMMENDATION", "DETERMINISTIC_GUIDANCE_RELAY"]
 
 
+class Navigation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    action: Literal["OPEN_REVIEW", "OPEN_PERSON", "OPEN_FOLLOWUP", "OPEN_SYMPTOM_FORM"]
+    person_id: str | None = None
+
+
 class AgentResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
     intent: Intent
@@ -146,6 +159,7 @@ class AgentResponse(BaseModel):
     brief: Brief | None = None
     evidence_refs: list[str] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)
+    navigation: Navigation | None = None
 
 
 ANALYST_SYSTEM = (
@@ -175,6 +189,7 @@ class AnalystRun:
     mode: str
     response: AgentResponse | None = None
     created_draft: CreatedDraft | None = None
+    symptom_proposal: SymptomProposal | None = None
     tool_trace: list[ToolTrace] = field(default_factory=list)
     counts: RunCounts = field(default_factory=RunCounts)
     model: str | None = None
@@ -185,6 +200,107 @@ class AnalystRun:
     fingerprint: str | None = None
     error: str | None = None
     evidence: list[Evidence] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class UIAction:
+    kind: Literal[
+        "OPEN_REVIEW",
+        "OPEN_PERSON",
+        "OPEN_RECORD",
+        "OPEN_FOLLOWUP",
+        "OPEN_SYMPTOM_FORM",
+        "OPEN_PROPOSED_DRAFT",
+    ]
+    person_id: str | None = None
+    event_id: str | None = None
+    on_date: date | None = None
+
+
+def recommendation_action(rec: Recommendation, run: AnalystRun) -> UIAction | None:
+    response = run.response
+    if not run.grounded or response is None or rec not in response.recommendations:
+        return None
+    person_id = response.person_id
+    evidence = [
+        item
+        for item in run.evidence
+        if item.ref in rec.evidence_refs and item.person_id == person_id
+    ]
+    if rec.type == "OPEN_TRAINING_DRAFT":
+        draft = run.created_draft
+        if draft is None or not any(
+            item.kind == "draft" and item.ref == f"draft:{draft.action_key}"
+            for item in run.evidence
+            if item.ref in rec.evidence_refs
+        ):
+            return None
+        if draft.kind == "review" and draft.event_id:
+            return UIAction("OPEN_REVIEW", event_id=draft.event_id)
+        if draft.kind == "proposed":
+            return UIAction("OPEN_PROPOSED_DRAFT")
+        return None
+    if rec.type in RELAY_TYPES:
+        return (
+            UIAction("OPEN_FOLLOWUP") if any(item.kind == "followup" for item in evidence) else None
+        )
+    if person_id is None or not evidence:
+        return None
+    if rec.type == "REVIEW_ELEVATED_PATTERN":
+        return UIAction("OPEN_PERSON", person_id)
+    if rec.type not in ("REVIEW_RECORD", "VERIFY_UNKNOWN"):
+        return None
+    for ref in rec.evidence_refs:
+        for item in evidence:
+            if item.ref != ref:
+                continue
+            event_id = None
+            if item.kind == "record":
+                event_id = item.payload.get("event_id")
+            elif item.kind == "issue" and item.payload.get("code") == "UNKNOWN_ACTIVITY_COUNT":
+                event_id = item.payload.get("event_ref")
+            if not isinstance(event_id, str) or not any(
+                record.kind == "record"
+                and record.person_id == person_id
+                and record.ref == event_id
+                and record.payload.get("event_id") == event_id
+                for record in run.evidence
+            ):
+                continue
+            try:
+                on_date = date.fromisoformat(item.payload["date"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if on_date <= run.analysis_as_of:
+                return UIAction("OPEN_RECORD", person_id, event_id, on_date)
+    return UIAction("OPEN_PERSON", person_id)
+
+
+def navigation_action(run: AnalystRun) -> UIAction | None:
+    response = run.response
+    if not run.grounded or response is None:
+        return None
+    proposal = run.symptom_proposal
+    if (
+        proposal is not None
+        and proposal.person_id == response.person_id
+        and any(
+            item.kind == "symptom_proposal"
+            and item.person_id == proposal.person_id
+            and item.ref == f"symptom_proposal:{proposal.person_id}"
+            for item in run.evidence
+        )
+    ):
+        return UIAction("OPEN_SYMPTOM_FORM", proposal.person_id)
+    navigation = response.navigation
+    if navigation is None:
+        return None
+    if navigation.action in ("OPEN_PERSON", "OPEN_SYMPTOM_FORM"):
+        if navigation.person_id is None or navigation.person_id != response.person_id:
+            return None
+    elif navigation.person_id is not None:
+        return None
+    return UIAction(navigation.action, navigation.person_id)
 
 
 def is_stale(run: AnalystRun, current_fingerprint: str) -> bool:
@@ -807,9 +923,34 @@ def validate_response(response: AgentResponse, session: ToolSession) -> list[Val
         person.person_id == response.person_id for person in session.data.people
     ):
         fail("UNKNOWN_PERSON", "person_id")
+    if response.intent == "PREPARE_SYMPTOM_REPORT":
+        proposal = session.symptom_proposal
+        if (
+            proposal is None
+            or proposal.person_id != response.person_id
+            or f"symptom_proposal:{proposal.person_id}"
+            not in {ref for _, refs in refs_by_path for ref in refs}
+        ):
+            fail("SYMPTOM_PROPOSAL_REQUIRED", "person_id")
+    navigation = response.navigation
+    if navigation is not None:
+        if navigation.action in ("OPEN_PERSON", "OPEN_SYMPTOM_FORM"):
+            if navigation.person_id != response.person_id or not any(
+                person.person_id == navigation.person_id for person in session.data.people
+            ):
+                fail("NAVIGATION_PERSON", "navigation.person_id")
+        elif navigation.person_id is not None:
+            fail("NAVIGATION_PERSON", "navigation.person_id")
+    navigation_only = (
+        navigation is not None
+        and not _sections(response)
+        and not response.recommendations
+        and response.brief is None
+    )
     if (
         response.intent != "OUT_OF_SCOPE"
         and not response.clarification
+        and not navigation_only
         and not any(refs for _, refs in refs_by_path)
     ):
         fail("MISSING_EVIDENCE", "answer_summary")
@@ -1097,6 +1238,7 @@ def ask(
             }
         )
     run.created_draft = session.created_draft
+    run.symptom_proposal = session.symptom_proposal
     run.tool_trace = session.trace
     run.evidence = [item for values in session.evidence.values() for item in values]
     run.counts.outer_tool_calls = session.outer_calls

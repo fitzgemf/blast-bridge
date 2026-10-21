@@ -378,7 +378,9 @@ def analyst_section(title: str, text: str, records: int, checks: int) -> None:
     st.write(text)
 
 
-def analyst_recommendation(title: str, rationale: str, *, medical: bool, key: str) -> None:
+def analyst_recommendation(
+    title: str, rationale: str, *, medical: bool, key: str, action_label: str | None = None
+) -> bool:
     style = "medical" if medical else "workflow"
     with st.container(key=f"ask-{style}-{key}"):
         st.caption(
@@ -388,6 +390,9 @@ def analyst_recommendation(title: str, rationale: str, *, medical: bool, key: st
         )
         st.write(f"**{markdown_text(title)}**")
         st.write(rationale)
+        if action_label is not None:
+            return st.button(action_label, key=f"ask-action-{key}")
+    return False
 
 
 def action(label: str, container_key: str, *, primary: bool = False) -> bool:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from collections.abc import Callable, MutableMapping, Sequence
 from dataclasses import asdict, dataclass, field, replace
@@ -30,7 +31,15 @@ from .patterns import (
     occupational_features,
 )
 from .readiness import ATTENTION_PRECEDENCE, ReadinessAssessment, assess_readiness
-from .symptoms import SymptomReport
+from .symptoms import (
+    DangerSign,
+    FunctionalImpact,
+    Persistence,
+    Symptom,
+    SymptomReport,
+    SymptomSource,
+    TemporalRelationship,
+)
 
 
 @dataclass(frozen=True)
@@ -148,6 +157,39 @@ class ActionEntry:
     superseded: bool = False
 
 
+@dataclass(frozen=True)
+class SymptomProposal:
+    person_id: str
+    event_id: str | None = None
+    report_date: date | None = None
+    symptoms: tuple[Symptom, ...] = ()
+    danger_signs: tuple[DangerSign, ...] = ()
+    temporal_relationship: TemporalRelationship | None = None
+    persistence: Persistence | None = None
+    functional_impact: FunctionalImpact | None = None
+    source: SymptomSource | None = None
+    note: str | None = None
+    source_utterance_ids: tuple[str, ...] = ()
+    dropped: tuple[str, ...] = ()
+
+    def missing(self) -> list[str]:
+        fields = (
+            ("report date", self.report_date),
+            ("relationship to a recorded event", self.temporal_relationship),
+            ("persistence", self.persistence),
+            ("functional impact", self.functional_impact),
+            ("source", self.source),
+        )
+        missing = [name for name, value in fields if value is None]
+        if not self.symptoms and not self.danger_signs:
+            missing.append("symptoms")
+        return missing
+
+    def payload(self) -> dict[str, Any]:
+        payload: dict[str, Any] = json.loads(canonical_json(asdict(self)))
+        return payload
+
+
 type ActionLedger = MutableMapping[str, ActionEntry]
 
 
@@ -184,6 +226,19 @@ class DraftInput(BaseModel):
     utterance_ids: list[str] = Field(min_length=1, max_length=6)
 
 
+class SymptomProposalInput(PersonInput):
+    utterance_ids: list[str] = Field(min_length=1)
+    event_id: str | None = None
+    report_date: date | None = None
+    symptoms: list[Symptom] = Field(default_factory=list)
+    danger_signs: list[DangerSign] = Field(default_factory=list)
+    temporal_relationship: TemporalRelationship | None = None
+    persistence: Persistence | None = None
+    functional_impact: FunctionalImpact | None = None
+    source: SymptomSource | None = None
+    note: str | None = None
+
+
 READ_TOOLS = (
     "get_person_record",
     "get_pattern_assessment",
@@ -202,6 +257,12 @@ _TOOL_INPUTS.extend(
             "create_training_event_draft",
             "Only when asked to log an event: reuse intake on exact stored user utterances",
             DraftInput,
+        ),
+        (
+            "prepare_symptom_report",
+            "Only when asked to log/record a symptom: structure ONLY facts the user explicitly "
+            "stated into a session proposal for the existing symptom form; never persists",
+            SymptomProposalInput,
         ),
     ]
 )
@@ -315,7 +376,23 @@ def tool_summary(name: str, payload: dict[str, Any]) -> str:
     if name == "get_attention_queue":
         count = len(payload["people"])
         return f"{count} {'person' if count == 1 else 'people'}"
+    if name == "prepare_symptom_report":
+        return "session proposal prepared for human review"
     return str(payload["status"])
+
+
+def _event_identified(event: HistoryEntry, utterances: list[str], context: AgentContext) -> bool:
+    if event.event_date == context.selected_calendar_date:
+        return True
+    day = f"0?{event.event_date.day}"
+    months = (event.event_date.strftime("%b"), event.event_date.strftime("%B"))
+    dates = [rf"\b(?:{day}\s+{month}|{month}\s+{day})\b" for month in months]
+    return any(
+        event.event_id in text
+        or event.event_date.isoformat() in text
+        or any(re.search(pattern, text, re.IGNORECASE) for pattern in dates)
+        for text in utterances
+    )
 
 
 @dataclass
@@ -328,11 +405,13 @@ class ToolSession:
     evidence: dict[str, list[Evidence]] = field(default_factory=dict)
     trace: list[ToolTrace] = field(default_factory=list)
     created_draft: CreatedDraft | None = None
+    symptom_proposal: SymptomProposal | None = None
     outer_calls: int = 0
     nested_model_calls: int = 0
     nested_tool_calls: int = 0
     draft_action_called: bool = False
     recovered_conversation: bool = False
+    symptom_action_called: bool = False
 
     def register(
         self,
@@ -356,6 +435,10 @@ class ToolSession:
                 if self.draft_action_called:
                     raise ValueError("one draft action per request")
                 self.draft_action_called = True
+            if name == "prepare_symptom_report":
+                if self.symptom_action_called:
+                    raise ValueError("one symptom proposal per request")
+                self.symptom_action_called = True
             if self.outer_calls > 8:
                 raise ValueError("tool budget exhausted")
             if name in READ_TOOLS:
@@ -373,6 +456,9 @@ class ToolSession:
             elif name == "create_training_event_draft":
                 draft_input = DraftInput.model_validate(arguments)
                 payload = self.create_draft(draft_input.utterance_ids)
+            elif name == "prepare_symptom_report":
+                proposal_input = SymptomProposalInput.model_validate_json(canonical_json(arguments))
+                payload = self.prepare_symptom_report(proposal_input)
             else:
                 raise ValueError("unknown tool")
         except (ValidationError, ValueError, store.StoreError, sqlite3.Error) as exc:
@@ -391,6 +477,73 @@ class ToolSession:
             )
         )
         return {"untrusted_record_data": payload}, False
+
+    def prepare_symptom_report(self, values: SymptomProposalInput) -> dict[str, Any]:
+        if not any(person.person_id == values.person_id for person in self.data.people):
+            raise ValueError("unknown person_id")
+        turns = [
+            turn
+            for turn in self.conversation.turns
+            if turn.role == "user" and turn.utterance_id in values.utterance_ids
+        ]
+        ids = tuple(turn.utterance_id for turn in turns if turn.utterance_id is not None)
+        if len(set(values.utterance_ids)) != len(values.utterance_ids):
+            raise ValueError("duplicate utterance ids")
+        if set(ids) != set(values.utterance_ids):
+            raise ValueError("unknown user utterance ids")
+        dropped = []
+        report_date = values.report_date
+        if report_date is not None and report_date > self.context.analysis_as_of:
+            report_date = None
+            dropped.append("Report date not kept: after the analysis date")
+        event_id = values.event_id
+        if event_id is not None:
+            event = next(
+                (
+                    entry
+                    for entry in self.data.member_history(values.person_id)
+                    if entry.event_id == event_id
+                ),
+                None,
+            )
+            if event is None or event.event_date > (report_date or self.context.analysis_as_of):
+                event_id = None
+                dropped.append(
+                    "Event link not kept: not an eligible recorded event for this person"
+                )
+            elif not _event_identified(event, [turn.text for turn in turns], self.context):
+                event_id = None
+                dropped.append("Event link not kept: not explicitly identified")
+        relationship = values.temporal_relationship
+        if (relationship == TemporalRelationship.AFTER_RECORDED_EVENT and event_id is None) or (
+            relationship == TemporalRelationship.NOT_LINKED_TO_EVENT and event_id is not None
+        ):
+            relationship = None
+            dropped.append("Event relationship not kept: inconsistent with the retained event link")
+        note = values.note.strip() if values.note is not None else None
+        if note is not None and (len(note) > 500 or not any(note in turn.text for turn in turns)):
+            note = None
+            dropped.append("Note not kept: must be verbatim user text of at most 500 characters")
+        self.symptom_proposal = SymptomProposal(
+            person_id=values.person_id,
+            event_id=event_id,
+            report_date=report_date,
+            symptoms=tuple(values.symptoms),
+            danger_signs=tuple(values.danger_signs),
+            temporal_relationship=relationship,
+            persistence=values.persistence,
+            functional_impact=values.functional_impact,
+            source=values.source,
+            note=note,
+            source_utterance_ids=ids,
+            dropped=tuple(dropped),
+        )
+        return self.register(
+            f"symptom_proposal:{values.person_id}",
+            values.person_id,
+            "symptom_proposal",
+            self.symptom_proposal.payload(),
+        )
 
     def read(self, name: str, person: Person) -> dict[str, Any]:
         person_id = person.person_id
