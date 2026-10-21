@@ -108,6 +108,8 @@ input, textarea {background:white!important;}
 [class*="st-key-listrow-"] [data-testid="stButton"] button {
   width:100%; border:0; border-radius:0; background:transparent; padding:12px 32px 12px 0;
   text-align:left; justify-content:flex-start; position:relative; height:auto;}
+[class*="st-key-listrow-"] button > div, [class*="st-key-listrow-"] button > div > span {
+  justify-content:flex-start; width:100%;}
 [class*="st-key-listrow-"] button p {
   white-space:pre-line; font-size:13.5px; line-height:1.5; color:var(--bb-muted); margin:0;}
 [class*="st-key-listrow-"] button p strong {font-size:16px; font-weight:600; color:var(--bb-ink);}
