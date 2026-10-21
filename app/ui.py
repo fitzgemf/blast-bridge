@@ -30,10 +30,10 @@ p {font-size:1rem; line-height:1.55;}
 .bb-pill.fictional {font-size:.69rem; letter-spacing:.12em;}
 .bb-label {font-size:.8rem; color:var(--bb-muted); margin-bottom:.25rem;}
 .bb-value {font-size:1rem; margin-bottom:.8rem;}
-[data-testid="stButton"] button, [data-testid="stPopover"]>button {
+[data-testid="stButton"] button, [data-testid="stPopover"] button {
   border-radius:16px; border:1px solid var(--bb-line); background:white;
   color:var(--bb-ink); box-shadow:none; min-height:42px;}
-[data-testid="stButton"] button:hover, [data-testid="stPopover"]>button:hover {
+[data-testid="stButton"] button:hover, [data-testid="stPopover"] button:hover {
   border-color:#E45F7B; color:#A63250; background:#FBE9EE;}
 [data-testid="stButton"] button[kind="primary"], .st-key-log-action button {
   background:#E45F7B; color:white; border-color:transparent; font-weight:600;}
@@ -42,10 +42,10 @@ p {font-size:1rem; line-height:1.55;}
 .st-key-log-action {margin:.5rem 0 1rem;}
 .st-key-log-action [data-testid="stPopover"], .st-key-symptom-log [data-testid="stButton"] {
   display:flex; justify-content:center;}
-.st-key-log-action [data-testid="stPopover"]>button, .st-key-symptom-log button {
+.st-key-log-action [data-testid="stPopover"] button, .st-key-symptom-log button {
   border-radius:999px!important; height:44px; min-width:120px; padding:.5rem 1.5rem;}
-.st-key-log-action [data-testid="stPopover"]>button svg {display:none;}
-.st-key-log-action [data-testid="stPopover"]>button [data-testid="stIconMaterial"] {
+.st-key-log-action [data-testid="stPopover"] button svg {display:none;}
+.st-key-log-action [data-testid="stPopover"] button [data-testid="stIconMaterial"] {
   display:none;}
 [data-testid="stPopoverBody"] [data-testid="stButton"] button {
   width:100%; border:0; background:transparent; color:var(--bb-ink);

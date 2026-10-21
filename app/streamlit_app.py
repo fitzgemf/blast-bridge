@@ -477,14 +477,12 @@ def dashboard() -> None:
         if ui.row(
             PEOPLE[item.person_id].display_name,
             readiness_reason(status),
-            state=(
-                "Review recommended" if status is ReadinessStatus.REVIEW_PRIORITY else status.label
-            ),
+            state=status.label,
             tone=readiness_tone(status),
             key=f"home-person-{item.person_id}",
         ):
             open_history(item.person_id)
-    st.page_link(PAGES["inbox"], label="See all in Review")
+    st.page_link(PAGES["inbox"], label="Open Review")
     ui.demo_details(DEMO_ARRANGEMENT_NOTE)
     with st.expander("Demo / Advanced"):
         st.date_input("Analysis as of", key="analysis_as_of", max_value=date.today())
@@ -593,7 +591,7 @@ def ai_intake() -> None:
     st.button("Load example narrative", on_click=load_example_narrative)
     available = live_available()
     if not available:
-        st.caption("Live AI unavailable: ANTHROPIC_API_KEY is not configured. Use the demo replay.")
+        st.caption("Live AI isn't available in this demo. Use the demo replay.")
     live = replay = ui.actions()
     if live.button(
         "Create draft",
@@ -639,9 +637,19 @@ def ai_intake() -> None:
         calendar_date = st.session_state.get("calendar_date")
         narrative_date = values.get("f_date")
         if calendar_date and narrative_date and narrative_date != calendar_date:
+            narrative_date_label = (
+                f"{narrative_date.day} {narrative_date:%b %Y}"
+                if isinstance(narrative_date, date)
+                else str(narrative_date)
+            )
+            calendar_date_label = (
+                f"{calendar_date.day} {calendar_date:%b %Y}"
+                if isinstance(calendar_date, date)
+                else str(calendar_date)
+            )
             st.info(
-                f"The narrative date ({narrative_date}) differs from the date selected on the "
-                f"calendar ({calendar_date}). Review the date."
+                f"The narrative date ({narrative_date_label}) differs from the date selected "
+                f"on the calendar ({calendar_date_label}). Review the date."
             )
         for title, key in (
             ("Date", "f_date"),
@@ -1357,7 +1365,11 @@ def followup_list(key: str) -> None:
         if ui.row(
             PEOPLE[report.draft.person_id].display_name,
             f"{report.draft.report_date.day} {report.draft.report_date:%B}",
-            state="Urgent medical evaluation recommended" if urgent else "Follow-up suggested",
+            state=(
+                "Urgent medical evaluation recommended"
+                if urgent
+                else "Medical follow-up recommended"
+            ),
             tone="red" if urgent else "orange",
             key=f"{key}-{report.report_id}",
         ):
