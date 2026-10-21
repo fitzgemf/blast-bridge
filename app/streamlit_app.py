@@ -619,6 +619,8 @@ def perform_ui_action(action: UIAction, proposal: SymptomProposal | None) -> Non
                 s["sym_ai_proposal"] = True
                 restore = {}
                 if proposal is not None and proposal.person_id == person_id:
+                    if proposal.report_date is None:
+                        s["sym_ai_needs_date"] = True
                     for key, value in (
                         ("sym_w_event", proposal.event_id),
                         ("sym_w_relationship", proposal.temporal_relationship),
@@ -1714,7 +1716,14 @@ def symptom_form(person_id: str) -> None:
             format_func=lambda value: value.label,
             key="sym_w_relationship",
         )
-        report_date = st.date_input("Report date", max_value=date.today(), key="sym_w_date")
+        if s.get("sym_ai_needs_date"):
+            report_date = st.date_input(
+                "Report date", value=None, max_value=date.today(), key="sym_w_date"
+            )
+            if report_date is None:
+                st.caption("Report date was not stated — choose the date before reviewing.")
+        else:
+            report_date = st.date_input("Report date", max_value=date.today(), key="sym_w_date")
         st.write(SYMPTOM_LIST_LABEL)
         symptoms = tuple(
             item for item in Symptom if st.checkbox(item.label, key=f"sym_w_s_{item.value}")
@@ -1751,6 +1760,9 @@ def symptom_form(person_id: str) -> None:
             clear_symptom_state()
             st.rerun()
         if not st.button("Review report", key="sym_form_review"):
+            return
+        if report_date is None:
+            st.warning("Choose the report date.")
             return
         if any(value is None for value in (relationship, persistence, impact, source)):
             st.warning(
