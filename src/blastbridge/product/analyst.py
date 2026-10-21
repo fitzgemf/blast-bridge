@@ -420,11 +420,16 @@ MODEL_TEXT_BACKSTOP = re.compile(
     r"|blast\s+pressure)\b"
     r"|\bfollow[- ]?up\s+(?:(?:is|was)\s+)?(?:not\s+needed|unnecessary|not\s+required)\b"
     r"|\b(?:no|not|doesn['’]t|does\s+not|don['’]t|do\s+not|without)\s+"
-    r"(?:need|needs|needed|requir\w*)\s+(?:(?:for|any|further)\s+)*"
+    r"(?:need|needs|needed|requir\w*)\s+"
+    r"(?:(?:for|any|further|medical|clinical|additional)\s+)*"
     r"(?:follow[- ]?up|evaluation|care|action)\b"
-    r"|\b(?:no|not)\s+(?:(?:any|further)\s+)?follow[- ]?up\b"
+    r"|\b(?:no|not)\s+(?:(?:for|any|further|medical|clinical|additional)\s+)*"
+    r"(?:follow[- ]?up|evaluation|care)\b"
     r"|\bfollow[- ]?up\s+(?:isn['’]t|is\s+not|was\s+not)\s+needed\b"
     r"|\bunnecessary\b|\bno\s+further\s+(?:evaluation|care|follow[- ]?up)\b"
+    r"|\b(?:triggered|due\s+to|ready\s+to\s+(?:fire|train|deploy)|keep\s+firing"
+    r"|return\s+to\s+the\s+range|not\s+a\s+concern|of\s+concern"
+    r"|seen\s+by\s+medical|sick\s+call)\b"
     r"|(?P<urgent>\burgent\b)",
     re.IGNORECASE,
 )

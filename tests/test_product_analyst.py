@@ -1426,6 +1426,17 @@ def test_review2_1_unscoped_person_evidence_is_rejected(env, tool, ref):
         "Jordan can continue live fire.",
         "Jordan can continue training.",
         "Jordan can continue duty.",
+        "Reese does not require medical follow-up.",
+        "Reese needs no medical follow-up.",
+        "The firing triggered Jordan's headaches.",
+        "Jordan's symptoms are due to blast exposure.",
+        "Reese is ready to fire.",
+        "Reese can keep firing.",
+        "Reese can return to the range.",
+        "Reese's tinnitus is not a concern.",
+        "Reese has no symptoms of concern.",
+        "Jordan should be seen by medical today.",
+        "Jordan should go to sick call.",
     ],
 )
 @pytest.mark.parametrize("location", ["answer", "recommendation"])
