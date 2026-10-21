@@ -17,11 +17,8 @@ research records and validation remain available. The project has no web
 application, trained model, NLP extraction, unsupported exposure scores, or
 provider-summary generator (research dataset scope; see [PRODUCT.md](PRODUCT.md) for the
 product/hackathon Streamlit prototype with a runtime-fitted IsolationForest).
-V0.5 is the fictional synthetic-engine foundation:
-an in-memory assembler, ExecutionMapping, minimal JSON persistence, and one
-committed fictional demo career, using generator 0.5.0 and unchanged output
-schema 0.4.0. Only a fictional, content-gated engine exists; real generation
-remains unauthorized. It makes no medical inference. Exposure is not injury.
+The earlier V0.4/V0.5 fictional synthetic-engine foundation has been removed from this branch;
+it remains in git history. It makes no medical inference. Exposure is not injury.
 
 Research Dataset V0.2 adds **40 training-tempo evidence records**, **31 source
 records** (29 official, one SME recollection and one research-definition source),
@@ -36,10 +33,7 @@ Dataset/schema versions are independent of the Python package version, which
 remains 0.1.0. V0.3 prior and uncertainty design is complete; no empirical
 population priors were justified. No production synthetic careers have been
 generated, and no ML models have been trained (research dataset scope; product prototype:
-[PRODUCT.md](PRODUCT.md)). The V0.5 fictional foundation
-builds on the V0.4 configuration, scenario, distribution, RNG, provenance,
-hierarchy, validation, and output-schema contracts. Scale, chunking, manifests,
-and golden-vector work are deferred. See the
+[PRODUCT.md](PRODUCT.md)). The removed V0.4 design is recorded in the
 [V0.4 architecture note](research/notes/synthetic-generator-architecture-v0.4.md).
 
 ## Setup (Windows PowerShell)
@@ -57,7 +51,6 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m blastbridge.validation.reference
 .\.venv\Scripts\python.exe -m blastbridge.validation.training_tempo --source-directory research/sources/tempo-downloads
 .\.venv\Scripts\python.exe -m blastbridge.validation.priors
-.\.venv\Scripts\python.exe -m blastbridge.validation.simulation
 .\.venv\Scripts\python.exe scripts\verify_release_history.py --source-archive
 ```
 
@@ -176,13 +169,8 @@ BlastBridge/
     py.typed
     models/       # Core records plus versioned reference schemas
     data/         # Reference bundle, source registry and catalog loaders
-    simulation/   # Reserved; no implementation
-    features/     # Reserved; no implementation
     validation/   # Cross-record integrity
   data/
-    raw/          # Empty; ignored except .gitkeep
-    curated/      # Empty; ignored except .gitkeep
-    synthetic/    # Empty; ignored except .gitkeep
     reference/    # Sources, weapons, occupations, relationships, taxonomy,
                   # exported schema and release manifest
                   # plus separately manifested training_tempo* V0.2 files
@@ -190,7 +178,6 @@ BlastBridge/
     sources/      # Source-register guidance
     notes/        # Decisions needed before dataset work
   tests/
-  notebooks/      # Guidance only
 ```
 
 The working repository has moved out of OneDrive. This reduces accidental cloud
@@ -198,8 +185,7 @@ synchronization; it does not approve the repository for PHI, PII, controlled
 military information or actual participant records. During development use only
 public references and explicitly fictional/synthetic demonstration records.
 Do not store actual medical records, SSNs, DoD IDs, EDIPI, names, addresses or
-exact birth dates. Only the fictional, content-gated synthetic engine is
-implemented; real generation remains unauthorized, and no medical inference
+exact birth dates. Real synthetic generation remains unauthorized, and no medical inference
 is supported. Exposure is not injury.
 See [data governance](research/notes/data-governance.md) and the
 [migration record](research/notes/repository-migration.md).
