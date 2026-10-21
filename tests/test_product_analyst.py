@@ -1791,7 +1791,9 @@ def test_fallback_replaces_each_violating_field_and_preserves_refs(env):
     facts = next(item.payload for item in result.evidence if item.kind == "facts")
     for fact in facts["features"]:
         value = fact["value"]
-        displayed = f"{value:.2f}".rstrip("0").rstrip(".") if isinstance(value, float) else str(value)
+        displayed = (
+            f"{value:.2f}".rstrip("0").rstrip(".") if isinstance(value, float) else str(value)
+        )
         assert f"{fact['label']}: {displayed}" in response.what_changed.text
     assert response.recommendations[0].title == "Review elevated occupational pattern"
     assert response.recommendations[0].evidence_refs == ["pattern:FIC-010"]
