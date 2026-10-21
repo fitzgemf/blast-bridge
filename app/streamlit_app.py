@@ -195,7 +195,7 @@ def render_calendar(key: str, marks: dict[date, DayMarks], person: bool) -> date
     month = s[f"{key}_month"]
     with st.container(key=f"cal-{key}"):
         with st.container(key=f"month-nav-{key}"):
-            previous, title, following = st.columns([1, 3, 1])
+            title, previous, following = st.columns([6, 1, 1])
             if previous.button("‹", key=f"{key}-previous", width="stretch"):
                 s[f"{key}_month"] = date(
                     month.year - (month.month == 1), (month.month - 2) % 12 + 1, 1
@@ -431,44 +431,53 @@ def priority_people(assessments: dict[str, ReadinessAssessment]) -> list[Readine
 
 def dashboard() -> None:
     ui.brand()
-    st.subheader(f"{ANALYSIS_AS_OF:%A, %B} {ANALYSIS_AS_OF.day}")
+    st.markdown(
+        f'<div class="bb-home-date">{ANALYSIS_AS_OF:%A, %B} {ANALYSIS_AS_OF.day}</div>',
+        unsafe_allow_html=True,
+    )
     st.caption("Occupational brain-health readiness")
     approved = store.list_events(CONN, EventStatus.APPROVED, limit=-1)
     reports = store.list_symptom_reports(CONN)
     assessments = all_readiness(ANALYSIS_AS_OF)
     marks = organization_marks(approved, reports, ANALYSIS_AS_OF)
-    selected = render_calendar("org", marks, person=False)
-    if selected and can_record_on(selected, date.today()):
-        with st.container(key="log-action"):
-            with st.popover("+ Log", type="primary"):
-                if st.button("Training event · describe with AI"):
-                    open_form(on_date=selected, mode="Describe / paste training record")
-                if st.button("Training event · enter manually"):
-                    open_form(on_date=selected, mode="Enter manually")
-    if selected:
-        with st.container(key="selected-day"):
-            st.subheader(f"{selected:%B} {selected.day}")
-            day_events = [event for event in approved if event.draft.event_date == selected]
-            urgent_day = marks.get(selected, DayMarks()).urgent
-            if not day_events and not urgent_day:
-                st.caption("No records on this date.")
-            for event in day_events:
-                d = event.draft
-                st.write(f"**{d.weapon_name}**")
-                st.write(label(d.training_context))
-                st.caption(
-                    f"{len(d.crews)} {'crew' if len(d.crews) == 1 else 'crews'} · "
-                    f"{d.participant_count} personnel"
-                )
-                st.caption(short_provenance(event.intake_source, event.status))
-                if st.button("Open record ›", key=f"day-record-{event.event_id}"):
-                    open_review(event.event_id)
-                st.divider()
-            if urgent_day:
-                st.write("An urgent danger sign was recorded on this date")
-                st.page_link(PAGES["inbox"], label="Review urgent guidance")
+    with ui.surface("org"):
+        selected = render_calendar("org", marks, person=False)
+        day_column, log_column = st.columns([4, 1], vertical_alignment="center")
+        with log_column:
+            if selected and can_record_on(selected, date.today()):
+                with st.container(key="log-action"):
+                    with st.popover("+ Log", type="primary"):
+                        if st.button("Training event · describe with AI"):
+                            open_form(on_date=selected, mode="Describe / paste training record")
+                        if st.button("Training event · enter manually"):
+                            open_form(on_date=selected, mode="Enter manually")
+        with day_column:
+            if selected:
+                with st.container(key="selected-day"):
+                    st.subheader(f"{selected:%B} {selected.day}")
+                    day_events = [event for event in approved if event.draft.event_date == selected]
+                    urgent_day = marks.get(selected, DayMarks()).urgent
+                    if not day_events and not urgent_day:
+                        st.caption("No records on this date.")
+                    for event in day_events:
+                        d = event.draft
+                        st.write(f"**{d.weapon_name}**")
+                        st.write(label(d.training_context))
+                        st.caption(
+                            f"{len(d.crews)} {'crew' if len(d.crews) == 1 else 'crews'} · "
+                            f"{d.participant_count} personnel"
+                        )
+                        st.caption(short_provenance(event.intake_source, event.status))
+                        if st.button("Open record ›", key=f"day-record-{event.event_id}"):
+                            open_review(event.event_id)
+                        st.divider()
+                    if urgent_day:
+                        st.write("An urgent danger sign was recorded on this date")
+                        st.page_link(PAGES["inbox"], label="Review urgent guidance")
 
-    st.subheader("Needs attention")
+    with st.container(key="attention-heading", horizontal=True, vertical_alignment="center"):
+        st.subheader("Needs attention")
+        st.page_link(PAGES["inbox"], label="Open Review")
     priority = priority_people(assessments)
     if not priority:
         st.caption("No personnel currently surfaced from the recorded information.")
@@ -480,9 +489,9 @@ def dashboard() -> None:
             state=status.label,
             tone=readiness_tone(status),
             key=f"home-person-{item.person_id}",
+            avatar=True,
         ):
             open_history(item.person_id)
-    st.page_link(PAGES["inbox"], label="Open Review")
     ui.demo_details(DEMO_ARRANGEMENT_NOTE)
     with st.expander("Demo / Advanced"):
         st.date_input("Analysis as of", key="analysis_as_of", max_value=date.today())
@@ -582,17 +591,20 @@ def load_example_narrative() -> None:
 
 
 def ai_intake() -> None:
-    st.text_area(
-        "Describe / paste training record",
-        key="ai_narrative",
-        height=180,
-        placeholder="Paste or type the training record here.",
-    )
-    st.button("Load example narrative", on_click=load_example_narrative)
+    workspace = st.container(key="ai-workspace")
+    with workspace:
+        st.text_area(
+            "Describe / paste training record",
+            key="ai_narrative",
+            height=180,
+            placeholder="Paste or type the training record here.",
+        )
+        st.button("Load example narrative", on_click=load_example_narrative, type="tertiary")
     available = live_available()
-    if not available:
-        st.caption("Live AI isn't available in this demo. Use the demo replay.")
-    live = replay = ui.actions()
+    with workspace:
+        if not available:
+            st.caption("Live AI isn't available in this demo. Use the demo replay.")
+        live = replay = ui.actions()
     if live.button(
         "Create draft",
         disabled=not available,
@@ -632,7 +644,8 @@ def ai_intake() -> None:
             '<span class="bb-pill">AI-generated draft — not yet recorded</span>',
             unsafe_allow_html=True,
         )
-        show_ai_metadata(metadata)
+        with st.expander("Draft source"):
+            show_ai_metadata(metadata)
         values = result.form_values
         calendar_date = st.session_state.get("calendar_date")
         narrative_date = values.get("f_date")
@@ -669,7 +682,7 @@ def ai_intake() -> None:
                 value = label(value)
             elif isinstance(value, date):
                 value = value.strftime("%d %B %Y")
-            st.write(f"{title}: {value if value is not None else 'Needs review'}")
+            ui.field(title, str(value) if value is not None else "Needs review")
         rows = []
         for i in values.get("f_crews", []):
             prefix = f"f_c{i}_"
@@ -701,18 +714,20 @@ def ai_intake() -> None:
                         "Physical events": str(count),
                     }
                 )
-        previous_crew = None
-        for row in rows:
-            if row["Crew"] != previous_crew:
-                st.write(f"**{row['Crew']} · {row['Physical events']} physical events**")
-                previous_crew = row["Crew"]
-            ui.compact_line(f"{row['Position']} · {row['Person']}")
-            if row["As written"] and row["As written"] != row["Person"]:
-                ui.compact_line(f"As written: {row['As written']}", muted=True)
+        with st.container(key="draft-crews"):
+            previous_crew = None
+            for row in rows:
+                if row["Crew"] != previous_crew:
+                    ui.crew_heading(f"{row['Crew']} · {row['Physical events']} physical events")
+                    previous_crew = row["Crew"]
+                ui.compact_line(f"{row['Position']} · {row['Person']}")
+                if row["As written"] and row["As written"] != row["Person"]:
+                    ui.compact_line(f"As written: {row['As written']}", muted=True)
         if result.issues:
-            st.markdown(":orange[Needs review]")
-            for issue in sorted(result.issues, key=lambda item: not item.blocking):
-                st.write(f"{'Required · ' if issue.blocking else ''}{issue.message}")
+            with st.container(key="draft-issues"):
+                st.markdown(":orange[Needs review]")
+                for issue in sorted(result.issues, key=lambda item: not item.blocking):
+                    st.write(f"{'Required · ' if issue.blocking else ''}{issue.message}")
         with st.expander("How BlastBridge structured this"):
             for field_name, origin in result.origins.items():
                 st.caption(f"{field_name}: {origin}")
@@ -1372,6 +1387,7 @@ def followup_list(key: str) -> None:
             ),
             tone="red" if urgent else "orange",
             key=f"{key}-{report.report_id}",
+            avatar=True,
         ):
             open_history(report.draft.person_id)
         with st.expander("Report details"):
@@ -1450,6 +1466,7 @@ def history() -> None:
                 state="" if status is ReadinessStatus.ROUTINE_MONITORING else status.label,
                 tone=readiness_tone(status),
                 key=f"people-{p.person_id}",
+                avatar=True,
             ):
                 open_history(p.person_id)
         ui.demo_details(DEMO_ARRANGEMENT_NOTE)
@@ -1466,6 +1483,7 @@ def history() -> None:
     assessment = readiness_for(person_id, ANALYSIS_AS_OF)
     pattern = assessment.ml_pattern
     with st.container(key="person-header"):
+        ui.profile(p.display_name)
         ui.brand(p.display_name)
         st.caption(f"{p.section} · {p.unit}")
         readiness_pill(assessment.overall_readiness_status)
@@ -1473,9 +1491,10 @@ def history() -> None:
         with st.expander("Recommended next step"):
             st.write(next_action(assessment.overall_readiness_status))
         st.caption(f"Analysis as of {ANALYSIS_AS_OF:%d %b %Y}")
-    selected = render_calendar(
-        "person", person_marks(entries, reports, ANALYSIS_AS_OF), person=True
-    )
+    with ui.surface("person"):
+        selected = render_calendar(
+            "person", person_marks(entries, reports, ANALYSIS_AS_OF), person=True
+        )
     if selected:
         with st.container(key="person-selected-day"):
             st.subheader(f"{selected:%B} {selected.day}")
