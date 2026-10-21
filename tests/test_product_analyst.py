@@ -1790,7 +1790,9 @@ def test_fallback_replaces_each_violating_field_and_preserves_refs(env):
     assert "Atypical elevated occupational cadence" in response.occupational_summary.text
     facts = next(item.payload for item in result.evidence if item.kind == "facts")
     for fact in facts["features"]:
-        assert f"{fact['label']}: {fact['value']}" in response.what_changed.text
+        value = fact["value"]
+        displayed = f"{value:.2f}".rstrip("0").rstrip(".") if isinstance(value, float) else str(value)
+        assert f"{fact['label']}: {displayed}" in response.what_changed.text
     assert response.recommendations[0].title == "Review elevated occupational pattern"
     assert response.recommendations[0].evidence_refs == ["pattern:FIC-010"]
     assert all(part.evidence_refs == refs for part in response.brief.sections)
