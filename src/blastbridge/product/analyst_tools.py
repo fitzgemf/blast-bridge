@@ -17,8 +17,25 @@ from blastbridge.models.reference import CanonicalWeapon
 
 from . import agent, store
 from .agent import IntakeProvider, IntakeResult
+from .evidence import (
+    Comparison,
+    EvidenceReconstructionProposal,
+    SharedEventCandidate,
+    compare_sources,
+    participants,
+    possible_shared_events,
+    prepare_reconstruction,
+    verification_queue,
+)
 from .followup import SOURCES, FollowUpState, evaluate
-from .models import EventStatus, HistoryEntry, IntakeSource, Person, TrainingEventDraft
+from .models import (
+    EventStatus,
+    HistoryEntry,
+    IntakeSource,
+    Person,
+    TrainingEvent,
+    TrainingEventDraft,
+)
 from .models import provenance_text as record_provenance
 from .patterns import (
     FEATURE_LABELS,
@@ -63,6 +80,7 @@ class AnalystData:
     pattern_model: PatternModel | None
     catalog: Sequence[CanonicalWeapon]
     save_draft: Callable[[TrainingEventDraft, IntakeSource], str]
+    events: Callable[[], Sequence[TrainingEvent]] = field(default=lambda: ())
 
     @classmethod
     def from_connection(
@@ -78,6 +96,10 @@ class AnalystData:
             pattern_model=pattern_model,
             catalog=catalog,
             save_draft=lambda draft, source: store.save_draft(conn, draft, intake_source=source),
+            events=lambda: [
+                *store.list_events(conn, EventStatus.DRAFT, limit=-1),
+                *store.list_events(conn, EventStatus.APPROVED, limit=-1),
+            ],
         )
 
 
@@ -239,6 +261,16 @@ class SymptomProposalInput(PersonInput):
     note: str | None = None
 
 
+class EvidenceScopeInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    person_id: str | None = None
+
+
+class EventPairInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    event_ids: list[str] = Field(min_length=2, max_length=2)
+
+
 READ_TOOLS = (
     "get_person_record",
     "get_pattern_assessment",
@@ -264,13 +296,29 @@ _TOOL_INPUTS.extend(
             "stated into a session proposal for the existing symptom form; never persists",
             SymptomProposalInput,
         ),
+        ("find_evidence_issues", "Ordered evidence verification findings", EvidenceScopeInput),
+        (
+            "find_possible_shared_events",
+            "Conservative possible shared events, never confirmed matches",
+            EvidenceScopeInput,
+        ),
+        ("compare_event_evidence", "Compare two recorded sources field by field", EventPairInput),
+        (
+            "prepare_reconstruction_proposal",
+            "Session-only reconstruction of a surfaced candidate; humans resolve conflicts",
+            EventPairInput,
+        ),
     ]
 )
 
 
 def _without_max_items(value: Any) -> Any:
     if isinstance(value, dict):
-        return {key: _without_max_items(item) for key, item in value.items() if key != "maxItems"}
+        return {
+            key: _without_max_items(item)
+            for key, item in value.items()
+            if key != "maxItems" and not (key == "minItems" and item > 1)
+        }
     if isinstance(value, list):
         return [_without_max_items(item) for item in value]
     return value
@@ -378,6 +426,10 @@ def tool_summary(name: str, payload: dict[str, Any]) -> str:
         return f"{count} {'person' if count == 1 else 'people'}"
     if name == "prepare_symptom_report":
         return "session proposal prepared for human review"
+    if name in ("find_evidence_issues", "find_possible_shared_events"):
+        return f"{len(payload['items'])} evidence workflow items"
+    if name in ("compare_event_evidence", "prepare_reconstruction_proposal"):
+        return "source comparison prepared for human review"
     return str(payload["status"])
 
 
@@ -412,6 +464,12 @@ class ToolSession:
     draft_action_called: bool = False
     recovered_conversation: bool = False
     symptom_action_called: bool = False
+    reconstructions: MutableMapping[str, EvidenceReconstructionProposal] = field(
+        default_factory=dict
+    )
+    reconstruction: EvidenceReconstructionProposal | None = None
+    comparisons: dict[str, Comparison] = field(default_factory=dict)
+    candidates: dict[str, SharedEventCandidate] = field(default_factory=dict)
 
     def register(
         self,
@@ -459,6 +517,12 @@ class ToolSession:
             elif name == "prepare_symptom_report":
                 proposal_input = SymptomProposalInput.model_validate_json(canonical_json(arguments))
                 payload = self.prepare_symptom_report(proposal_input)
+            elif name in ("find_evidence_issues", "find_possible_shared_events"):
+                scope = EvidenceScopeInput.model_validate(arguments)
+                payload = self.evidence_findings(name, scope.person_id)
+            elif name in ("compare_event_evidence", "prepare_reconstruction_proposal"):
+                pair = EventPairInput.model_validate(arguments)
+                payload = self.compare_evidence(name, pair.event_ids)
             else:
                 raise ValueError("unknown tool")
         except (ValidationError, ValueError, store.StoreError, sqlite3.Error) as exc:
@@ -477,6 +541,109 @@ class ToolSession:
             )
         )
         return {"untrusted_record_data": payload}, False
+
+    def evidence_sources(self) -> list[TrainingEvent]:
+        return [
+            source
+            for source in self.data.events()
+            if source.status != EventStatus.REJECTED
+            and source.draft.event_date <= self.context.analysis_as_of
+        ]
+
+    def evidence_findings(self, name: str, person_id: str | None) -> dict[str, Any]:
+        if person_id is not None and not any(p.person_id == person_id for p in self.data.people):
+            raise ValueError("unknown person_id")
+        sources = self.evidence_sources()
+        candidates = possible_shared_events(sources)
+        if person_id is not None:
+            involved = {source.event_id for source in sources if person_id in participants(source)}
+            candidates = [
+                candidate for candidate in candidates if involved.intersection(candidate.source_ids)
+            ]
+        self.candidates.update({candidate.key: candidate for candidate in candidates})
+        if name == "find_possible_shared_events":
+            return {
+                "items": [
+                    self.register(
+                        f"candidate:{candidate.key}", None, "candidate", asdict(candidate)
+                    )
+                    for candidate in candidates
+                ]
+            }
+        findings = verification_queue(
+            sources,
+            self.context.analysis_as_of,
+            [person_id] if person_id is not None else [p.person_id for p in self.data.people],
+        )
+        if person_id is not None:
+            findings = [
+                finding
+                for finding in findings
+                if finding.person_id == person_id or involved.intersection(finding.source_ids)
+            ]
+        return {
+            "items": [
+                self.register(
+                    f"finding:{finding.code}:{'+'.join(finding.source_ids) or finding.person_id}",
+                    None,
+                    "finding",
+                    asdict(finding),
+                )
+                for finding in findings
+            ]
+        }
+
+    def compare_evidence(self, name: str, event_ids: list[str]) -> dict[str, Any]:
+        by_id = {source.event_id: source for source in self.evidence_sources()}
+        if len(set(event_ids)) != 2 or any(event_id not in by_id for event_id in event_ids):
+            raise ValueError("two existing non-rejected source records are required")
+        comparison = compare_sources(by_id[event_ids[0]], by_id[event_ids[1]])
+        candidate = next(
+            (
+                item
+                for item in possible_shared_events(comparison.sources)
+                if item.key == comparison.key
+            ),
+            None,
+        )
+        if (
+            name == "prepare_reconstruction_proposal"
+            and comparison.key not in self.candidates
+            and comparison.key not in self.reconstructions
+        ):
+            raise ValueError("surface the possible shared event candidate first")
+        if name == "prepare_reconstruction_proposal" and candidate is None:
+            raise ValueError("source records no longer form a possible shared event candidate")
+        self.comparisons[comparison.key] = comparison
+        for source in comparison.sources:
+            self.register(
+                f"source:{source.event_id}", None, "source", source.model_dump(mode="json")
+            )
+        comparison_payload = {
+            "source_ids": comparison.source_ids,
+            "sources": [source.model_dump(mode="json") for source in comparison.sources],
+            "rows": [asdict(row) for row in comparison.rows],
+        }
+        compared = self.register(
+            f"comparison:{comparison.key}", None, "comparison", comparison_payload
+        )
+        if name != "prepare_reconstruction_proposal":
+            return compared
+        proposal = self.reconstructions.get(comparison.key)
+        if proposal is None:
+            proposal = prepare_reconstruction(comparison)
+            self.reconstructions[comparison.key] = proposal
+        self.reconstruction = proposal
+        proposal_payload = {
+            "key": proposal.key,
+            "source_ids": proposal.source_ids,
+            "fields": [asdict(item) for item in proposal.fields],
+            "created_draft_id": proposal.created_draft_id,
+            "comparison": comparison_payload,
+        }
+        return self.register(
+            f"reconstruction:{proposal.key}", None, "reconstruction", proposal_payload
+        )
 
     def prepare_symptom_report(self, values: SymptomProposalInput) -> dict[str, Any]:
         if not any(person.person_id == values.person_id for person in self.data.people):

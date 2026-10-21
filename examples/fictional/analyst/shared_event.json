@@ -1,0 +1,66 @@
+{
+  "name": "shared_event",
+  "label": "Demo replay",
+  "provenance": "Scripted model turns authored for the fictional demo — not a live recording. Tools and validation run for real.",
+  "analysis_as_of": "2026-10-19",
+  "reference_date": "2026-10-19",
+  "page": "home",
+  "selected_person_id": null,
+  "steps": [
+    {
+      "utterance": "Find possible duplicate records",
+      "outer_turns": [
+        {
+          "stop_reason": "tool_use",
+          "blocks": [
+            {
+              "type": "tool_use",
+              "id": "evidence-1",
+              "name": "find_possible_shared_events",
+              "input": {}
+            }
+          ],
+          "model": "scripted-demo-analyst"
+        },
+        {
+          "stop_reason": "tool_use",
+          "blocks": [
+            {
+              "type": "tool_use",
+              "id": "evidence-2",
+              "name": "compare_event_evidence",
+              "input": {
+                "event_ids": [
+                  "EVT-DEMO-S1",
+                  "EVT-DEMO-S2"
+                ]
+              }
+            },
+            {
+              "type": "tool_use",
+              "id": "evidence-3",
+              "name": "prepare_reconstruction_proposal",
+              "input": {
+                "event_ids": [
+                  "EVT-DEMO-S1",
+                  "EVT-DEMO-S2"
+                ]
+              }
+            }
+          ],
+          "model": "scripted-demo-analyst"
+        },
+        {
+          "stop_reason": "end_turn",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "{\"intent\":\"RECONCILE_EVIDENCE\",\"person_id\":null,\"answer_summary\":\"Compare the cited source records and review the session proposal before creating a training draft.\",\"recommendations\":[{\"type\":\"REVIEW_POSSIBLE_SHARED_EVENT\",\"title\":\"Review the source comparison\",\"rationale\":\"Review the cited evidence and the session proposal before creating a draft.\",\"evidence_refs\":[\"candidate:EVT-DEMO-S1+EVT-DEMO-S2\",\"reconstruction:EVT-DEMO-S1+EVT-DEMO-S2\"],\"authority\":\"AI_WORKFLOW_RECOMMENDATION\",\"action_target\":null}],\"evidence_refs\":[\"candidate:EVT-DEMO-S1+EVT-DEMO-S2\",\"comparison:EVT-DEMO-S1+EVT-DEMO-S2\",\"reconstruction:EVT-DEMO-S1+EVT-DEMO-S2\"],\"limitations\":[\"Human Review / Approve remains required before a draft enters recorded history.\"]}"
+            }
+          ],
+          "model": "scripted-demo-analyst"
+        }
+      ]
+    }
+  ]
+}

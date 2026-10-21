@@ -2,6 +2,7 @@
 
 import os
 import sqlite3
+from dataclasses import replace
 from datetime import date, datetime
 from enum import StrEnum
 from html import escape
@@ -54,6 +55,14 @@ from blastbridge.product.calendar_view import (
 from blastbridge.product.calendar_view import (
     next_action as calendar_next_action,
 )
+from blastbridge.product.evidence import (
+    Comparison,
+    can_create_draft,
+    compare_sources,
+    creation_block_reason,
+    resolve,
+    to_draft,
+)
 from blastbridge.product.followup import (
     ABSENCE_NOTE,
     BOUNDARY_NOTE,
@@ -100,7 +109,7 @@ from blastbridge.product.readiness import (
     ReadinessStatus,
     assess_readiness,
 )
-from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE, DEMO_SYMPTOMS
+from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE, DEMO_SOURCE_DRAFTS, DEMO_SYMPTOMS
 from blastbridge.product.symptoms import (
     DangerSign,
     FunctionalImpact,
@@ -134,6 +143,7 @@ def _initialized(path: str) -> str:
     store.seed_people(conn, DEMO_PEOPLE)
     store.seed_demo_events(conn, DEMO_EVENTS)
     store.seed_demo_symptoms(conn, DEMO_SYMPTOMS)
+    store.seed_demo_drafts(conn, DEMO_SOURCE_DRAFTS)
     conn.close()
     return path
 
@@ -480,7 +490,11 @@ def analyst_data(*, include_catalog: bool) -> AnalystData:
 
 def analyst_suggestions(person_id: str | None) -> list[tuple[str, str]]:
     if person_id is None:
-        return [("Log a training event", "log_event"), ("Who needs attention?", "attention")]
+        return [
+            ("Log a training event", "log_event"),
+            ("Who needs attention?", "attention"),
+            ("Find possible duplicate records", "shared_event"),
+        ]
     if person_id == "FIC-010":
         return [
             ("Summarize Reese for review", "reese_brief"),
@@ -571,6 +585,7 @@ def submit_analyst(
                 intake_provider=intake_provider,
                 conversation=conversation,
                 ledger=ledger,
+                reconstructions=s.setdefault("reconstructions", {}),
             )
     except (OSError, ValueError, IndexError, StopIteration) as exc:
         s[notice_key] = str(exc)
@@ -596,6 +611,14 @@ def open_proposed_draft(result: IntakeResult) -> None:
 
 def perform_ui_action(action: UIAction, proposal: SymptomProposal | None) -> None:
     s = st.session_state
+    if action.kind in (
+        "OPEN_EVIDENCE_COMPARISON",
+        "OPEN_SOURCE_RECORD",
+        "RESOLVE_RECONSTRUCTION",
+        "CREATE_RECONSTRUCTED_DRAFT",
+    ):
+        perform_evidence_action(action)
+        return
     if action.kind == "OPEN_REVIEW":
         if action.event_id:
             open_review(action.event_id)
@@ -643,6 +666,193 @@ def perform_ui_action(action: UIAction, proposal: SymptomProposal | None) -> Non
             s["person_day"] = on_date
             s["person_month"] = on_date.replace(day=1)
             st.switch_page(PAGES["history"])
+
+
+def perform_evidence_action(action: UIAction) -> None:
+    s = st.session_state
+    key = action.evidence_key
+    comparisons = s.setdefault("evidence_comparisons", {})
+    comparison = comparisons.get(key)
+    if action.kind == "OPEN_EVIDENCE_COMPARISON":
+        candidate = s.get("evidence_candidates", {}).get(key)
+        if comparison is None and candidate is not None:
+            try:
+                comparison = compare_sources(
+                    *(store.get_event(CONN, event_id) for event_id in candidate.source_ids)
+                )
+            except (store.StoreError, ValueError):
+                return
+            comparisons[key] = comparison
+        if comparison is not None:
+            s["evidence_open"] = key
+            st.rerun()
+        return
+    if comparison is None:
+        return
+    if action.kind == "OPEN_SOURCE_RECORD":
+        if action.event_id is not None and action.event_id in comparison.source_ids:
+            open_review(action.event_id)
+        return
+    proposals = s.setdefault("reconstructions", {})
+    proposal = proposals.get(key)
+    if proposal is None:
+        return
+    try:
+        if action.kind == "RESOLVE_RECONSTRUCTION":
+            proposals[key] = resolve(proposal, action.field or "", action.choice or "")
+            st.rerun()
+        elif action.kind == "CREATE_RECONSTRUCTED_DRAFT":
+            if proposal.created_draft_id is not None:
+                open_review(proposal.created_draft_id)
+                return
+            sources = [store.get_event(CONN, event_id) for event_id in proposal.source_ids]
+            if not can_create_draft(proposal, sources):
+                st.warning(creation_block_reason(proposal, sources))
+                return
+            event_id = store.save_draft(CONN, to_draft(proposal), intake_source=IntakeSource.MANUAL)
+            proposals[key] = replace(proposal, created_draft_id=event_id)
+            s["review_notice"] = (
+                f"Source drafts {', '.join(proposal.source_ids)} are unchanged in Review — "
+                "reject the ones this reconstruction replaces."
+            )
+            open_review(event_id)
+    except (ValueError, store.StoreError, sqlite3.Error) as exc:
+        st.warning(str(exc))
+
+
+def evidence_value(value: object) -> str:
+    if value is None:
+        return "Unknown"
+    if value is True:
+        return "Activity recorded"
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, tuple):
+        return " · ".join(str(item) for item in value)
+    return str(value)
+
+
+def evidence_field_label(field: str, label_text: str) -> str:
+    person_id = field.removeprefix("member:")
+    if field.startswith("member:") and person_id in PEOPLE:
+        return f"{PEOPLE[person_id].display_name} crew / position"
+    return label_text
+
+
+def analyst_evidence_panels(run: AnalystRun, scope: str) -> None:
+    s = st.session_state
+    comparisons = s.setdefault("evidence_comparisons", {})
+    comparisons.update({comparison.key: comparison for comparison in run.comparisons})
+    candidates = s.setdefault("evidence_candidates", {})
+    candidates.update({candidate.key: candidate for candidate in run.candidates})
+    keys = list(
+        dict.fromkeys(
+            [
+                *(comparison.key for comparison in run.comparisons),
+                *(
+                    candidate.key
+                    for candidate in run.candidates
+                    if candidate.key == s.get("evidence_open")
+                ),
+            ]
+        )
+    )
+    for key in keys:
+        comparison: Comparison = comparisons[key]
+        candidate = candidates.get(key)
+        with st.container(border=True):
+            st.write(
+                "**Possible shared event — not confirmed**"
+                if candidate is not None
+                else "**Source evidence comparison**"
+            )
+            if candidate is not None:
+                for signal in candidate.signals:
+                    st.caption(f"{signal.name.replace('_', ' ')}: {'; '.join(signal.evidence)}")
+                st.caption("Blockers checked: " + "; ".join(candidate.blockers_checked))
+            for source in comparison.sources:
+                st.write(f"**{source.event_id}** · {source.draft.event_date:%d %b %Y}")
+                st.caption(provenance_text(source.intake_source, source.status))
+                if st.button("View source", key=f"evidence-source-{scope}-{key}-{source.event_id}"):
+                    perform_ui_action(
+                        UIAction("OPEN_SOURCE_RECORD", event_id=source.event_id, evidence_key=key),
+                        None,
+                    )
+            st.dataframe(
+                [
+                    {
+                        "Field": evidence_field_label(row.field, row.label),
+                        comparison.source_ids[0]: evidence_value(row.value_a),
+                        comparison.source_ids[1]: evidence_value(row.value_b),
+                        "State": row.state,
+                    }
+                    for row in comparison.rows
+                ],
+                hide_index=True,
+                width="stretch",
+            )
+            proposal = s.get("reconstructions", {}).get(key)
+            if proposal is None:
+                continue
+            st.write("**Session reconstruction proposal**")
+            for item in proposal.fields:
+                label_text = evidence_field_label(item.field, item.label)
+                st.write(f"{label_text}: {evidence_value(item.value)} · {item.state}")
+                if item.state == "UNKNOWN" and item.field.startswith("count:"):
+                    st.caption("Activity recorded — no source contains a count")
+                else:
+                    st.caption(
+                        "Supported by: "
+                        + "; ".join(f"✓ {source_id}" for source_id in item.contributing_source_ids)
+                    )
+                if item.conflicting_source_ids:
+                    st.caption("Conflicting sources: " + ", ".join(item.conflicting_source_ids))
+                if item.state == "HUMAN_RESOLVED":
+                    st.caption("Human-resolved: " + evidence_value(item.value))
+                if item.state == "UNRESOLVED":
+                    st.write("BlastBridge cannot resolve this from the recorded evidence.")
+                    for option in item.options:
+                        label_text = (
+                            "Keep Unknown"
+                            if option.key == "unknown"
+                            else f"Use {evidence_value(option.value)} ({option.key})"
+                        )
+                        if st.button(
+                            label_text, key=f"resolve-{scope}-{key}-{item.field}-{option.key}"
+                        ):
+                            perform_ui_action(
+                                UIAction(
+                                    "RESOLVE_RECONSTRUCTION",
+                                    evidence_key=key,
+                                    field=item.field,
+                                    choice=option.key,
+                                ),
+                                None,
+                            )
+            if proposal.created_draft_id:
+                st.caption(
+                    f"Source drafts {', '.join(proposal.source_ids)} are unchanged in Review — "
+                    "reject the ones this reconstruction replaces."
+                )
+                if st.button("Open in Review", key=f"reconstructed-open-{scope}-{key}"):
+                    perform_ui_action(
+                        UIAction("CREATE_RECONSTRUCTED_DRAFT", evidence_key=key), None
+                    )
+            else:
+                try:
+                    sources = [
+                        store.get_event(CONN, source_id) for source_id in proposal.source_ids
+                    ]
+                except store.StoreError:
+                    st.caption("A source record is no longer available.")
+                    continue
+                reason = creation_block_reason(proposal, sources)
+                if reason:
+                    st.caption(reason)
+                elif st.button("Create training draft", key=f"reconstruct-{scope}-{key}"):
+                    perform_ui_action(
+                        UIAction("CREATE_RECONSTRUCTED_DRAFT", evidence_key=key), None
+                    )
 
 
 def analyst_symptom_proposal(proposal: SymptomProposal, action: UIAction, scope: str) -> None:
@@ -744,6 +954,12 @@ def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
         analyst_draft(run, scope)
         return
     response = run.response
+    st.session_state.setdefault("evidence_candidates", {}).update(
+        {candidate.key: candidate for candidate in run.candidates}
+    )
+    st.session_state.setdefault("evidence_comparisons", {}).update(
+        {comparison.key: comparison for comparison in run.comparisons}
+    )
     st.write(response.answer_summary)
     if run.fallback:
         st.caption("Generated wording was withheld; showing grounded facts from BlastBridge tools.")
@@ -772,6 +988,7 @@ def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
                 "OPEN_RECORD": "Open record",
                 "OPEN_PERSON": "Open person",
                 "OPEN_FOLLOWUP": "Open Follow-up",
+                "OPEN_EVIDENCE_COMPARISON": "Compare sources",
             }
             if run.created_draft is not None:
                 st.session_state["ask_proposed_result"] = run.created_draft.intake_result
@@ -805,6 +1022,7 @@ def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
                 perform_ui_action(action, None)
     for limitation in response.limitations:
         st.caption(limitation)
+    analyst_evidence_panels(run, scope)
     analyst_draft(run, scope)
 
 
@@ -948,7 +1166,7 @@ def dashboard() -> None:
         confirmed = st.checkbox("I understand this deletes all recorded events")
         if st.button("Reset to demo state", disabled=not confirmed):
             try:
-                store.reset_demo(CONN, DEMO_PEOPLE, DEMO_EVENTS, DEMO_SYMPTOMS)
+                store.reset_demo(CONN, DEMO_PEOPLE, DEMO_EVENTS, DEMO_SYMPTOMS, DEMO_SOURCE_DRAFTS)
             except (store.StoreError, sqlite3.Error) as exc:
                 st.warning(f"Could not reset demo data: {exc}")
                 return
@@ -959,6 +1177,10 @@ def dashboard() -> None:
                     "calendar_date",
                     "people_person",
                     "history_person_id",
+                    "reconstructions",
+                    "evidence_comparisons",
+                    "evidence_candidates",
+                    "evidence_open",
                 ):
                     del st.session_state[key]
             st.session_state["reset_demo_view"] = True

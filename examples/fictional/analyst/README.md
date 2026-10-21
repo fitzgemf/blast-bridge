@@ -19,6 +19,7 @@ conversation regardless of later source IDs; use Start over to log another event
 - reese_missing: a focused count-gap audit with a different tool sequence.
 - jordan_brief: medical guidance relayed from the deterministic rules, separately from ML.
 - attention: existing deterministic readiness ordering, without a new score.
+- shared_event: compare two source drafts and prepare a session-only reconstruction for Review.
 - log_event: one clarification, exact user text passed into intake, Unknown preserved in a DRAFT.
 
 Approval remains exclusively in the existing human Review flow. Replay is never labelled Live AI.

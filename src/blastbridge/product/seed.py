@@ -5,7 +5,7 @@ from datetime import date
 from blastbridge.models.enums import EventType
 from blastbridge.models.training_tempo import TrainingContext
 
-from .models import Crew, CrewMember, CrewPosition, Person, TrainingEventDraft
+from .models import Crew, CrewMember, CrewPosition, IntakeSource, Person, TrainingEventDraft
 from .symptoms import (
     FunctionalImpact,
     Persistence,
@@ -75,6 +75,30 @@ def _demo_draft(
             for name, people, count in crews
         ),
     )
+
+
+_SHARED_SOURCE_ONE = _demo_draft(
+    "2026-10-17", TrainingContext.HOME_STATION, (("Launcher 1", (1, 2, 3), 6),)
+)
+_SHARED_SOURCE_TWO = TrainingEventDraft.model_validate(
+    {
+        **_SHARED_SOURCE_ONE.model_dump(),
+        "crews": (
+            Crew(
+                crew_name="Launcher 1",
+                members=_SHARED_SOURCE_ONE.crews[0].members[:2],
+                physical_event_count=None,
+            ),
+            _demo_draft(
+                "2026-10-17", TrainingContext.HOME_STATION, (("Launcher 2", (5, 6, 7), None),)
+            ).crews[0],
+        ),
+    }
+)
+DEMO_SOURCE_DRAFTS: tuple[tuple[str, TrainingEventDraft, IntakeSource], ...] = (
+    ("EVT-DEMO-S1", _SHARED_SOURCE_ONE, IntakeSource.MANUAL),
+    ("EVT-DEMO-S2", _SHARED_SOURCE_TWO, IntakeSource.AI_REPLAY),
+)
 
 
 DEMO_EVENTS: tuple[tuple[str, TrainingEventDraft], ...] = (

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import MutableMapping
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -27,6 +28,7 @@ from .analyst_tools import AnalystData as AnalystData
 from .analyst_tools import Conversation as Conversation
 from .analyst_tools import CreatedDraft as CreatedDraft
 from .analyst_tools import evidence_fingerprint as evidence_fingerprint
+from .evidence import Comparison, EvidenceReconstructionProposal, SharedEventCandidate
 from .followup import FollowUpState
 from .patterns import PatternStatus
 from .readiness import ReadinessStatus
@@ -53,6 +55,10 @@ facts to enum values; never infer symptoms, danger signs, persistence, functiona
 relationship or a specific event. Leave unknowns unset and cite the proposal. Your own text must
 not name symptoms: code renders the proposal. For pure navigation, return RECOMMEND_NEXT_ACTION
 with navigation and no tool call.
+Use evidence tools for verification, duplicate, conflict and reconciliation requests. Never say
+two records are the same event, resolve conflicts, invent or average values, merge records or
+modify approved records. Code renders comparison states, values and proposals; do not state them
+as facts in your own text. Cite the returned evidence and leave conflict resolution to humans.
 Pass ids of relevant USER turns, never rewritten narratives. Tools inject application dates.
 Recommendations need actual cited eligibility evidence. Never reinterpret a rejected type.
 No material issue identified means only no material issue was identified in the evidence reviewed;
@@ -80,6 +86,7 @@ ANALYST_DISCLAIMER = "BlastBridge does not diagnose concussion or TBI or estimat
 type Intent = Literal[
     "CREATE_TRAINING_DRAFT",
     "PREPARE_SYMPTOM_REPORT",
+    "RECONCILE_EVIDENCE",
     "EXPLAIN_PERSON_STATUS",
     "INVESTIGATE_PERSON",
     "COMPARE_RECENT_HISTORY",
@@ -91,6 +98,7 @@ type Intent = Literal[
     "OUT_OF_SCOPE",
 ]
 type RecommendationType = Literal[
+    "REVIEW_POSSIBLE_SHARED_EVENT",
     "REVIEW_RECORD",
     "VERIFY_UNKNOWN",
     "REVIEW_ELEVATED_PATTERN",
@@ -190,6 +198,9 @@ class AnalystRun:
     response: AgentResponse | None = None
     created_draft: CreatedDraft | None = None
     symptom_proposal: SymptomProposal | None = None
+    reconstruction: EvidenceReconstructionProposal | None = None
+    comparisons: list[Comparison] = field(default_factory=list)
+    candidates: list[SharedEventCandidate] = field(default_factory=list)
     tool_trace: list[ToolTrace] = field(default_factory=list)
     counts: RunCounts = field(default_factory=RunCounts)
     model: str | None = None
@@ -211,10 +222,17 @@ class UIAction:
         "OPEN_FOLLOWUP",
         "OPEN_SYMPTOM_FORM",
         "OPEN_PROPOSED_DRAFT",
+        "OPEN_EVIDENCE_COMPARISON",
+        "OPEN_SOURCE_RECORD",
+        "RESOLVE_RECONSTRUCTION",
+        "CREATE_RECONSTRUCTED_DRAFT",
     ]
     person_id: str | None = None
     event_id: str | None = None
     on_date: date | None = None
+    evidence_key: str | None = None
+    field: str | None = None
+    choice: str | None = None
 
 
 def recommendation_action(rec: Recommendation, run: AnalystRun) -> UIAction | None:
@@ -222,6 +240,17 @@ def recommendation_action(rec: Recommendation, run: AnalystRun) -> UIAction | No
     if not run.grounded or response is None or rec not in response.recommendations:
         return None
     person_id = response.person_id
+    if rec.type == "REVIEW_POSSIBLE_SHARED_EVENT":
+        for item in run.evidence:
+            if item.ref in rec.evidence_refs and item.kind in ("candidate", "reconstruction"):
+                ids = item.payload.get("source_ids", ())
+                key = "+".join(sorted(ids))
+                if len(ids) == 2 and (
+                    any(candidate.key == key for candidate in run.candidates)
+                    or any(comparison.key == key for comparison in run.comparisons)
+                ):
+                    return UIAction("OPEN_EVIDENCE_COMPARISON", evidence_key=key)
+        return None
     evidence = [
         item
         for item in run.evidence
@@ -379,7 +408,14 @@ class AnalystReplay(BaseModel):
 
 
 def load_analyst_replay(name: str, *, analysis_as_of: date | None = None) -> AnalystReplay:
-    if name not in ("reese_brief", "reese_missing", "jordan_brief", "attention", "log_event"):
+    if name not in (
+        "reese_brief",
+        "reese_missing",
+        "jordan_brief",
+        "attention",
+        "log_event",
+        "shared_event",
+    ):
         raise ValueError("Unknown analyst replay")
     root = Path(__file__).resolve().parents[3] / "examples/fictional/analyst"
     replay = AnalystReplay.model_validate_json((root / f"{name}.json").read_text(encoding="utf-8"))
@@ -476,13 +512,23 @@ def _sections(response: AgentResponse) -> list[tuple[str, EvidenceSection]]:
     return sections
 
 
+GLOBAL_EVIDENCE_KINDS = (
+    "attention",
+    "draft",
+    "finding",
+    "candidate",
+    "comparison",
+    "reconstruction",
+)
+
+
 def _evidence_for(refs: list[str], response: AgentResponse, session: ToolSession) -> list[Evidence]:
     return [
         item
         for ref in refs
         for item in session.evidence.get(ref, [])
         if (
-            item.kind in ("attention", "draft")
+            item.kind in GLOBAL_EVIDENCE_KINDS
             if response.person_id is None
             else item.person_id in (None, response.person_id)
         )
@@ -493,6 +539,8 @@ def _eligibility(
     recommendation: Recommendation, evidence: list[Evidence], session: ToolSession
 ) -> bool:
     kind = recommendation.type
+    if kind == "REVIEW_POSSIBLE_SHARED_EVENT":
+        return any(item.kind in ("candidate", "reconstruction") for item in evidence)
     if kind == "NO_ACTIONABLE_RECOMMENDATION":
         return True
     if kind == "RUN_UPDATED_ANALYSIS":
@@ -771,6 +819,10 @@ def render_medical_section(response: AgentResponse, session: ToolSession) -> Age
 
 WORKFLOW_TEXT = {
     "REVIEW_RECORD": ("Review record", "Review the cited recorded information."),
+    "REVIEW_POSSIBLE_SHARED_EVENT": (
+        "Review possible shared event",
+        "Compare the cited sources before resolving differences.",
+    ),
     "VERIFY_UNKNOWN": ("Verify Unknown values", "Verify missing values in the source records."),
     "REVIEW_ELEVATED_PATTERN": (
         "Review elevated occupational pattern",
@@ -904,7 +956,7 @@ def validate_response(response: AgentResponse, session: ToolSession) -> list[Val
                 item
                 for item in candidates
                 if (
-                    item.kind in ("attention", "draft")
+                    item.kind in GLOBAL_EVIDENCE_KINDS
                     if response.person_id is None
                     else item.person_id in (None, response.person_id)
                 )
@@ -1113,13 +1165,21 @@ def ask(
     intake_provider: IntakeProvider,
     conversation: Conversation,
     ledger: ActionLedger,
+    reconstructions: MutableMapping[str, EvidenceReconstructionProposal] | None = None,
 ) -> AnalystRun:
     if question is None:
         if not any(turn.role == "user" for turn in conversation.turns):
             raise ValueError("Retry requires an existing user turn")
     else:
         conversation.add_user(question)
-    session = ToolSession(context, data, intake_provider, conversation, ledger)
+    session = ToolSession(
+        context,
+        data,
+        intake_provider,
+        conversation,
+        ledger,
+        reconstructions={} if reconstructions is None else reconstructions,
+    )
     run = AnalystRun(context.analysis_as_of, "live" if provider.name == "live" else "replay")
     messages = _messages(conversation, context)
     if question is None:
@@ -1239,6 +1299,9 @@ def ask(
         )
     run.created_draft = session.created_draft
     run.symptom_proposal = session.symptom_proposal
+    run.reconstruction = session.reconstruction
+    run.comparisons = list(session.comparisons.values())
+    run.candidates = list(session.candidates.values())
     run.tool_trace = session.trace
     run.evidence = [item for values in session.evidence.values() for item in values]
     run.counts.outer_tool_calls = session.outer_calls

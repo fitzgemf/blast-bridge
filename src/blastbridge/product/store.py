@@ -261,11 +261,28 @@ def seed_demo_events(
     return added
 
 
+def seed_demo_drafts(
+    conn: sqlite3.Connection,
+    drafts: Iterable[tuple[str, TrainingEventDraft, IntakeSource]],
+) -> int:
+    added = 0
+    for event_id, draft, source in drafts:
+        row = conn.execute(
+            "SELECT 1 FROM training_events WHERE event_id = ?",
+            (event_id,),
+        ).fetchone()
+        if row is None:
+            save_draft(conn, draft, event_id, intake_source=source)
+            added += 1
+    return added
+
+
 def reset_demo(
     conn: sqlite3.Connection,
     people: Iterable[Person],
     events: Iterable[tuple[str, TrainingEventDraft]],
     symptoms: Iterable[tuple[str, SymptomReportDraft]],
+    drafts: Iterable[tuple[str, TrainingEventDraft, IntakeSource]] = (),
 ) -> None:
     with _transaction(conn):
         conn.execute("DELETE FROM symptom_reports")
@@ -276,6 +293,7 @@ def reset_demo(
     seed_people(conn, people)
     seed_demo_events(conn, events)
     seed_demo_symptoms(conn, symptoms)
+    seed_demo_drafts(conn, drafts)
 
 
 def update_draft(
