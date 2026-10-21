@@ -1399,7 +1399,7 @@ def inbox() -> None:
     with training:
         drafts = store.list_events(CONN, EventStatus.DRAFT, limit=-1)
         if not drafts:
-            st.caption("No training drafts awaiting review.")
+            ui.empty_state()
         for event in drafts:
             d = event.draft
             crew_text = f"{len(d.crews)} {'crew' if len(d.crews) == 1 else 'crews'}"
