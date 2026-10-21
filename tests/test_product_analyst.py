@@ -1347,6 +1347,128 @@ def test_review_4_attention_cannot_supply_another_persons_symptoms(env):
         )
 
 
+@pytest.mark.parametrize(
+    "kind",
+    [
+        "RELAY_MEDICAL_FOLLOWUP",
+        "RELAY_URGENT_GUIDANCE",
+        "REVIEW_ELEVATED_PATTERN",
+        "VERIFY_UNKNOWN",
+        "REVIEW_RECORD",
+    ],
+)
+def test_review2_1_unscoped_recommendations_require_a_person(env, kind):
+    state = session(env)
+    state.execute("get_attention_queue", {})
+    execute(state, "get_followup_assessment", "FIC-002")
+    authority = (
+        "DETERMINISTIC_GUIDANCE_RELAY"
+        if kind.startswith("RELAY_")
+        else "AI_WORKFLOW_RECOMMENDATION"
+    )
+    response = AgentResponse.model_validate(
+        answer(
+            refs=["attention:FIC-010"],
+            intent="LIST_ATTENTION",
+            answer_summary="Reese's deterministic follow-up guidance is shown below.",
+            recommendations=[recommendation(kind, ["followup:FIC-002"], authority)],
+        )
+    )
+    codes = {item.code for item in validate_response(response, state)}
+    assert "PERSON_MISMATCH" in codes
+    assert "PERSON_REQUIRED" in codes
+
+
+@pytest.mark.parametrize(
+    "tool,ref",
+    [
+        ("get_symptom_history", "SYM-DEMO-01"),
+        ("get_person_record", "facts:FIC-002"),
+        ("get_pattern_assessment", "pattern:FIC-002"),
+        ("get_followup_assessment", "followup:FIC-002"),
+        ("audit_record_quality", "quality:FIC-002"),
+    ],
+)
+def test_review2_1_unscoped_person_evidence_is_rejected(env, tool, ref):
+    state = session(env)
+    execute(state, tool, "FIC-002")
+    response = AgentResponse.model_validate(
+        answer(
+            refs=[ref],
+            answer_summary="Reese Calder reported headaches and sleep problems on 24 Sep.",
+        )
+    )
+    assert any(item.code == "PERSON_MISMATCH" for item in validate_response(response, state))
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Reese is fit for duty and cleared for live fire.",
+        "Reese needs no further evaluation; nothing to worry about.",
+        "Reese may have mTBI or brain damage from repeated firing.",
+        "Send Reese to the ER for a CT scan today.",
+        "Followup unnecessary for Reese.",
+        "Reese does not need followup.",
+        "Reese is fine and well.",
+        "Clearance and duty status are unchanged.",
+        "Return to duty with no cause for concern.",
+        "Reese is okay and unaffected.",
+        "Hospital imaging and physician referral are suggested.",
+        "No need for any further action.",
+        "Follow-up is not required.",
+        "Proceed without requiring care.",
+        "No action is required for Jordan's symptoms.",
+        "Reese's symptoms are nothing serious.",
+        "Jordan can safely continue firing.",
+        "Reese's symptoms are not serious.",
+        "Jordan's symptoms are minor and insignificant.",
+        "Jordan can continue live fire.",
+        "Jordan can continue training.",
+        "Jordan can continue duty.",
+    ],
+)
+@pytest.mark.parametrize("location", ["answer", "recommendation"])
+def test_review2_2_category_backstop_rejects_paraphrases(env, text, location):
+    state = session(env)
+    execute(state, "get_person_record")
+    payload = answer("FIC-010", ["facts:FIC-010"])
+    if location == "answer":
+        payload["answer_summary"] = text
+    else:
+        rec = recommendation("REVIEW_RECORD", ["facts:FIC-010"])
+        rec["rationale"] = text
+        payload["recommendations"] = [rec]
+    response = AgentResponse.model_validate(payload)
+    assert any(item.code == "BANNED_CLAIM" for item in validate_response(response, state))
+
+
+@pytest.mark.parametrize(
+    "name", ["reese_brief", "jordan_brief", "log_event", "attention", "reese_missing"]
+)
+def test_review2_2_fixtures_remain_grounded_with_category_checks(env, name):
+    for result in replay_fixture(env, name):
+        assert result.grounded and result.validation == []
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Refer to the deterministic follow-up guidance shown below.",
+        "Review the three clustered October training records.",
+        "Verify whether the missing activity count exists in the source record.",
+        "Review this draft before recording it.",
+    ],
+)
+def test_review2_2_benign_workflow_wording_passes(env, text):
+    state = session(env)
+    execute(state, "get_person_record")
+    response = AgentResponse.model_validate(
+        answer("FIC-010", ["facts:FIC-010"], answer_summary=text)
+    )
+    assert validate_response(response, state) == []
+
+
 def test_review_5_missing_information_uses_a_focused_audit_sequence(env):
     missing = replay_fixture(env, "reese_missing")[0]
     brief = replay_fixture(env, "reese_brief")[0]

@@ -64,6 +64,8 @@ Refer instead to 'the deterministic follow-up guidance shown below'. Relay title
 are ignored: application code renders those from deterministic follow-up tool output.
 Do not repeat clinical instructions, reassurance, causation claims or predictions from tools.
 The application displays its own fixed disclaimer; never author one yourself.
+Never assess fitness, clearance, care needs, injury or the absence of any of these; that is outside
+BlastBridge Analyst authority.
 Return only the AgentResponse JSON object."""
 
 ANALYST_DISCLAIMER = "BlastBridge does not diagnose concussion or TBI or estimate injury risk."
@@ -353,7 +355,11 @@ def _evidence_for(refs: list[str], response: AgentResponse, session: ToolSession
         item
         for ref in refs
         for item in session.evidence.get(ref, [])
-        if response.person_id is None or item.person_id in (None, response.person_id)
+        if (
+            item.kind in ("attention", "draft")
+            if response.person_id is None
+            else item.person_id in (None, response.person_id)
+        )
     ]
 
 
@@ -397,15 +403,28 @@ def _eligibility(
     )
 
 
+# Category checks are a text backstop, not proof of clinical or semantic correctness.
 MODEL_TEXT_BACKSTOP = re.compile(
-    r"\b(?:tbi|cte|mri|911|harmless|safe|healthy)\b"
-    r"|\b(?:concuss\w*|brain[- ]injur\w*|injur\w*|diagnos\w*|neurolog\w*"
-    r"|risk\w*|probabilit\w*|likelihood\w*)\b"
-    r"|\b(?:medical\s+(?:provider|attention)|see\s+a\s+doctor|seek\s+(?:care|medical)"
-    r"|emergency|fit\s+to|is\s+normal|likely\s+caused|caused\s+by|blast\s+pressure)\b"
-    r"|\b(?:no|not|doesn['’]t|does\s+not|don['’]t|do\s+not)\s+"
-    r"(?:need(?:ed)?\s+)?(?:any\s+|further\s+)?follow[- ]up\b"
-    r"|\bfollow[- ]up\s+(?:is\s+not|isn['’]t|was\s+not)\s+need(?:ed)?\b"
+    r"\b(?:fit\s+(?:for|to)|cleared|clearance|duty\s+status|return\s+to\s+duty"
+    r"|nothing\s+to\s+worry|no\s+(?:cause\s+for\s+)?concern"
+    r"|is\s+(?:fine|well|ok|okay|good|safe|healthy|normal|unharmed|unaffected)"
+    r"|safe\w*|healthy|continue\s+(?:firing|live\s+fire|training|duty))\b"
+    r"|\b(?:(?:nothing|not)\s+serious|minor|insignificant)\b"
+    r"|\bno\s+action\s+(?:is\s+)?(?:required|needed|necessary)\b"
+    r"|\b(?:er|emergency|911|hospital\w*|clinic\w*|doctor\w*|physician\w*"
+    r"|neurolog\w*|ct|mri|imaging|scan\w*|screening|evaluation\w*"
+    r"|referral\w*|referred|treatment\w*|medical\s+(?:provider|attention|care|evaluation)"
+    r"|seek\s+(?:care|medical))\b"
+    r"|\b(?:m?tbi|cte|concuss\w*|brain\w*|injur\w*|damage\w*|diagnos\w*"
+    r"|harmless|risk\w*|probabilit\w*|likelihood\w*|likely\s+caused|caused\s+by"
+    r"|blast\s+pressure)\b"
+    r"|\bfollow[- ]?up\s+(?:(?:is|was)\s+)?(?:not\s+needed|unnecessary|not\s+required)\b"
+    r"|\b(?:no|not|doesn['’]t|does\s+not|don['’]t|do\s+not|without)\s+"
+    r"(?:need|needs|needed|requir\w*)\s+(?:(?:for|any|further)\s+)*"
+    r"(?:follow[- ]?up|evaluation|care|action)\b"
+    r"|\b(?:no|not)\s+(?:(?:any|further)\s+)?follow[- ]?up\b"
+    r"|\bfollow[- ]?up\s+(?:isn['’]t|is\s+not|was\s+not)\s+needed\b"
+    r"|\bunnecessary\b|\bno\s+further\s+(?:evaluation|care|follow[- ]?up)\b"
     r"|(?P<urgent>\burgent\b)",
     re.IGNORECASE,
 )
@@ -488,7 +507,11 @@ def validate_response(response: AgentResponse, session: ToolSession) -> list[Val
             matching = [
                 item
                 for item in candidates
-                if response.person_id is None or item.person_id in (None, response.person_id)
+                if (
+                    item.kind in ("attention", "draft")
+                    if response.person_id is None
+                    else item.person_id in (None, response.person_id)
+                )
             ]
             if not candidates:
                 fail("UNKNOWN_REF", path)
@@ -590,6 +613,14 @@ def validate_response(response: AgentResponse, session: ToolSession) -> list[Val
         expected = "DETERMINISTIC_GUIDANCE_RELAY" if relay else "AI_WORKFLOW_RECOMMENDATION"
         if recommendation.authority != expected:
             fail("AUTHORITY_MISMATCH", path)
+        if response.person_id is None and recommendation.type in (
+            "RELAY_MEDICAL_FOLLOWUP",
+            "RELAY_URGENT_GUIDANCE",
+            "REVIEW_ELEVATED_PATTERN",
+            "VERIFY_UNKNOWN",
+            "REVIEW_RECORD",
+        ):
+            fail("PERSON_REQUIRED", path)
         if (
             response.person_id is not None
             and recommendation.type == "REVIEW_ELEVATED_PATTERN"
