@@ -205,12 +205,22 @@ _TOOL_INPUTS.extend(
         ),
     ]
 )
+
+
+def _without_max_items(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _without_max_items(item) for key, item in value.items() if key != "maxItems"}
+    if isinstance(value, list):
+        return [_without_max_items(item) for item in value]
+    return value
+
+
 TOOL_DEFINITIONS: list[dict[str, Any]] = [
     {
         "name": name,
         "description": description,
         "strict": True,
-        "input_schema": schema.model_json_schema(),
+        "input_schema": _without_max_items(schema.model_json_schema()),
     }
     for name, description, schema in _TOOL_INPUTS
 ]

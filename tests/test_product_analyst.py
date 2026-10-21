@@ -4,6 +4,7 @@ import json
 from dataclasses import replace
 from datetime import timedelta
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -11,12 +12,14 @@ from blastbridge.data.catalog import load_weapon_catalog
 from blastbridge.product import store
 from blastbridge.product.agent import (
     GOLDEN_NARRATIVE,
+    PROPOSAL_SCHEMA,
     ProviderError,
     ProviderTurn,
     ScriptedProvider,
 )
 from blastbridge.product.analyst import (
     ANALYST_DISCLAIMER,
+    ANALYST_SYSTEM,
     SYSTEM_PROMPT,
     AgentContext,
     AgentResponse,
@@ -41,6 +44,7 @@ from blastbridge.product.analyst_tools import (
     readiness_for,
     tool_summary,
 )
+from blastbridge.product.anthropic_provider import AnthropicProvider
 from blastbridge.product.calendar_view import DEMO_STORY_DATE
 from blastbridge.product.followup import FollowUpState
 from blastbridge.product.models import EventStatus, IntakeSource
@@ -1849,3 +1853,81 @@ def test_global_response_strips_medical_fields(env, fallback, brief_kind):
         assert all(item.code == "MEDICAL_CONTENT" for item in result.validation)
     else:
         assert result.validation == []
+
+
+def test_analyst_tool_schemas_omit_max_items_but_runtime_keeps_limit(env):
+    assert "maxItems" not in json.dumps(TOOL_DEFINITIONS)
+    assert all(tool["strict"] is True for tool in TOOL_DEFINITIONS)
+    state = session(env)
+    ids = [state.conversation.add_user("Log a training event.") for _ in range(7)]
+    payload, error = state.execute("create_training_event_draft", {"utterance_ids": ids})
+    assert error and payload["untrusted_record_data"]["error"] == "invalid tool input"
+    assert state.created_draft is None and state.nested_model_calls == 0
+
+
+@pytest.mark.parametrize("output_schema", [None, PROPOSAL_SCHEMA])
+def test_anthropic_request_uses_format_only_for_supplied_schema(output_schema):
+    requests = []
+
+    def create(**kwargs):
+        requests.append(kwargs)
+        return SimpleNamespace(stop_reason="end_turn", content=[], model="fake-model")
+
+    provider = AnthropicProvider.__new__(AnthropicProvider)
+    provider.model = "fake-model"
+    provider._sdk = SimpleNamespace()
+    provider._client = SimpleNamespace(messages=SimpleNamespace(create=create))
+    messages = [{"role": "user", "content": "Review the records."}]
+    result = provider.complete(
+        system="System instructions",
+        messages=messages,
+        tools=TOOL_DEFINITIONS,
+        output_schema=output_schema,
+        allow_tools=True,
+    )
+    config = {"effort": "low"}
+    if output_schema is not None:
+        config["format"] = {"type": "json_schema", "schema": output_schema}
+    assert requests == [
+        {
+            "model": "fake-model",
+            "max_tokens": 4000,
+            "system": "System instructions",
+            "tools": TOOL_DEFINITIONS,
+            "tool_choice": {"type": "auto"},
+            "messages": messages,
+            "output_config": config,
+        }
+    ]
+    assert result.stop_reason == "end_turn"
+
+
+def test_analyst_sends_schema_in_system_prompt_without_output_format(env):
+    requests = []
+
+    class CapturingProvider(ScriptedProvider):
+        def complete(self, **kwargs):
+            requests.append(kwargs)
+            return super().complete(**kwargs)
+
+    provider = CapturingProvider(
+        [
+            tool_turn(("get_attention_queue", {})),
+            text_turn(answer(refs=["attention:FIC-010"], intent="LIST_ATTENTION")),
+        ]
+    )
+    result = ask(
+        "Who needs attention?",
+        context=env[2],
+        data=env[1],
+        provider=provider,
+        intake_provider=intake_provider(),
+        conversation=Conversation("schema-prompt"),
+        ledger={},
+    )
+    assert result.grounded and not result.fallback and result.validation == []
+    schema = json.dumps(AgentResponse.model_json_schema(), separators=(",", ":"))
+    assert ANALYST_SYSTEM == SYSTEM_PROMPT + "\nAgentResponse JSON schema:\n" + schema
+    assert len(requests) == 2
+    assert all(request["system"] == ANALYST_SYSTEM for request in requests)
+    assert all(request["output_schema"] is None for request in requests)

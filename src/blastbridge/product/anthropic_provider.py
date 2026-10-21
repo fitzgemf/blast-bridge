@@ -23,9 +23,12 @@ class AnthropicProvider:
         system: str,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]],
-        output_schema: dict[str, Any],
+        output_schema: dict[str, Any] | None,
         allow_tools: bool,
     ) -> ProviderTurn:
+        output_config: dict[str, Any] = {"effort": "low"}
+        if output_schema is not None:
+            output_config["format"] = {"type": "json_schema", "schema": output_schema}
         try:
             response = self._client.messages.create(
                 model=self.model,
@@ -34,13 +37,7 @@ class AnthropicProvider:
                 tools=tools,
                 tool_choice={"type": "auto"} if allow_tools else {"type": "none"},
                 messages=messages,
-                output_config={
-                    "effort": "low",
-                    "format": {
-                        "type": "json_schema",
-                        "schema": output_schema,
-                    },
-                },
+                output_config=output_config,
             )
         except self._sdk.AuthenticationError:
             raise ProviderError("API key rejected") from None

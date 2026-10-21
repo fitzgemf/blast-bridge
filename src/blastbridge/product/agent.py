@@ -34,7 +34,7 @@ class IntakeProvider(Protocol):
         system: str,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]],
-        output_schema: dict[str, Any],
+        output_schema: dict[str, Any] | None,
         allow_tools: bool,
     ) -> ProviderTurn: ...
 
@@ -55,7 +55,7 @@ class ScriptedProvider:
         system: str,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]],
-        output_schema: dict[str, Any],
+        output_schema: dict[str, Any] | None,
         allow_tools: bool,
     ) -> ProviderTurn:
         if self._next >= len(self._turns):

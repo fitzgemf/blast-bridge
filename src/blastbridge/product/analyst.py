@@ -147,6 +147,13 @@ class AgentResponse(BaseModel):
     limitations: list[str] = Field(default_factory=list)
 
 
+ANALYST_SYSTEM = (
+    SYSTEM_PROMPT
+    + "\nAgentResponse JSON schema:\n"
+    + json.dumps(AgentResponse.model_json_schema(), separators=(",", ":"))
+)
+
+
 @dataclass(frozen=True)
 class ValidationFailure:
     code: str
@@ -940,10 +947,10 @@ def ask(
         run.counts.outer_model_turns += 1
         try:
             turn = provider.complete(
-                system=SYSTEM_PROMPT,
+                system=ANALYST_SYSTEM,
                 messages=messages,
                 tools=TOOL_DEFINITIONS,
-                output_schema=AgentResponse.model_json_schema(),
+                output_schema=None,
                 allow_tools=allow_tools,
             )
         except ProviderError as exc:
