@@ -25,13 +25,16 @@ from blastbridge.product.analyst import (
     AgentResponse,
     AnalystData,
     Conversation,
+    ValidationFailure,
     activity_lines,
     ask,
     evidence_count,
     evidence_fingerprint,
+    extract_json_object,
     is_stale,
     load_analyst_replay,
     render_deterministic_relays,
+    render_fallback,
     render_medical_section,
     replay_providers,
     validate_response,
@@ -39,6 +42,7 @@ from blastbridge.product.analyst import (
 from blastbridge.product.analyst_tools import (
     TOOL_DEFINITIONS,
     ActionEntry,
+    Evidence,
     ToolSession,
     action_key,
     readiness_for,
@@ -1931,3 +1935,209 @@ def test_analyst_sends_schema_in_system_prompt_without_output_format(env):
     assert len(requests) == 2
     assert all(request["system"] == ANALYST_SYSTEM for request in requests)
     assert all(request["output_schema"] is None for request in requests)
+
+
+@pytest.mark.parametrize(
+    "prefix,suffix,wrapped",
+    [
+        ("  ", "\n", False),
+        ("```json\n", "\n```", True),
+        ("```\n", "\n```", True),
+        ("Here is the result:\n", "\nEnd of result.", True),
+        ("Note {unverified text}. Result:\n", "\nDone.", True),
+    ],
+)
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"answer_summary": "Evidence reviewed."},
+        {"nested": {"inner": [{"value": 1}]}},
+        {"source": "Crew note contained {unverified text}"},
+        {"source": 'Crew said "verify {this}" before review.'},
+    ],
+)
+def test_extract_json_object_accepts_one_object(prefix, suffix, wrapped, payload):
+    assert extract_json_object(prefix + json.dumps(payload) + suffix) == (payload, wrapped)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "",
+        "not JSON",
+        '{"broken":',
+        '{"broken": true',
+        '{"broken": nope}',
+        '```json\n{"broken":\n```',
+        "{} {}",
+        'Result: {"one": 1} then {"two": 2}',
+        '[{"object": true}]',
+        '"text containing {braces}"',
+        "null",
+        "1",
+        "```json\n[]\n```",
+        '```\n"string"\n```',
+    ],
+)
+def test_extract_json_object_rejects_invalid_or_ambiguous_text(text):
+    assert extract_json_object(text) == (None, False)
+
+
+@pytest.mark.parametrize("wrapper", ["fence", "prose"])
+def test_wrapped_valid_response_needs_no_repair_or_stored_prose(env, wrapper):
+    payload = answer(intent="OUT_OF_SCOPE", answer_summary="BlastBridge records only.")
+    raw = json.dumps(payload)
+    text = "```json\n" + raw + "\n```" if wrapper == "fence" else "Result:\n" + raw + "\nDone."
+    conversation = Conversation("wrapped")
+    result = run(env, [text_turn(text)], conversation=conversation)
+    assert result.grounded and not result.fallback and result.validation == []
+    assert result.counts.outer_model_turns == 1 and result.wrapper_removed == 1
+    assert result.response.answer_summary == payload["answer_summary"]
+    assert conversation.turns[-1].text == payload["answer_summary"]
+
+
+@pytest.mark.parametrize("wrapper", ["fence", "prose"])
+@pytest.mark.parametrize(
+    "case,code",
+    [
+        ("schema", "extra_forbidden"),
+        ("unknown", "UNKNOWN_REF"),
+        ("wrong_person", "PERSON_MISMATCH"),
+        ("future", "FUTURE_REF"),
+        ("recommendation", "INELIGIBLE_RECOMMENDATION"),
+        ("medical", "MEDICAL_CONTENT"),
+    ],
+)
+def test_wrapped_response_keeps_typed_and_semantic_validation(
+    env, monkeypatch, wrapper, case, code
+):
+    person_id = "FIC-002" if case == "wrong_person" else "FIC-010"
+    refs = [f"facts:{person_id}"]
+    payload = answer("FIC-010", refs)
+    if case == "schema":
+        payload["unexpected"] = True
+    elif case == "unknown":
+        payload["evidence_refs"] = ["nonexistent"]
+    elif case == "recommendation":
+        payload["recommendations"] = [recommendation("REVIEW_RECORD", refs)]
+    elif case == "medical":
+        payload["answer_summary"] = "Reese looks fine."
+    elif case == "future":
+        original_read = ToolSession.read
+
+        def read_with_future(state, name, person):
+            result = original_read(state, name, person)
+            state.evidence["future"] = [
+                Evidence("future", person.person_id, "record", {}, TODAY + timedelta(days=1))
+            ]
+            return result
+
+        monkeypatch.setattr(ToolSession, "read", read_with_future)
+        payload["evidence_refs"] = ["future"]
+    raw = json.dumps(payload)
+    text = "```json\n" + raw + "\n```" if wrapper == "fence" else "Result:\n" + raw + "\nDone."
+    result = run(
+        env,
+        [
+            tool_turn(("get_person_record", {"person_id": person_id})),
+            text_turn(text),
+            text_turn(text),
+        ],
+    )
+    assert any(item.code == code for item in result.validation)
+    assert result.wrapper_removed == 2 and result.counts.outer_model_turns == 3
+    if case == "medical":
+        assert result.grounded and result.fallback
+        assert "Reese looks fine" not in result.response.model_dump_json()
+    else:
+        assert result.error and not result.grounded and not result.fallback
+
+
+def test_wrapped_response_still_renders_deterministic_relay(env):
+    refs = ["followup:FIC-002"]
+    payload = answer(
+        "FIC-002",
+        refs,
+        followup_state=FollowUpState.FOLLOW_UP_SUGGESTED,
+        recommendations=[
+            recommendation("RELAY_MEDICAL_FOLLOWUP", refs, "DETERMINISTIC_GUIDANCE_RELAY")
+        ],
+    )
+    result = run(
+        env,
+        [
+            tool_turn(("get_followup_assessment", {"person_id": "FIC-002"})),
+            text_turn("Result:\n" + json.dumps(payload) + "\nDone."),
+        ],
+    )
+    assert result.grounded and not result.fallback and result.validation == []
+    assert result.wrapper_removed == 1 and result.counts.outer_model_turns == 2
+    assert result.response.recommendations[0].title == FollowUpState.FOLLOW_UP_SUGGESTED.label
+    assert "BlastBridge's deterministic follow-up rules" in (
+        result.response.symptom_followup_summary.text
+    )
+
+
+def test_two_prose_wrapped_objects_repair_then_error_without_fallback(env):
+    raw = json.dumps(answer(intent="OUT_OF_SCOPE"))
+    text = "Result:\n" + raw + "\nAnother result:\n" + raw
+    result = run(env, [text_turn(text), text_turn(text)])
+    assert result.error and not result.grounded and not result.fallback
+    assert result.validation == [ValidationFailure("json_invalid", "")]
+    assert result.counts.outer_model_turns == 2 and result.wrapper_removed == 0
+
+
+def test_fallback_formats_display_without_mutating_evidence(env):
+    state = session(env)
+    values = [0.4444444444444444, 1.0, 0.0, 0, False, "Unknown", "2026-10-19", 7, None]
+    features = [{"label": f"Value {i}", "value": value} for i, value in enumerate(values)]
+    state.register("facts:FIC-010", "FIC-010", "facts", {"features": features})
+    state.register(
+        "pattern:FIC-010",
+        "FIC-010",
+        "pattern",
+        {"status": PatternStatus.ATYPICAL_ELEVATED_ACTIVITY, "reason": None},
+    )
+    state.register(
+        "audit:FIC-010:1",
+        "FIC-010",
+        "issue",
+        {"code": "UNKNOWN_ACTIVITY_COUNT", "date": "2026-10-13", "crew": "Launcher 1"},
+    )
+    refs = ["facts:FIC-010", "pattern:FIC-010"]
+    response = AgentResponse.model_validate(
+        answer(
+            "FIC-010",
+            refs,
+            occupational_summary={"text": "Reese looks fine.", "evidence_refs": refs},
+            data_quality_summary={
+                "text": "Reese looks fine.",
+                "evidence_refs": ["audit:FIC-010:1"],
+            },
+        )
+    )
+    rendered = render_fallback(
+        response,
+        state,
+        [
+            ValidationFailure("MEDICAL_CONTENT", "occupational_summary.text:REASSURANCE"),
+            ValidationFailure("MEDICAL_CONTENT", "data_quality_summary.text:REASSURANCE"),
+        ],
+    )
+    text = rendered.occupational_summary.text
+    assert text.splitlines()[:8] == [
+        "Value 0: 0.44",
+        "Value 1: 1",
+        "Value 2: 0",
+        "Value 3: 0",
+        "Value 4: False",
+        "Value 5: Unknown",
+        "Value 6: 2026-10-19",
+        "Value 7: 7",
+    ]
+    assert "None" not in text and "Value 8" not in text
+    assert rendered.data_quality_summary.text == "2026-10-13 · Launcher 1: activity count Unknown"
+    assert features == state.evidence["facts:FIC-010"][0].payload["features"]
+    assert [fact["value"] for fact in features] == values
+    assert features[0]["value"] == 0.4444444444444444
+    assert state.evidence["pattern:FIC-010"][0].payload["reason"] is None

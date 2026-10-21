@@ -66,7 +66,8 @@ retrieve those tools, set followup_state and include symptom_followup_summary wi
 its text is replaced. In your own text refer only to 'the deterministic follow-up guidance shown
 below'. Relay titles and rationales are also replaced by code. Ordinary workflow language such
 as 'due to', 'triggered by' and 'of concern' is fine. Never author a medical disclaimer.
-Return only the AgentResponse JSON object."""
+Return exactly one raw JSON object matching the requested response structure. Do not wrap it in
+Markdown and do not include prose before or after it."""
 
 ANALYST_DISCLAIMER = "BlastBridge does not diagnose concussion or TBI or estimate injury risk."
 
@@ -179,6 +180,7 @@ class AnalystRun:
     model: str | None = None
     grounded: bool = False
     fallback: bool = False
+    wrapper_removed: int = 0
     validation: list[ValidationFailure] = field(default_factory=list)
     fingerprint: str | None = None
     error: str | None = None
@@ -669,6 +671,11 @@ FALLBACK_SUMMARY = "Showing grounded facts from BlastBridge tools; generated wor
 
 
 def _fallback_facts(response: AgentResponse, session: ToolSession, quality: bool) -> str:
+    def display(value: object) -> str:
+        if isinstance(value, float):
+            return f"{value:.2f}".rstrip("0").rstrip(".")
+        return str(value)
+
     evidence = [
         item
         for values in session.evidence.values()
@@ -689,9 +696,15 @@ def _fallback_facts(response: AgentResponse, session: ToolSession, quality: bool
                     lines.append(str(payload["empty_audit_wording"]))
                 lines.extend(note for note in payload["notes"] if isinstance(note, str))
         elif item.kind == "pattern":
-            lines.extend((PatternStatus(payload["status"]).label, str(payload["reason"])))
+            lines.append(PatternStatus(payload["status"]).label)
+            if payload["reason"] is not None:
+                lines.append(display(payload["reason"]))
         elif item.kind == "facts":
-            lines.extend(f"{fact['label']}: {fact['value']}" for fact in payload["features"])
+            lines.extend(
+                f"{fact['label']}: {display(fact['value'])}"
+                for fact in payload["features"]
+                if fact["value"] is not None
+            )
     return "\n".join(dict.fromkeys(lines)) or "Showing the cited BlastBridge evidence."
 
 
@@ -918,6 +931,38 @@ def _messages(conversation: Conversation, context: AgentContext) -> list[dict[st
     return messages
 
 
+def extract_json_object(text: str) -> tuple[dict[str, Any] | None, bool]:
+    text = text.strip()
+    try:
+        value = json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    else:
+        return (value, False) if isinstance(value, dict) else (None, False)
+    fence = re.fullmatch(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
+    if fence:
+        try:
+            value = json.loads(fence.group(1).strip())
+        except json.JSONDecodeError:
+            return None, False
+        return (value, True) if isinstance(value, dict) else (None, False)
+    decoder = json.JSONDecoder()
+    found: dict[str, Any] | None = None
+    position = text.find("{")
+    while position != -1:
+        try:
+            value, end = decoder.raw_decode(text, position)
+        except json.JSONDecodeError:
+            position = text.find("{", position + 1)
+            continue
+        if found is not None:
+            return None, False
+        if isinstance(value, dict):
+            found = value
+        position = text.find("{", end)
+    return found, found is not None
+
+
 def ask(
     question: str | None,
     *,
@@ -981,26 +1026,31 @@ def ask(
             block.get("text", "") for block in turn.blocks if block.get("type") == "text"
         )
         parsed_response = None
-        try:
-            response = AgentResponse.model_validate_json(text)
-        except ValidationError as exc:
-            failures = [
-                ValidationFailure(error["type"], ".".join(map(str, error["loc"])))
-                for error in exc.errors()
-            ]
+        obj, wrapper_removed = extract_json_object(text)
+        run.wrapper_removed += int(wrapper_removed)
+        if obj is None:
+            failures = [ValidationFailure("json_invalid", "")]
         else:
-            parsed_response = response
-            failures = validate_response(response, session)
-            if not failures:
-                response = render_deterministic_relays(response, session)
-                response = render_medical_section(response, session)
-                run.response = response
-                run.grounded = True
-                run.validation = []
-                conversation.add_assistant(response.answer_summary, response.clarification)
-                if response.person_id:
-                    run.fingerprint = evidence_fingerprint(response.person_id, context, data)
-                break
+            try:
+                response = AgentResponse.model_validate(obj)
+            except ValidationError as exc:
+                failures = [
+                    ValidationFailure(error["type"], ".".join(map(str, error["loc"])))
+                    for error in exc.errors()
+                ]
+            else:
+                parsed_response = response
+                failures = validate_response(response, session)
+        if parsed_response is not None and not failures:
+            response = render_deterministic_relays(parsed_response, session)
+            response = render_medical_section(response, session)
+            run.response = response
+            run.grounded = True
+            run.validation = []
+            conversation.add_assistant(response.answer_summary, response.clarification)
+            if response.person_id:
+                run.fingerprint = evidence_fingerprint(response.person_id, context, data)
+            break
         run.validation = failures
         session.trace.extend(
             ToolTrace("validation", {}, f"{item.code}:{item.path}", False, "validation")
@@ -1026,7 +1076,12 @@ def ask(
             run.error = "Analyst response failed validation after one repair"
             break
         repair = True
-        messages.append({"role": "assistant", "content": turn.raw_content})
+        messages.append(
+            {
+                "role": "assistant",
+                "content": canonical_json(obj) if obj is not None else turn.raw_content,
+            }
+        )
         messages.append(
             {
                 "role": "user",
