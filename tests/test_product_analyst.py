@@ -16,6 +16,7 @@ from blastbridge.product.agent import (
     ScriptedProvider,
 )
 from blastbridge.product.analyst import (
+    ANALYST_DISCLAIMER,
     SYSTEM_PROMPT,
     AgentContext,
     AgentResponse,
@@ -44,6 +45,7 @@ from blastbridge.product.models import EventStatus, IntakeSource
 from blastbridge.product.patterns import PatternStatus, fit_pattern_model, load_reference
 from blastbridge.product.readiness import ATTENTION_PRECEDENCE, ReadinessStatus
 from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE, DEMO_SYMPTOMS
+from blastbridge.product.symptoms import DangerSign
 
 ROOT = Path(__file__).resolve().parents[1]
 TODAY = DEMO_STORY_DATE
@@ -128,6 +130,12 @@ def execute(state, name, person_id="FIC-010"):
     payload, error = state.execute(name, {"person_id": person_id})
     assert not error, payload
     return payload["untrusted_record_data"]
+
+
+def next_request(state):
+    return ToolSession(
+        state.context, state.data, state.intake_provider, state.conversation, state.ledger
+    )
 
 
 def run(env, turns, question="Investigate the evidence", conversation=None, ledger=None):
@@ -247,10 +255,11 @@ def test_f_idempotency_reuses_saved_draft(env):
     first, error = state.execute("create_training_event_draft", args)
     assert not error
     calls = state.nested_model_calls
+    state = next_request(state)
     second, error = state.execute("create_training_event_draft", args)
     assert not error and second["untrusted_record_data"]["recovered"]
     assert first["untrusted_record_data"]["event_id"] == second["untrusted_record_data"]["event_id"]
-    assert state.nested_model_calls == calls
+    assert calls == 2 and state.nested_model_calls == 0
     assert len(store.list_events(env[0], EventStatus.DRAFT)) == 1
 
 
@@ -641,6 +650,7 @@ def test_running_action_is_not_repeated_and_failed_action_may_retry(env):
     assert state.nested_model_calls == 0
     assert not store.list_events(env[0], EventStatus.DRAFT)
     state.ledger[key] = ActionEntry("failed", error="retryable intake error")
+    state = next_request(state)
     payload, error = state.execute("create_training_event_draft", {"utterance_ids": ["U1"]})
     assert not error and payload["untrusted_record_data"]["kind"] == "review"
 
@@ -655,6 +665,7 @@ def test_native_proposal_and_failed_intake_never_save(env):
     payload, error = state.execute("create_training_event_draft", {"utterance_ids": ["U1"]})
     assert not error and payload["untrusted_record_data"]["kind"] == "proposed"
     assert state.created_draft.intake_result is not None
+    state = next_request(state)
     payload, error = state.execute("create_training_event_draft", {"utterance_ids": ["U1"]})
     assert not error and payload["untrusted_record_data"]["recovered"]
     assert not store.list_events(env[0], EventStatus.DRAFT)
@@ -778,13 +789,13 @@ def test_recommendation_exclusivity_staleness_and_language_backstops(env):
     response = AgentResponse.model_validate(
         answer("FIC-010", ["facts:FIC-010"], answer_summary="This is not a diagnosis.")
     )
-    assert validate_response(response, state) == []
+    assert any(item.code == "BANNED_CLAIM" for item in validate_response(response, state))
     rec = recommendation("RUN_UPDATED_ANALYSIS", ["facts:FIC-010"])
     rec["rationale"] = "See a doctor and seek medical care."
     response = AgentResponse.model_validate(
         answer("FIC-010", ["facts:FIC-010"], recommendations=[rec])
     )
-    assert any(item.code == "MEDICAL_WORKFLOW_CLAIM" for item in validate_response(response, state))
+    assert any(item.code == "BANNED_CLAIM" for item in validate_response(response, state))
 
 
 def test_uncertain_save_is_never_repeated(env):
@@ -800,6 +811,7 @@ def test_uncertain_save_is_never_repeated(env):
     args = {"utterance_ids": ["U1"]}
     _, error = state.execute("create_training_event_draft", args)
     assert error and len(store.list_events(env[0], EventStatus.DRAFT)) == 1
+    state = next_request(state)
     payload, error = state.execute("create_training_event_draft", args)
     assert not error and payload["untrusted_record_data"]["kind"] == "needs_review"
     assert len(store.list_events(env[0], EventStatus.DRAFT)) == 1
@@ -896,23 +908,19 @@ def test_retry_none_recovers_saved_draft_without_appending_user_turn(env):
     assert len(store.list_events(env[0], EventStatus.DRAFT)) == 1
 
 
-def test_retry_none_requires_a_last_user_turn(env):
+def test_retry_none_requires_an_existing_user_turn(env):
     _, data, context = env
     conversation = Conversation("invalid-retry")
-    for with_assistant in (False, True):
-        if with_assistant:
-            conversation.add_user("Question")
-            conversation.add_assistant("Answer", None)
-        with pytest.raises(ValueError, match="Retry requires a last user turn"):
-            ask(
-                None,
-                context=context,
-                data=data,
-                provider=ScriptedProvider([]),
-                intake_provider=ScriptedProvider([]),
-                conversation=conversation,
-                ledger={},
-            )
+    with pytest.raises(ValueError, match="Retry requires an existing user turn"):
+        ask(
+            None,
+            context=context,
+            data=data,
+            provider=ScriptedProvider([]),
+            intake_provider=ScriptedProvider([]),
+            conversation=conversation,
+            ledger={},
+        )
 
 
 def replay_fixture(env, name):
@@ -1069,3 +1077,324 @@ def test_tool_count_wording_is_singular_only_for_one(count):
         if count
         else "no material issue identified"
     )
+
+
+def test_review_1_a_two_draft_actions_in_one_ask_save_only_once(env):
+    conversation = Conversation("review-1a")
+    conversation.add_user(GOLDEN_NARRATIVE)
+    ledger = {}
+    ref = f"draft:{action_key(conversation.conversation_id, ['U1'])}"
+    result = run(
+        env,
+        [
+            tool_turn(
+                ("create_training_event_draft", {"utterance_ids": ["U1"]}),
+                ("create_training_event_draft", {"utterance_ids": ["U1", "U2"]}),
+            ),
+            text_turn(answer(refs=[ref], intent="CREATE_TRAINING_DRAFT")),
+        ],
+        question="Launcher 1 was the crew with six.",
+        conversation=conversation,
+        ledger=ledger,
+    )
+    assert result.grounded and result.created_draft.kind == "review"
+    assert result.counts.nested_intake_model_calls == 2
+    assert any(
+        not step.ok and step.summary == "one draft action per request" for step in result.tool_trace
+    )
+    assert len(store.list_events(env[0], EventStatus.DRAFT)) == 1
+
+
+def test_review_1_b_extended_utterance_set_recovers_saved_conversation_draft(env):
+    conversation = Conversation("review-1b")
+    ledger = {}
+    ref = f"draft:{action_key(conversation.conversation_id, ['U1'])}"
+    first = run(
+        env,
+        [
+            tool_turn(("create_training_event_draft", {"utterance_ids": ["U1"]})),
+            text_turn(
+                answer(
+                    refs=[ref],
+                    intent="CREATE_TRAINING_DRAFT",
+                    clarification="Which launcher did you mean?",
+                )
+            ),
+        ],
+        question=GOLDEN_NARRATIVE,
+        conversation=conversation,
+        ledger=ledger,
+    )
+    assert first.grounded and first.created_draft.event_id
+    second = run(
+        env,
+        [
+            tool_turn(("create_training_event_draft", {"utterance_ids": ["U1", "U2"]})),
+            text_turn(answer(refs=[ref], intent="CREATE_TRAINING_DRAFT")),
+        ],
+        question="Launcher 1.",
+        conversation=conversation,
+        ledger=ledger,
+    )
+    assert second.grounded and second.created_draft.recovered
+    assert second.created_draft.event_id == first.created_draft.event_id
+    assert second.counts.nested_intake_model_calls == 0
+    assert any(step.summary == "existing draft for this conversation" for step in second.tool_trace)
+    assert len(store.list_events(env[0], EventStatus.DRAFT)) == 1
+
+
+def test_review_1_c_updated_analysis_reuses_last_user_turn_and_saved_draft(env):
+    conversation = Conversation("review-1c")
+    ledger = {}
+    ref = f"draft:{action_key(conversation.conversation_id, ['U1'])}"
+    turns = [
+        tool_turn(("create_training_event_draft", {"utterance_ids": ["U1"]})),
+        text_turn(answer(refs=[ref], intent="CREATE_TRAINING_DRAFT")),
+    ]
+    first = run(env, turns, question=GOLDEN_NARRATIVE, conversation=conversation, ledger=ledger)
+    assert first.grounded and conversation.turns[-1].role == "assistant"
+    before = [turn for turn in conversation.turns if turn.role == "user"]
+    updated = ask(
+        None,
+        context=replace(env[2], prior_analysis_stale=True),
+        data=env[1],
+        provider=ScriptedProvider(turns),
+        intake_provider=ScriptedProvider([]),
+        conversation=conversation,
+        ledger=ledger,
+    )
+    assert updated.grounded and updated.created_draft.recovered
+    assert updated.created_draft.event_id == first.created_draft.event_id
+    assert updated.counts.nested_intake_model_calls == 0
+    assert [turn for turn in conversation.turns if turn.role == "user"] == before
+    assert len(store.list_events(env[0], EventStatus.DRAFT)) == 1
+
+
+def test_review_1_d_running_action_blocks_extended_utterance_sets(env):
+    state = session(env)
+    state.conversation.add_user(GOLDEN_NARRATIVE)
+    state.conversation.add_user("Launcher 1.")
+    key = action_key(state.conversation.conversation_id, ["U1"])
+    state.ledger[key] = ActionEntry("running", conversation_id=state.conversation.conversation_id)
+    payload, error = state.execute("create_training_event_draft", {"utterance_ids": ["U1", "U2"]})
+    assert not error and payload["untrusted_record_data"]["kind"] == "needs_review"
+    assert payload["untrusted_record_data"]["action_key"] == key
+    assert payload["untrusted_record_data"]["recovered"]
+    assert state.nested_model_calls == 0 and not store.list_events(env[0], EventStatus.DRAFT)
+
+
+def test_review_1_e_extended_proposal_supersedes_without_a_second_saved_draft(env):
+    state = session(env)
+    state.conversation.add_user("Log training; details and participants still need clarification.")
+    proposed, error = state.execute("create_training_event_draft", {"utterance_ids": ["U1"]})
+    assert not error and proposed["untrusted_record_data"]["kind"] == "proposed"
+    old_key = state.conversation.current_action_key
+    state.conversation.add_user(GOLDEN_NARRATIVE)
+    state = next_request(state)
+    state.intake_provider = intake_provider()
+    saved, error = state.execute("create_training_event_draft", {"utterance_ids": ["U1", "U2"]})
+    assert not error and saved["untrusted_record_data"]["kind"] == "review"
+    assert state.ledger[old_key].state == "proposed" and state.ledger[old_key].superseded
+    assert state.conversation.current_action_key != old_key
+    assert len(store.list_events(env[0], EventStatus.DRAFT)) == 1
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Reese should be referred to a neurologist for a concussion evaluation; "
+        "no follow-up is needed for the tinnitus and Reese is fit to fire.",
+        "Refer to a medical provider for brain-injury screening",
+        "Repeated firing likely caused mild TBI; get an MRI.",
+        "Reese's tinnitus is harmless, there is low likelihood of injury, "
+        "and Reese doesn't need follow-up.",
+        "Reese needs emergency care now; call 911",
+    ],
+)
+@pytest.mark.parametrize(
+    "field",
+    [
+        "answer_summary",
+        "section",
+        "brief",
+        "clarification",
+        "limitations",
+        "recommendation_title",
+        "recommendation_rationale",
+    ],
+)
+def test_review_2_medical_and_safety_repros_are_rejected_in_all_model_text(env, text, field):
+    state = session(env)
+    records = execute(state, "get_person_record")["records"]
+    refs = [records[0]["evidence_ref"]]
+    payload = answer("FIC-010", refs)
+    if field == "section":
+        payload["what_changed"] = {"text": text, "evidence_refs": refs}
+    elif field == "brief":
+        payload["brief"] = {
+            "sections": [{"heading": "WHAT CHANGED", "text": text, "evidence_refs": refs}]
+        }
+    elif field == "limitations":
+        payload[field] = [text]
+    elif field.startswith("recommendation_"):
+        rec = recommendation("REVIEW_RECORD", refs)
+        rec["title" if field.endswith("title") else "rationale"] = text
+        payload["recommendations"] = [rec]
+    else:
+        payload[field] = text
+    failures = validate_response(AgentResponse.model_validate(payload), state)
+    assert any(item.code == "BANNED_CLAIM" for item in failures)
+
+
+def test_review_2_urgent_requires_returned_guidance_and_tbicoe_is_not_tbi(env):
+    state = session(env)
+    execute(state, "get_person_record")
+    good = AgentResponse.model_validate(
+        answer(
+            "FIC-010",
+            ["facts:FIC-010"],
+            answer_summary="TBICoE source labels are in the guidance below.",
+        )
+    )
+    assert validate_response(good, state) == []
+    bad = good.model_copy(update={"answer_summary": "An urgent follow-up status is recorded."})
+    assert any(item.code == "BANNED_CLAIM" for item in validate_response(bad, state))
+    report = state.data.symptom_reports("FIC-010")[0]
+    draft = report.draft.model_copy(update={"danger_signs": (DangerSign.WORSENING_HEADACHE,)})
+    state.data = replace(
+        state.data, symptom_reports=lambda _: [report.model_copy(update={"draft": draft})]
+    )
+    execute(state, "get_followup_assessment")
+    allowed = bad.model_copy(
+        update={
+            "evidence_refs": ["followup:FIC-010"],
+            "followup_state": FollowUpState.URGENT_EVALUATION_RECOMMENDED,
+        }
+    )
+    assert validate_response(allowed, state) == []
+    assert ANALYST_DISCLAIMER == (
+        "BlastBridge does not diagnose concussion or TBI or estimate injury risk."
+    )
+
+
+def test_review_3_relay_text_comes_from_rules_not_the_model(env):
+    state = session(env)
+    guidance = execute(state, "get_followup_assessment", "FIC-002")
+    rec = recommendation(
+        "RELAY_MEDICAL_FOLLOWUP", ["followup:FIC-002"], "DETERMINISTIC_GUIDANCE_RELAY"
+    )
+    rec["title"] = "Stop all live fire and get an urgent MRI"
+    rec["rationale"] = "Repeated firing likely caused mild TBI; get an MRI."
+    result = run(
+        env,
+        [
+            tool_turn(("get_followup_assessment", {"person_id": "FIC-002"})),
+            text_turn(
+                answer(
+                    "FIC-002",
+                    ["followup:FIC-002"],
+                    followup_state=FollowUpState.FOLLOW_UP_SUGGESTED,
+                    recommendations=[rec],
+                )
+            ),
+        ],
+    )
+    assert result.grounded and result.validation == []
+    rendered = result.response.recommendations[0]
+    assert rendered.title == FollowUpState.FOLLOW_UP_SUGGESTED.label
+    expected = "\n\n".join(
+        report["headline"]
+        + "\n"
+        + report["explanation"]
+        + "\nSources: "
+        + "; ".join(report["source_titles"])
+        for report in guidance["reports"]
+    )
+    assert rendered.rationale == expected
+    assert "MRI" not in rendered.title + rendered.rationale
+    assert rendered.authority == "DETERMINISTIC_GUIDANCE_RELAY"
+    assert rendered.evidence_refs == ["followup:FIC-002"]
+    assert any(
+        step.summary == "relay text rendered from deterministic rules" for step in result.tool_trace
+    )
+
+
+def test_review_4_attention_cannot_supply_another_persons_symptoms(env):
+    state = session(env)
+    state.execute("get_attention_queue", {})
+    bad = AgentResponse.model_validate(
+        answer(
+            "FIC-010",
+            ["attention:FIC-002"],
+            symptom_followup_summary={
+                "text": "Reese's recorded facts.",
+                "evidence_refs": ["attention:FIC-002"],
+            },
+        )
+    )
+    assert state.evidence["attention:FIC-002"][0].person_id == "FIC-002"
+    assert any(item.code == "PERSON_MISMATCH" for item in validate_response(bad, state))
+    global_response = AgentResponse.model_validate(answer(refs=["attention:FIC-002"]))
+    assert validate_response(global_response, state) == []
+    for name, value in (
+        ("pattern_state", PatternStatus.TYPICAL_RECORDED_PATTERN),
+        ("followup_state", FollowUpState.FOLLOW_UP_SUGGESTED),
+        ("readiness_status", ReadinessStatus.REVIEW_PRIORITY),
+    ):
+        response = global_response.model_copy(update={name: value})
+        assert any(
+            item.code == "GLOBAL_STATE_NOT_ALLOWED" for item in validate_response(response, state)
+        )
+
+
+def test_review_5_missing_information_uses_a_focused_audit_sequence(env):
+    missing = replay_fixture(env, "reese_missing")[0]
+    brief = replay_fixture(env, "reese_brief")[0]
+    assert missing.response.intent == "AUDIT_RECORDS"
+    assert outer_sequence(missing) == ["audit_record_quality"]
+    assert outer_sequence(brief) == PERSON_SEQUENCE
+    rec = missing.response.recommendations[0]
+    assert rec.type == "VERIFY_UNKNOWN" and rec.authority == "AI_WORKFLOW_RECOMMENDATION"
+    assert rec.evidence_refs == ["audit:FIC-010:1", "audit:FIC-010:2", "audit:FIC-010:3"]
+    assert len([item for item in missing.evidence if item.kind == "issue"]) == 3
+
+
+@pytest.mark.parametrize("name", ["reese_brief", "jordan_brief", "log_event", "attention"])
+def test_review_6_updated_fixtures_are_grounded_without_validation_failures(env, name):
+    for result in replay_fixture(env, name):
+        assert result.grounded and result.validation == []
+
+
+def test_review_6_logging_replay_binds_ids_after_a_previous_question(env):
+    conversation = Conversation("review-6")
+    ledger = {}
+    attention = load_analyst_replay("attention", analysis_as_of=TODAY)
+    step = attention.steps[0]
+    provider, intake = replay_providers(step)
+    first = ask(
+        step.utterance,
+        context=env[2],
+        data=env[1],
+        provider=provider,
+        intake_provider=intake,
+        conversation=conversation,
+        ledger=ledger,
+    )
+    assert first.grounded
+    fixture = load_analyst_replay("log_event", analysis_as_of=TODAY)
+    for index, step in enumerate(fixture.steps):
+        provider, intake = replay_providers(step, utterance_ids=["U2", "U3"] if index else None)
+        result = ask(
+            step.utterance,
+            context=env[2],
+            data=env[1],
+            provider=provider,
+            intake_provider=intake,
+            conversation=conversation,
+            ledger=ledger,
+        )
+        assert result.grounded and result.validation == []
+    assert result.created_draft.intake_result.narrative == "\n".join(
+        step.utterance for step in fixture.steps
+    )
+    assert len(store.list_events(env[0], EventStatus.DRAFT)) == 1

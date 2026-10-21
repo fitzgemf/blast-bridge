@@ -144,6 +144,8 @@ class ActionEntry:
     state: Literal["running", "draft_saved", "proposed", "failed"]
     outcome: CreatedDraft | None = None
     error: str | None = None
+    conversation_id: str | None = None
+    superseded: bool = False
 
 
 type ActionLedger = MutableMapping[str, ActionEntry]
@@ -155,7 +157,7 @@ class ToolTrace:
     input: dict[str, Any]
     summary: str
     ok: bool
-    scope: Literal["outer", "nested", "validation"] = "outer"
+    scope: Literal["outer", "nested", "validation", "rendering"] = "outer"
     evidence_refs: tuple[str, ...] = ()
 
 
@@ -319,6 +321,8 @@ class ToolSession:
     outer_calls: int = 0
     nested_model_calls: int = 0
     nested_tool_calls: int = 0
+    draft_action_called: bool = False
+    recovered_conversation: bool = False
 
     def register(
         self,
@@ -338,6 +342,10 @@ class ToolSession:
         self.outer_calls += 1
         safe_input = arguments if isinstance(arguments, dict) else {}
         try:
+            if name == "create_training_event_draft":
+                if self.draft_action_called:
+                    raise ValueError("one draft action per request")
+                self.draft_action_called = True
             if self.outer_calls > 8:
                 raise ValueError("tool budget exhausted")
             if name in READ_TOOLS:
@@ -365,7 +373,9 @@ class ToolSession:
             ToolTrace(
                 name,
                 safe_input,
-                tool_summary(name, payload),
+                "existing draft for this conversation"
+                if name == "create_training_event_draft" and self.recovered_conversation
+                else tool_summary(name, payload),
                 True,
                 evidence_refs=tuple(returned_refs(payload)),
             )
@@ -585,7 +595,7 @@ class ToolSession:
             "people": [
                 self.register(
                     f"attention:{person.person_id}",
-                    None,
+                    person.person_id,
                     "attention",
                     {
                         "person_id": person.person_id,
@@ -600,6 +610,16 @@ class ToolSession:
         }
 
     def create_draft(self, utterance_ids: list[str]) -> dict[str, Any]:
+        existing_key = self.conversation.current_action_key
+        locked = [
+            (key, entry)
+            for key, entry in self.ledger.items()
+            if (entry.conversation_id == self.conversation.conversation_id or key == existing_key)
+            and entry.state in ("draft_saved", "running")
+        ]
+        if locked:
+            key, locked_entry = locked[0]
+            return self.recover_action(key, locked_entry)
         if len(set(utterance_ids)) != len(utterance_ids):
             raise ValueError("duplicate utterance ids")
         turns = [
@@ -611,21 +631,22 @@ class ToolSession:
         if set(ordered_ids) != set(utterance_ids):
             raise ValueError("unknown user utterance ids")
         key = action_key(self.conversation.conversation_id, ordered_ids)
-        self.conversation.current_action_key = key
         prior = self.ledger.get(key)
-        if prior is not None and prior.state in ("draft_saved", "proposed"):
+        if prior is not None and prior.state in ("draft_saved", "running"):
+            return self.recover_action(key, prior)
+        if prior is not None and prior.state == "proposed" and not prior.superseded:
             assert prior.outcome is not None
+            self.conversation.current_action_key = key
             self.created_draft = replace(prior.outcome, recovered=True)
-        elif prior is not None and prior.state == "running":
-            self.created_draft = CreatedDraft(
-                "needs_review",
-                key,
-                "Needs review in Review queue; do not repeat the action",
-                "review",
-                recovered=True,
-            )
         else:
-            self.ledger[key] = ActionEntry("running")
+            if existing_key is not None and existing_key != key:
+                previous = self.ledger.get(existing_key)
+                if previous is not None and previous.state == "proposed":
+                    previous.superseded = True
+            self.conversation.current_action_key = key
+            self.ledger[key] = ActionEntry(
+                "running", conversation_id=self.conversation.conversation_id
+            )
             try:
                 result = agent.run_intake(
                     "\n".join(turn.text for turn in turns),
@@ -635,7 +656,11 @@ class ToolSession:
                     today=self.context.reference_date,
                 )
             except Exception:
-                self.ledger[key] = ActionEntry("failed", error="Intake failed before saving")
+                self.ledger[key] = ActionEntry(
+                    "failed",
+                    error="Intake failed before saving",
+                    conversation_id=self.conversation.conversation_id,
+                )
                 raise ValueError("Intake failed before saving") from None
             self.nested_model_calls += result.model_calls
             self.nested_tool_calls += sum(
@@ -657,7 +682,9 @@ class ToolSession:
                             )
                         )
             if result.error:
-                self.ledger[key] = ActionEntry("failed", error=result.error)
+                self.ledger[key] = ActionEntry(
+                    "failed", error=result.error, conversation_id=self.conversation.conversation_id
+                )
                 raise ValueError("Intake failed: " + result.error)
             event_id = None
             if result.draft is not None:
@@ -684,7 +711,27 @@ class ToolSession:
                 provenance=result.origins,
                 intake_result=result,
             )
-            self.ledger[key] = ActionEntry("draft_saved" if event_id else "proposed", outcome)
+            self.ledger[key] = ActionEntry(
+                "draft_saved" if event_id else "proposed",
+                outcome,
+                conversation_id=self.conversation.conversation_id,
+            )
             self.created_draft = outcome
         assert self.created_draft is not None
+        return self.register(f"draft:{key}", None, "draft", self.created_draft.payload())
+
+    def recover_action(self, key: str, entry: ActionEntry) -> dict[str, Any]:
+        self.conversation.current_action_key = key
+        self.recovered_conversation = True
+        if entry.state == "draft_saved":
+            assert entry.outcome is not None
+            self.created_draft = replace(entry.outcome, recovered=True)
+        else:
+            self.created_draft = CreatedDraft(
+                "needs_review",
+                key,
+                "Needs review in Review queue; do not repeat the action",
+                "review",
+                recovered=True,
+            )
         return self.register(f"draft:{key}", None, "draft", self.created_draft.payload())

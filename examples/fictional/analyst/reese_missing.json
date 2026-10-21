@@ -1,0 +1,40 @@
+{
+  "name": "reese_missing",
+  "label": "Demo replay",
+  "provenance": "Scripted model turns authored for the fictional demo — not a live recording. Tools, intake and validation run for real.",
+  "analysis_as_of": "2026-10-19",
+  "reference_date": "2026-10-19",
+  "page": "person",
+  "selected_person_id": "FIC-010",
+  "steps": [
+    {
+      "utterance": "What information is missing for Reese?",
+      "outer_turns": [
+        {
+          "stop_reason": "tool_use",
+          "blocks": [
+            {
+              "type": "tool_use",
+              "id": "missing-1",
+              "name": "audit_record_quality",
+              "input": {
+                "person_id": "FIC-010"
+              }
+            }
+          ],
+          "model": "scripted-demo-analyst"
+        },
+        {
+          "stop_reason": "end_turn",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "{\"intent\":\"AUDIT_RECORDS\",\"person_id\":\"FIC-010\",\"answer_summary\":\"Three occupational records have Unknown activity counts: October 7, 2025; June 23, 2026; and October 13, 2026. Verify the source records where available and preserve Unknown rather than estimating.\",\"data_quality_summary\":{\"text\":\"The three count gaps remain Unknown, never zero. Two of the seven records in the prior 365 days have Unknown counts; the third gap is in the older October 7, 2025 record.\",\"evidence_refs\":[\"audit:FIC-010:1\",\"audit:FIC-010:2\",\"audit:FIC-010:3\",\"quality:FIC-010\"]},\"recommendations\":[{\"type\":\"VERIFY_UNKNOWN\",\"title\":\"Verify the three Unknown activity counts\",\"rationale\":\"Check the source records if available. Keep each count Unknown unless a source provides it.\",\"evidence_refs\":[\"audit:FIC-010:1\",\"audit:FIC-010:2\",\"audit:FIC-010:3\"],\"authority\":\"AI_WORKFLOW_RECOMMENDATION\",\"action_target\":null}],\"evidence_refs\":[\"audit:FIC-010:1\",\"audit:FIC-010:2\",\"audit:FIC-010:3\",\"quality:FIC-010\"],\"limitations\":[\"The audit covers the available recorded information, not the completeness of source records.\"]}"
+            }
+          ],
+          "model": "scripted-demo-analyst"
+        }
+      ]
+    }
+  ]
+}

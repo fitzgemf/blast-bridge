@@ -23,6 +23,7 @@ from blastbridge.product.agent import (
     run_intake,
 )
 from blastbridge.product.analyst import (
+    ANALYST_DISCLAIMER,
     AgentContext,
     AnalystData,
     AnalystRun,
@@ -477,7 +478,10 @@ def analyst_suggestions(person_id: str | None) -> list[tuple[str, str]]:
     if person_id is None:
         return [("Log a training event", "log_event"), ("Who needs attention?", "attention")]
     if person_id == "FIC-010":
-        return [("Summarize Reese for review", "reese_brief")]
+        return [
+            ("Summarize Reese for review", "reese_brief"),
+            ("What information is missing for Reese?", "reese_missing"),
+        ]
     if person_id == "FIC-002":
         return [("Create a brief for Jordan", "jordan_brief")]
     return []
@@ -497,6 +501,7 @@ def submit_analyst(
     replay_key = f"ask_replay_{scope}"
     notice_key = f"ask_notice_{scope}"
     s.pop(notice_key, None)
+    conversation = s.setdefault(conversation_key, Conversation(uuid4().hex))
     try:
         if live_available():
             provider, intake_provider = AnthropicProvider(), AnthropicProvider()
@@ -531,11 +536,27 @@ def submit_analyst(
                     raise ValueError("Start with the suggested training-event request.")
             if question is not None:
                 question = step.utterance
-                if replay_index == 0:
-                    s[conversation_key] = Conversation(uuid4().hex)
             s[replay_key] = (replay_name, replay_index)
-            provider, intake_provider = replay_providers(step)
-        conversation = s.setdefault(conversation_key, Conversation(uuid4().hex))
+            source_ids = None
+            if replay_name == "log_event" and replay_index == 1:
+                first_id = next(
+                    turn.utterance_id
+                    for turn in reversed(conversation.turns)
+                    if turn.role == "user" and turn.text == fixture.steps[0].utterance
+                )
+                last_id = (
+                    next(
+                        turn.utterance_id
+                        for turn in reversed(conversation.turns)
+                        if turn.role == "user"
+                    )
+                    if question is None
+                    else f"U{conversation.next_user_number}"
+                )
+                if first_id is None or last_id is None:
+                    raise ValueError("Start with the suggested training-event request.")
+                source_ids = [first_id, last_id]
+            provider, intake_provider = replay_providers(step, utterance_ids=source_ids)
         ledger = s.setdefault("ask_ledger", {})
         with st.spinner("Reviewing BlastBridge evidence…"):
             s[f"ask_run_{scope}"] = ask(
@@ -547,7 +568,7 @@ def submit_analyst(
                 conversation=conversation,
                 ledger=ledger,
             )
-    except (OSError, ValueError, IndexError) as exc:
+    except (OSError, ValueError, IndexError, StopIteration) as exc:
         s[notice_key] = str(exc)
     st.rerun()
 
@@ -565,6 +586,7 @@ def analyst_draft(run: AnalystRun, scope: str) -> None:
     with st.container(key=f"ask-draft-{scope}"):
         if draft.kind == "needs_review":
             st.write(draft.status)
+            st.caption("Start over to log another event")
             st.page_link(PAGES["inbox"], label="Open Review queue")
             return
         st.write("**Draft — awaiting human review · not yet recorded**")
@@ -575,6 +597,7 @@ def analyst_draft(run: AnalystRun, scope: str) -> None:
         if draft.recovered:
             st.caption("Recovered the existing draft; no second draft was created.")
         if draft.event_id:
+            st.caption("Start over to log another event")
             if st.button("Open in Review", key=f"ask-open-review-{scope}", type="primary"):
                 open_review(draft.event_id)
         elif draft.intake_result is not None:
@@ -592,6 +615,7 @@ def analyst_draft(run: AnalystRun, scope: str) -> None:
 def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
     label = "Demo replay" if run.mode == "replay" else f"Live AI · {run.model or 'unavailable'}"
     st.caption(f"{label} · Analysis as of {run.analysis_as_of:%d %b %Y}")
+    st.caption(ANALYST_DISCLAIMER)
     ui.analyst_activity(activity_lines(run))
     checks = evidence_count(run)
     if checks or run.tool_trace:
@@ -697,13 +721,7 @@ def ask_workspace(person_id: str | None = None) -> None:
                 if is_stale(run, fingerprint):
                     st.info("Evidence changed since this analysis.")
                     if st.button("Run updated analysis", key=f"ask-update-{scope}"):
-                        conversation = s[f"ask_conversation_{scope}"]
-                        last = next(
-                            turn.text
-                            for turn in reversed(conversation.turns)
-                            if turn.role == "user"
-                        )
-                        submit_analyst(scope, person_id, last, stale=True)
+                        submit_analyst(scope, person_id, None, stale=True)
             analyst_result(run, scope, person_id)
             if (
                 run.grounded
