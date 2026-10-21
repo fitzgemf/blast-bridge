@@ -6,7 +6,7 @@ participant_exposures; those rows never copy or multiply the count. Drafts never
 
 import json
 import sqlite3
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Sequence
 from contextlib import contextmanager
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -47,7 +47,8 @@ CREATE TABLE IF NOT EXISTS training_events (
     decided_at TEXT,
     revision INTEGER NOT NULL CHECK (revision >= 1),
     intake_source TEXT NOT NULL DEFAULT 'manual'
-        CHECK (intake_source IN ('manual', 'ai_live', 'ai_replay'))
+        CHECK (intake_source IN ('manual', 'ai_live', 'ai_replay')),
+    reconstructed_from TEXT NULL
 );
 CREATE TABLE IF NOT EXISTS crews (
     crew_id TEXT PRIMARY KEY,
@@ -142,6 +143,8 @@ def init_db(conn: sqlite3.Connection) -> None:
                 "ALTER TABLE training_events ADD COLUMN intake_source TEXT NOT NULL "
                 "DEFAULT 'manual' CHECK (intake_source IN ('manual', 'ai_live', 'ai_replay'))"
             )
+        if "reconstructed_from" not in columns:
+            conn.execute("ALTER TABLE training_events ADD COLUMN reconstructed_from TEXT NULL")
         conn.execute(f"PRAGMA user_version = {_SCHEMA_VERSION}")
 
 
@@ -212,11 +215,28 @@ def _require_draft(conn: sqlite3.Connection, event_id: str, revision: int) -> No
         raise StoreError(f"{event_id} is {status}, no longer a draft")
 
 
+def _reconstruction_sources(source_ids: Sequence[str]) -> str:
+    return json.dumps(sorted(source_ids), separators=(",", ":"))
+
+
+def find_reconstruction(
+    conn: sqlite3.Connection, source_ids: Sequence[str]
+) -> TrainingEvent | None:
+    row = conn.execute(
+        "SELECT event_id FROM training_events "
+        "WHERE reconstructed_from = ? AND status IN ('draft', 'approved') LIMIT 1",
+        (_reconstruction_sources(source_ids),),
+    ).fetchone()
+    return get_event(conn, row["event_id"]) if row is not None else None
+
+
 def save_draft(
     conn: sqlite3.Connection,
     draft: TrainingEventDraft,
     event_id: str | None = None,
     intake_source: IntakeSource = IntakeSource.MANUAL,
+    *,
+    reconstructed_from: Sequence[str] | None = None,
 ) -> str:
     if draft.event_date > date.today():
         raise StoreError("event date cannot be in the future")
@@ -226,9 +246,17 @@ def save_draft(
         conn.execute(
             "INSERT INTO training_events (event_id, status, event_date, event_type, "
             "training_context, weapon_system_id, weapon_name, location_unit, created_at, "
-            "decided_at, revision, intake_source) "
-            "VALUES (?, 'draft', ?, ?, ?, ?, ?, ?, ?, NULL, 1, ?)",
-            (event_id, *_event_columns(draft), _now(), intake_source),
+            "decided_at, revision, intake_source, reconstructed_from) "
+            "VALUES (?, 'draft', ?, ?, ?, ?, ?, ?, ?, NULL, 1, ?, ?)",
+            (
+                event_id,
+                *_event_columns(draft),
+                _now(),
+                intake_source,
+                _reconstruction_sources(reconstructed_from)
+                if reconstructed_from is not None
+                else None,
+            ),
         )
         _write_draft(conn, event_id, draft)
     return event_id

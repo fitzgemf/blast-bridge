@@ -706,14 +706,21 @@ def perform_evidence_action(action: UIAction) -> None:
             proposals[key] = resolve(proposal, action.field or "", action.choice or "")
             st.rerun()
         elif action.kind == "CREATE_RECONSTRUCTED_DRAFT":
-            if proposal.created_draft_id is not None:
-                open_review(proposal.created_draft_id)
+            existing = store.find_reconstruction(CONN, proposal.source_ids)
+            if existing is not None:
+                proposals[key] = replace(proposal, created_draft_id=existing.event_id)
+                open_review(existing.event_id)
                 return
             sources = [store.get_event(CONN, event_id) for event_id in proposal.source_ids]
             if not can_create_draft(proposal, sources):
                 st.warning(creation_block_reason(proposal, sources))
                 return
-            event_id = store.save_draft(CONN, to_draft(proposal), intake_source=IntakeSource.MANUAL)
+            event_id = store.save_draft(
+                CONN,
+                to_draft(proposal),
+                intake_source=IntakeSource.MANUAL,
+                reconstructed_from=proposal.source_ids,
+            )
             proposals[key] = replace(proposal, created_draft_id=event_id)
             s["review_notice"] = (
                 f"Source drafts {', '.join(proposal.source_ids)} are unchanged in Review — "
@@ -833,12 +840,16 @@ def analyst_evidence_panels(run: AnalystRun, scope: str) -> None:
                                 ),
                                 None,
                             )
-            if proposal.created_draft_id:
+            existing = store.find_reconstruction(CONN, proposal.source_ids)
+            if existing is not None:
                 st.caption(
                     f"Source drafts {', '.join(proposal.source_ids)} are unchanged in Review — "
                     "reject the ones this reconstruction replaces."
                 )
-                if st.button("Open in Review", key=f"reconstructed-open-{scope}-{key}"):
+                open_label = (
+                    "Open in Review" if existing.status is EventStatus.DRAFT else "Open record"
+                )
+                if st.button(open_label, key=f"reconstructed-open-{scope}-{key}"):
                     perform_ui_action(
                         UIAction("CREATE_RECONSTRUCTED_DRAFT", evidence_key=key), None
                     )

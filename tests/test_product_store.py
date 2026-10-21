@@ -72,6 +72,42 @@ def test_draft_is_not_in_history(conn):
     assert exposure_rows(conn) == 0
 
 
+def test_reconstruction_sources_persist_across_creation_paths(conn):
+    source_ids = ["EVT-DEMO-S1", "EVT-DEMO-S2"]
+    manual_id = store.save_draft(conn, draft(4))
+    assert (
+        conn.execute(
+            "SELECT reconstructed_from FROM training_events WHERE event_id = ?", (manual_id,)
+        ).fetchone()[0]
+        is None
+    )
+    assert store.find_reconstruction(conn, source_ids) is None
+
+    event_id = store.save_draft(conn, draft(6), reconstructed_from=source_ids)
+    assert (
+        conn.execute(
+            "SELECT reconstructed_from FROM training_events WHERE event_id = ?", (event_id,)
+        ).fetchone()[0]
+        == '["EVT-DEMO-S1","EVT-DEMO-S2"]'
+    )
+    reversed_ids = list(reversed(source_ids))
+    existing = store.find_reconstruction(conn, reversed_ids)
+    assert existing is not None
+    assert existing.event_id == event_id
+    before = len(store.list_events(conn, EventStatus.DRAFT, limit=-1))
+    existing = store.find_reconstruction(conn, reversed_ids)
+    if existing is None:
+        store.save_draft(conn, draft(6), reconstructed_from=reversed_ids)
+    assert len(store.list_events(conn, EventStatus.DRAFT, limit=-1)) == before
+    assert store.find_reconstruction(conn, ["unrelated-source"]) is None
+
+    assert store.approve_event(conn, event_id, 1)
+    assert store.find_reconstruction(conn, reversed_ids).status is EventStatus.APPROVED
+    rejected_id = store.save_draft(conn, draft(6), reconstructed_from=["rejected-source"])
+    store.reject_event(conn, rejected_id, 1)
+    assert store.find_reconstruction(conn, ["rejected-source"]) is None
+
+
 def test_approval_adds_history_for_crew_only(conn):
     event_id = store.save_draft(conn, draft(6))
     assert store.approve_event(conn, event_id, 1) is True
