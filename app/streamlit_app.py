@@ -480,6 +480,10 @@ def analyst_data(*, include_catalog: bool) -> AnalystData:
         people=tuple(PEOPLE.values()),
         member_history=lambda person_id: store.member_history(CONN, person_id),
         symptom_reports=lambda person_id: store.list_symptom_reports(CONN, person_id),
+        events=lambda: [
+            *store.list_events(CONN, EventStatus.DRAFT, limit=-1),
+            *store.list_events(CONN, EventStatus.APPROVED, limit=-1),
+        ],
         pattern_model=pattern_model(),
         catalog=(
             load_weapon_catalog(ROOT / "data/reference/weapons.json") if include_catalog else ()
