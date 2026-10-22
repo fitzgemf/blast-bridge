@@ -42,6 +42,13 @@ p {font-size:15.5px; font-weight:400; line-height:1.45;}
   color:var(--bb-ink); box-shadow:none; min-height:42px;}
 [data-testid="stButton"] button:hover, [data-testid="stPopover"] button:hover {
   border-color:#EC5D7B; color:#C2456A; background:#FFF0F4;}
+[class*="st-key-brief-citations-"],
+[class*="st-key-brief-citations-"] [data-testid="stHorizontalBlock"] {
+  gap:2px 6px!important;}
+[class*="st-key-brief-citations-"] [data-testid="stButton"] button {
+  min-height:24px; padding:2px 6px; font-size:12px;}
+[class*="st-key-brief-citations-"] [data-testid="stButton"] button p {
+  font-size:12px; line-height:1.2; margin:0; white-space:nowrap;}
 [data-testid="stButton"] button[kind="primary"], .st-key-log-action button {
   background:#EC5D7B; color:white; border-color:transparent; font-weight:600;}
 [data-testid="stButton"] button[kind="primary"]:hover, .st-key-log-action button:hover {

@@ -44,6 +44,7 @@ from blastbridge.product.analyst import (
 )
 from blastbridge.product.analyst_tools import SymptomProposal
 from blastbridge.product.anthropic_provider import AnthropicProvider, live_available
+from blastbridge.product.briefing import brief_citations
 from blastbridge.product.calendar_view import (
     DEMO_STORY_DATE,
     DayMarks,
@@ -943,6 +944,85 @@ def analyst_draft(run: AnalystRun, scope: str) -> None:
                 open_proposed_draft(draft.intake_result)
 
 
+def review_brief(run: AnalystRun, scope: str) -> None:
+    response = run.response
+    if response is None or response.brief is None:
+        return
+    citations, section_numbers = brief_citations(response.brief, run.evidence, response.person_id)
+    run_key = f"brief-{scope}-{id(run)}"
+    selection_key = f"{run_key}-source"
+    person = PEOPLE.get(response.person_id or "")
+    with st.container(border=True):
+        st.subheader("REVIEW BRIEF")
+        st.write(person.display_name if person else "Selected person")
+        st.caption(f"Analysis as of {run.analysis_as_of:%d %b %Y} · FICTIONAL DEMO")
+        st.caption(f"Grounded in {len(citations)} cited evidence items")
+        for index, (section, numbers) in enumerate(
+            zip(response.brief.sections, section_numbers, strict=True)
+        ):
+            analyst_section(section.heading.capitalize(), section, run)
+            if numbers:
+                st.caption("Sources:")
+                with st.container(
+                    key=f"brief-citations-{run_key}-{index}", horizontal=True, gap="small"
+                ):
+                    for number in numbers:
+                        citation = citations[number - 1]
+                        if st.button(
+                            f"[{number}] {citation.label}",
+                            key=f"{run_key}-{index}-{number}",
+                            type="tertiary",
+                        ):
+                            st.session_state[selection_key] = citation.ref
+        selected = next(
+            (item for item in citations if item.ref == st.session_state.get(selection_key)), None
+        )
+        if selected is not None:
+            with st.container(border=True):
+                st.caption("SOURCE EVIDENCE")
+                st.write(f"**[{selected.number}] {selected.label}**")
+                for heading, value in selected.fields:
+                    if heading in ("Training context", "Activity"):
+                        try:
+                            value = label(
+                                TrainingContext(value)
+                                if heading == "Training context"
+                                else EventType(value)
+                            )
+                        except ValueError:
+                            value = "Unknown"
+                    ui.field(heading, value)
+                for line in selected.lines:
+                    st.write(line)
+                action = selected.action
+                if (
+                    selected.kind in ("candidate", "comparison", "reconstruction")
+                    and selected.evidence is not None
+                ):
+                    source_ids = selected.evidence.payload.get("source_ids", ())
+                    if (
+                        isinstance(source_ids, (list, tuple))
+                        and len(source_ids) == 2
+                        and all(isinstance(source_id, str) for source_id in source_ids)
+                    ):
+                        evidence_key = "+".join(sorted(source_ids))
+                        if any(item.key == evidence_key for item in run.comparisons):
+                            action = UIAction("OPEN_EVIDENCE_COMPARISON", evidence_key=evidence_key)
+                action_label = (
+                    {
+                        "OPEN_REVIEW": "Open record",
+                        "OPEN_PERSON": "Open person",
+                        "OPEN_FOLLOWUP": "Open Follow-up",
+                        "OPEN_EVIDENCE_COMPARISON": "Compare sources",
+                    }.get(action.kind)
+                    if action
+                    else None
+                )
+                if action is not None and action_label is not None:
+                    if st.button(action_label, key=f"{run_key}-open-{selected.number}"):
+                        perform_ui_action(action, None)
+
+
 def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
     label = "Demo replay" if run.mode == "replay" else f"Live AI · {run.model or 'unavailable'}"
     st.caption(f"{label} · Analysis as of {run.analysis_as_of:%d %b %Y}")
@@ -998,19 +1078,22 @@ def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
         st.caption("Generated wording was withheld; showing grounded facts from BlastBridge tools.")
     if response.clarification:
         st.info(response.clarification)
-    for title, section in (
-        ("What changed", response.what_changed),
-        ("Why surfaced", response.why_surfaced),
-        ("Occupational summary", response.occupational_summary),
-        ("Symptoms & follow-up", response.symptom_followup_summary),
-        ("Evidence quality", response.data_quality_summary),
-    ):
-        if section:
-            analyst_section(title, section, run)
-    if response.brief:
-        with st.expander("Readiness brief"):
-            for section in response.brief.sections:
-                analyst_section(section.heading.capitalize(), section, run)
+    if response.intent == "GENERATE_BRIEF" and response.brief and response.brief.sections:
+        review_brief(run, scope)
+    else:
+        for title, section in (
+            ("What changed", response.what_changed),
+            ("Why surfaced", response.why_surfaced),
+            ("Occupational summary", response.occupational_summary),
+            ("Symptoms & follow-up", response.symptom_followup_summary),
+            ("Evidence quality", response.data_quality_summary),
+        ):
+            if section:
+                analyst_section(title, section, run)
+        if response.brief:
+            with st.expander("Readiness brief"):
+                for section in response.brief.sections:
+                    analyst_section(section.heading.capitalize(), section, run)
     if response.recommendations:
         st.write("**Recommended next actions**")
         for i, recommendation in enumerate(response.recommendations):
