@@ -119,6 +119,13 @@ from blastbridge.product.readiness import (
     ReadinessStatus,
     assess_readiness,
 )
+from blastbridge.product.review_flow import (
+    APPROVED_STATUS,
+    DRAFT_STATUS,
+    PROPOSAL_STATUS,
+    REJECTED_STATUS,
+    save_reviewed_event,
+)
 from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE, DEMO_SOURCE_DRAFTS, DEMO_SYMPTOMS
 from blastbridge.product.symptoms import (
     DangerSign,
@@ -413,6 +420,9 @@ def open_form(
     on_date: date | None = None,
     mode: str | None = None,
 ) -> None:
+    st.session_state.pop("event_decision", None)
+    st.session_state.pop("event_proposal", None)
+    st.session_state.pop("event_proposal_metadata", None)
     if event is None:
         clear_ai_state()
     st.session_state["form_init"] = form_values(event.draft if event else None, on_date)
@@ -441,7 +451,7 @@ def open_history(person_id: str) -> None:
     st.session_state["people_person"] = person_id
     st.session_state["person_day"] = ANALYSIS_AS_OF
     st.session_state["person_month"] = ANALYSIS_AS_OF.replace(day=1)
-    st.switch_page(PAGES["history"])
+    st.switch_page(PAGES["person"])
 
 
 # ---- pages --------------------------------------------------------------------------------------
@@ -679,7 +689,7 @@ def perform_ui_action(action: UIAction, proposal: SymptomProposal | None) -> Non
             s["people_person"] = person_id
             s["person_day"] = on_date
             s["person_month"] = on_date.replace(day=1)
-            st.switch_page(PAGES["history"])
+            st.switch_page(PAGES["person"])
 
 
 def perform_evidence_action(action: UIAction) -> None:
@@ -929,7 +939,8 @@ def analyst_draft(run: AnalystRun, scope: str) -> None:
             st.caption("Start over to log another event")
             st.page_link(PAGES["inbox"], label="Open Review queue")
             return
-        st.write("**Draft — awaiting human review · not yet recorded**")
+        st.write(f"**{DRAFT_STATUS if draft.event_id else 'AI-assisted proposal'}**")
+        st.caption("Not in personnel history" if draft.event_id else PROPOSAL_STATUS)
         for issue in draft.issues:
             ui.compact_line(str(issue["message"]), muted=True)
         for unresolved in draft.unresolved:
@@ -1239,7 +1250,7 @@ def dashboard() -> None:
             PEOPLE[item.person_id].display_name,
             readiness_reason(status),
             state=status.label,
-            tone=readiness_tone(status),
+            tone=ui.attention_tone(status),
             key=f"home-person-{item.person_id}",
             avatar=True,
         ):
@@ -1293,6 +1304,9 @@ def dashboard() -> None:
 
 
 def clear_ai_state() -> None:
+    st.session_state.pop("event_decision", None)
+    st.session_state.pop("event_proposal", None)
+    st.session_state.pop("event_proposal_metadata", None)
     for key in list(st.session_state):
         if key.startswith("ai_") and key != "ai_drafts":
             del st.session_state[key]
@@ -1308,6 +1322,7 @@ def run_demo_replay() -> None:
         )
         return
     st.session_state["ai_narrative"] = narrative
+    st.session_state.pop("calendar_date", None)
     st.session_state["ai_metadata"] = metadata
     st.session_state["ai_result"] = run_intake(
         narrative,
@@ -1352,6 +1367,7 @@ def show_ai_metadata(metadata: dict[str, object]) -> None:
 
 def load_example_narrative() -> None:
     st.session_state["ai_narrative"] = GOLDEN_NARRATIVE
+    st.session_state.pop("calendar_date", None)
 
 
 def image_intake() -> None:
@@ -1376,7 +1392,7 @@ def image_intake() -> None:
     st.session_state["ai_image_bytes"] = data
     st.markdown("**SOURCE IMAGE**")
     st.image(data, width="stretch")
-    if st.button("Create draft", type="primary"):
+    if st.button("Create proposal", type="primary"):
         try:
             metadata: dict[str, object] = {}
             intake_provider: IntakeProvider
@@ -1422,7 +1438,7 @@ def image_intake() -> None:
 
 
 def ai_intake(*, image_mode: bool = False) -> None:
-    if not image_mode:
+    if not image_mode and st.session_state.get("ai_result") is None:
         text_intake_controls()
     result = st.session_state.get("ai_result")
     if result is None:
@@ -1453,7 +1469,7 @@ def text_intake_controls() -> None:
             st.caption("Live AI isn't available in this demo. Use the demo replay.")
         live = replay = ui.actions()
     if live.button(
-        "Create draft",
+        "Create proposal",
         disabled=not available,
         type="secondary" if st.session_state.get("ai_result") else "primary",
     ):
@@ -1477,15 +1493,21 @@ def text_intake_controls() -> None:
         st.info(notice)
 
 
-def render_intake_proposal(result: IntakeResult) -> None:
-    metadata = ai_metadata(result)
+def render_intake_proposal(
+    result: IntakeResult, *, metadata: dict[str, object] | None = None
+) -> None:
+    metadata = ai_metadata(result) if metadata is None else metadata
     with st.container(key="proposed-draft"):
-        st.markdown(
-            '<span class="bb-pill">AI-generated draft — not yet recorded</span>',
-            unsafe_allow_html=True,
+        st.subheader("Review event")
+        st.write(
+            "Proposal"
+            if result.mode == "manual"
+            else "AI-assisted proposal from uploaded record"
+            if metadata.get("source_type")
+            else "AI-assisted proposal"
         )
-        with st.expander("Draft source"):
-            show_ai_metadata(metadata)
+        st.caption(PROPOSAL_STATUS)
+        st.caption("Nothing has been recorded yet. Check the details before approving.")
         values = result.form_values
         calendar_date = st.session_state.get("calendar_date")
         narrative_date = values.get("f_date")
@@ -1500,10 +1522,11 @@ def render_intake_proposal(result: IntakeResult) -> None:
                 if isinstance(calendar_date, date)
                 else str(calendar_date)
             )
-            st.info(
-                f"The narrative date ({narrative_date_label}) differs from the date selected "
-                f"on the calendar ({calendar_date_label}). Review the date."
+            st.info("Date differs from calendar context")
+            st.caption(
+                f"Source: {narrative_date_label} · Calendar selection: {calendar_date_label}"
             )
+            st.caption("BlastBridge kept the date stated in the source.")
         for title, key in (
             ("Date", "f_date"),
             ("Activity", "f_type"),
@@ -1568,23 +1591,35 @@ def render_intake_proposal(result: IntakeResult) -> None:
                 st.markdown(":orange[Needs review]")
                 for issue in sorted(result.issues, key=lambda item: not item.blocking):
                     st.write(f"{'Required · ' if issue.blocking else ''}{issue.message}")
-        with st.expander("How BlastBridge structured this"):
+        with st.expander("Source / provenance"):
+            if result.mode == "manual":
+                st.caption("Manually entered proposal")
+            else:
+                show_ai_metadata(metadata)
             for field_name, origin in result.origins.items():
                 st.caption(f"{field_name}: {origin}")
             for step in result.trace:
                 st.write(f"{'✓' if step.ok else '!'} {step.text}")
-        continue_col = edit_col = start_col = ui.actions()
-        if continue_col.button("Continue", disabled=result.draft is None, type="primary"):
-            try:
-                source = IntakeSource.AI_REPLAY if result.mode == "replay" else IntakeSource.AI_LIVE
-                event_id = store.save_draft(CONN, result.draft, intake_source=source)
-            except (store.StoreError, sqlite3.Error) as exc:
-                st.warning(f"Could not save this draft: {exc}")
+        approve_col = edit_col = save_col = discard_col = ui.actions()
+        approve = approve_col.button("Approve event", disabled=result.draft is None, type="primary")
+        edit = edit_col.button("Edit", type="tertiary")
+        save = save_col.button("Save for later", disabled=result.draft is None)
+        if (approve or save) and result.draft is not None:
+            source = {
+                "replay": IntakeSource.AI_REPLAY,
+                "manual": IntakeSource.MANUAL,
+            }.get(result.mode, IntakeSource.AI_LIVE)
+            decision = save_reviewed_event(CONN, result.draft, source, approve=approve)
+            if decision.event_id is None:
+                st.warning(decision.error)
             else:
-                st.session_state.setdefault("ai_drafts", {})[event_id] = metadata
+                if result.mode != "manual":
+                    st.session_state.setdefault("ai_drafts", {})[decision.event_id] = metadata
                 clear_ai_state()
-                open_review(event_id)
-        if edit_col.button("Edit draft", type="tertiary"):
+                st.session_state.pop("f_ai_pending", None)
+                st.session_state["event_decision"] = decision
+                st.rerun()
+        if edit:
             st.session_state["form_init"] = {**values, "f_mode": "Enter manually"}
             if values.get("f_date") is None and calendar_date:
                 st.session_state["form_init"]["f_date"] = calendar_date
@@ -1597,7 +1632,11 @@ def render_intake_proposal(result: IntakeResult) -> None:
             clear_ai_state()
             st.session_state["ai_pending"] = metadata
             st.rerun()
-        start_col.button("Start over", on_click=clear_ai_state, type="tertiary")
+        with discard_col.container(key="discard-proposal"):
+            if st.button("Discard", type="tertiary", key="discard-new-event"):
+                clear_ai_state()
+                st.session_state.pop("f_ai_pending", None)
+                st.switch_page(PAGES["dashboard"])
 
 
 def new_event() -> None:
@@ -1616,7 +1655,27 @@ def new_event() -> None:
         st.session_state[key] = value
     editing = st.session_state.get("editing_event_id")
 
-    header("Log training event", "Record what the crew physically did. You will review it next.")
+    header("Log training event", "Record what the crew physically did.")
+    decision = st.session_state.get("event_decision")
+    if decision is not None:
+        if decision.error:
+            st.warning(decision.error)
+        elif decision.approved:
+            st.success(APPROVED_STATUS)
+        else:
+            st.success("Saved to Review")
+            st.caption(f"{DRAFT_STATUS} · Not in personnel history")
+        if st.button("Open record" if decision.approved else "Open Review", type="primary"):
+            open_review(decision.event_id)
+        if st.button("Log another event"):
+            open_form()
+        return
+    proposal = st.session_state.get("event_proposal")
+    if proposal is not None:
+        render_intake_proposal(
+            proposal, metadata=st.session_state.get("event_proposal_metadata", {})
+        )
+        return
     mode = st.radio(
         "Entry mode",
         ["Describe / paste training record", "Upload / photograph record", "Enter manually"],
@@ -1710,7 +1769,7 @@ def new_event() -> None:
         st.session_state.pop("ai_pending", None)
         st.session_state.pop("f_ai_pending", None)
         st.switch_page(PAGES["dashboard"])
-    if not left.button("Review Event", type="primary"):
+    if not left.button("Review event", type="primary"):
         return
 
     s = st.session_state
@@ -1777,21 +1836,22 @@ def new_event() -> None:
     except ValidationError as exc:
         st.warning(" ".join(e["msg"].removeprefix("Value error, ") for e in exc.errors()))
         return
+    if not editing:
+        pending = s.get("ai_pending") or s.get("f_ai_pending") or {}
+        s["event_proposal"] = IntakeResult(
+            narrative=str(pending.get("observed_text", "")),
+            mode=pending.get("mode", "manual"),
+            model=pending.get("model"),
+            draft=draft,
+            form_values=form_values(draft),
+            origins=pending.get("origins", {}),
+        )
+        s["event_proposal_metadata"] = pending
+        st.rerun()
     try:
-        if editing:
-            store.update_draft(CONN, editing, draft, s["editing_revision"])
-            event_id = editing
-        else:
-            pending_mode = (s.get("ai_pending") or s.get("f_ai_pending") or {}).get("mode")
-            source = {
-                "live": IntakeSource.AI_LIVE,
-                "replay": IntakeSource.AI_REPLAY,
-            }.get(pending_mode, IntakeSource.MANUAL)
-            event_id = store.save_draft(CONN, draft, intake_source=source)
+        store.update_draft(CONN, editing, draft, s["editing_revision"])
+        event_id = editing
     except (store.StoreError, sqlite3.Error) as exc:
-        if not editing:
-            st.warning(f"Could not save this draft: {exc}")
-            return
         # The draft changed or was decided elsewhere: show its current state instead of retrying.
         st.session_state["editing_event_id"] = None
         st.session_state["review_notice"] = f"Your edits were not saved: {exc}"
@@ -1807,11 +1867,9 @@ def new_event() -> None:
 
 def status_pill(event: TrainingEvent) -> str:
     return {
-        EventStatus.DRAFT: '<span class="bb-pill draft">Draft · awaiting approval</span>',
-        EventStatus.APPROVED: (
-            '<span class="bb-pill approved">Approved · in personnel history</span>'
-        ),
-        EventStatus.REJECTED: '<span class="bb-pill">Rejected · not in history</span>',
+        EventStatus.DRAFT: f'<span class="bb-pill draft">{DRAFT_STATUS}</span>',
+        EventStatus.APPROVED: f'<span class="bb-pill approved">{APPROVED_STATUS}</span>',
+        EventStatus.REJECTED: f'<span class="bb-pill">{REJECTED_STATUS}</span>',
     }[event.status]
 
 
@@ -1822,7 +1880,7 @@ def decide(action: str, event: TrainingEvent) -> None:
         else:
             store.reject_event(CONN, event.event_id, event.revision)
     except (store.StoreError, sqlite3.Error) as exc:
-        st.session_state["review_notice"] = f"Not recorded: {exc}"
+        st.session_state["review_notice"] = f"Decision was not saved: {exc}"
     else:
         st.session_state["last_decided"] = event.event_id
     st.session_state["review_event_id"] = None
@@ -1890,7 +1948,11 @@ def review() -> None:
     if event_id is None:
         if not drafts:
             if not decided:
-                st.info("No drafts are awaiting review.")
+                st.info("Nothing waiting for review")
+                st.caption(
+                    "Drafts you save for later and reconstructed records awaiting approval "
+                    "will appear here."
+                )
             if st.button("+ Record Training Event", type="primary"):
                 open_form()
             return
@@ -1929,10 +1991,7 @@ def review() -> None:
 
     metadata = st.session_state.get("ai_drafts", {}).get(event.event_id)
     if event.intake_source is not IntakeSource.MANUAL and event.status is EventStatus.DRAFT:
-        st.info(
-            "AI-generated draft — not yet recorded. "
-            "Nothing is added to personnel history until you approve."
-        )
+        st.info(f"{DRAFT_STATUS}. Not in personnel history.")
     if metadata:
         show_ai_metadata(metadata)
         with st.expander("Field origins"):
@@ -1991,8 +2050,9 @@ def review() -> None:
         decide("approve", event)
     if b.button("Edit", key=f"edit-{key}"):
         open_form(event)
-    if c.button("Reject", key=f"reject-{key}"):
-        decide("reject", event)
+    with c.container(key=f"reject-action-{key}"):
+        if st.button("Reject draft", key=f"reject-{key}"):
+            decide("reject", event)
 
 
 def followup_card(result: FollowUp) -> None:
@@ -2266,6 +2326,7 @@ def followup() -> None:
 
 def inbox() -> None:
     ui.brand("Review")
+    st.caption("Saved items awaiting a decision")
     training, guidance = st.tabs(["Training drafts", "Follow-up"])
     with training:
         drafts = store.list_events(CONN, EventStatus.DRAFT, limit=-1)
@@ -2286,6 +2347,12 @@ def inbox() -> None:
         followup_list("inbox-followup")
         with st.expander("Official resources"):
             guidance_resources()
+
+
+def people_list() -> None:
+    st.session_state.pop("history_person_id", None)
+    st.session_state.pop("people_person", None)
+    history()
 
 
 def history() -> None:
@@ -2319,7 +2386,7 @@ def history() -> None:
                 p.display_name,
                 p.section,
                 state="" if status is ReadinessStatus.ROUTINE_MONITORING else status.label,
-                tone=readiness_tone(status),
+                tone=ui.attention_tone(status),
                 key=f"people-{p.person_id}",
                 avatar=True,
             ):
@@ -2330,7 +2397,7 @@ def history() -> None:
     if ui.action("← People", "back-people"):
         st.session_state.pop("people_person", None)
         clear_symptom_state()
-        st.rerun()
+        st.switch_page(PAGES["history"])
     p = PEOPLE[person_id]
     entries = store.member_history(CONN, person_id)
     reports = store.list_symptom_reports(CONN, person_id)
@@ -2341,11 +2408,22 @@ def history() -> None:
         ui.profile(p.display_name)
         ui.brand(p.display_name)
         st.caption(f"{p.section} · {p.unit}")
-        readiness_pill(assessment.overall_readiness_status)
-        ui.compact_line(readiness_reason(assessment.overall_readiness_status))
-        with st.expander("Recommended next step"):
-            st.write(next_action(assessment.overall_readiness_status))
         st.caption(f"Analysis as of {ANALYSIS_AS_OF:%d %b %Y}")
+    status = assessment.overall_readiness_status
+    if status is ReadinessStatus.ROUTINE_MONITORING:
+        st.caption(status.label)
+    else:
+        with st.container(key=f"attention-band-{ui.attention_tone(status)}"):
+            st.write(f"**{status.label.upper()}**")
+            st.write(readiness_reason(status))
+            if assessment.symptom_followup_status in (
+                FollowUpState.FOLLOW_UP_SUGGESTED,
+                FollowUpState.URGENT_EVALUATION_RECOMMENDED,
+            ):
+                st.caption("This guidance comes from BlastBridge's deterministic follow-up rules.")
+                with st.container(key="followup-action-person"):
+                    if st.button("View Follow-up"):
+                        st.switch_page(PAGES["followup"])
     with ui.surface("person"):
         selected = render_calendar(
             "person", person_marks(entries, reports, ANALYSIS_AS_OF), person=True
@@ -2536,7 +2614,8 @@ def history() -> None:
 
 PAGES = {
     "dashboard": st.Page(dashboard, title="Home", icon=":material/calendar_month:", default=True),
-    "history": st.Page(history, title="People", icon=":material/groups:"),
+    "history": st.Page(people_list, title="People", icon=":material/groups:", url_path="history"),
+    "person": st.Page(history, title="Person", url_path="person", visibility="hidden"),
     "inbox": st.Page(inbox, title="Review", icon=":material/inbox:"),
     "new": st.Page(
         new_event, title="Log training event", icon=":material/add_circle:", visibility="hidden"
@@ -2551,7 +2630,9 @@ PAGES = {
 
 try:
     page = st.navigation(list(PAGES.values()), position="hidden")
-    ui.navigation(PAGES)
+    current_page = next(key for key, target in PAGES.items() if target.url_path == page.url_path)
+    pending_count = len(store.list_events(CONN, EventStatus.DRAFT, limit=-1))
+    ui.navigation(PAGES, current_page, pending_count)
     page.run()
 finally:
     CONN.close()
