@@ -113,6 +113,27 @@ from application-owned deterministic guidance. Humans approve training events an
 reports. Provenance distinguishes manual, live-AI and replay input. No AI confidence percentages
 or injury probabilities are presented. Replays are scripted demonstrations, not fresh live responses.
 
+## AI evaluation
+
+Every model-facing path has a live evaluation on fictional data, including adversarial cases.
+Reports are committed; rerun them with a key set.
+
+| Path | Live result | What it checks | Report |
+| --- | --- | --- | --- |
+| Text intake | 12/12 | golden record, aliases, explicit Unknown, missing roles, invented weapon, future date, approximate counts, name/ID mismatch, medical language in a training record | [report](examples/fictional/intake/eval_report_live.md) |
+| Photo intake (Claude Vision) | 8/8 (two consecutive runs) | clear board, "several" stays unset, off-roster name, invented weapon, **prompt injection written on the board**, unreadable photo, sideways phone photo (EXIF), future date | [report](examples/fictional/intake/eval_report_image_live.md) |
+| Ask BlastBridge analyst | 5/5 | every response grounded in tool-returned evidence, every Review-brief citation resolves; on 2/5 the medical-content guard withheld model wording and showed deterministic text | [report](examples/fictional/analyst/eval_report_live.md) |
+
+```bash
+python scripts/eval_intake.py --mode live          # text intake
+python scripts/make_image_eval_cases.py            # (re)render the fictional evaluation boards
+python scripts/eval_image_intake.py                # photo intake
+python scripts/eval_analyst.py                     # Ask BlastBridge
+```
+
+Pass criteria are fixed in the scripts before running; failures are reported, not tuned away.
+Deterministic replays (used in presentation mode) are separate from these live measurements.
+
 ## Architecture
 
 | Location | Responsibility |

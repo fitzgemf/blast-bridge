@@ -223,6 +223,8 @@ identifies atypical recorded occupational patterns only
 ## Evaluation
 
 - [Live intake report](examples/fictional/intake/eval_report_live.md).
+- [Live photo-intake report](examples/fictional/intake/eval_report_image_live.md) (adversarial boards incl. prompt injection).
+- [Live Ask BlastBridge report](examples/fictional/analyst/eval_report_live.md) (grounding and citation resolution).
 - [Deterministic intake report](examples/fictional/intake/eval_report_deterministic.md).
 - [Occupational-pattern report](examples/fictional/ml-reference-himars/reference_report.md).
 

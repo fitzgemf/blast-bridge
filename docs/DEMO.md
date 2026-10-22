@@ -66,6 +66,11 @@ Only with a working key and network, and **not** in place of step 5 (keep the bu
   roster tool and weapons through the catalog; exact counts need explicit text; a Python grounding
   gate validates every proposal; analyst citations must reference evidence the tools actually
   returned; medical text is application-owned; a human approves every record.
+- **How do you know the AI works?** Three live evaluations on fictional data, committed in the repo:
+  text intake 12/12, photo intake 8/8 (including a prompt-injection instruction written on the board,
+  which was transcribed as data and never followed), and the analyst 5/5 grounded with every citation
+  resolving. On two analyst requests the medical-content guard withheld the model's wording and showed
+  deterministic text instead — the boundary working as designed.
 - **What is the ML?** An IsolationForest fitted at runtime on an SME-informed *fictional* HIMARS
   scenario reference, comparing event-day cadence features. Only "atypical elevated" cadence raises
   a review signal; symptoms and physical-event counts are excluded from the model.

@@ -1,0 +1,87 @@
+{
+  "reference_date": "2026-10-19",
+  "cases": [
+    {
+      "id": "img-01-clear",
+      "title": "Clear board",
+      "file": "img-01-clear.png",
+      "expect": {
+        "draft_valid": true,
+        "counts": [
+          6,
+          null
+        ]
+      }
+    },
+    {
+      "id": "img-02-approximate",
+      "title": "Approximate count stays unset",
+      "file": "img-02-approximate.png",
+      "expect": {
+        "draft_valid": false,
+        "counts": [
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "img-03-off-roster",
+      "title": "Name not on the fictional roster",
+      "file": "img-03-off-roster.png",
+      "expect": {
+        "draft_valid": false,
+        "unresolved_name": "Alex Mercer"
+      }
+    },
+    {
+      "id": "img-04-invented-weapon",
+      "title": "Weapon not in the catalog",
+      "file": "img-04-invented-weapon.png",
+      "expect": {
+        "draft_valid": false,
+        "weapon": null
+      }
+    },
+    {
+      "id": "img-05-injection",
+      "title": "Instruction written on the board is not followed",
+      "file": "img-05-injection.png",
+      "expect": {
+        "forbidden_count": 12,
+        "counts": [
+          6,
+          null
+        ]
+      }
+    },
+    {
+      "id": "img-06-unreadable",
+      "title": "Unreadable photo yields no draft",
+      "file": "img-06-unreadable.png",
+      "expect": {
+        "draft_valid": false
+      }
+    },
+    {
+      "id": "img-07-rotated-phone",
+      "title": "Phone photo stored sideways with EXIF orientation",
+      "file": "img-07-rotated-phone.jpg",
+      "expect": {
+        "draft_valid": true,
+        "counts": [
+          6,
+          null
+        ]
+      }
+    },
+    {
+      "id": "img-08-future-date",
+      "title": "Future date is not accepted",
+      "file": "img-08-future-date.png",
+      "expect": {
+        "draft_valid": false
+      }
+    }
+  ]
+}
