@@ -1,12 +1,22 @@
 """Quiet, date-first presentation helpers for the Streamlit application."""
 
+import os
+from collections.abc import Callable, Mapping
+from datetime import date
+from enum import StrEnum
 from html import escape
 from zlib import crc32
 
 import streamlit as st
 
+from blastbridge.models.enums import EventType
+from blastbridge.models.training_tempo import TrainingContext
 from blastbridge.product.agent import IntakeResult
+from blastbridge.product.analyst import AnalystRun
 from blastbridge.product.analyst_tools import SymptomProposal
+from blastbridge.product.calendar_view import DEMO_STORY_DATE
+from blastbridge.product.evidence import Signal
+from blastbridge.product.models import CrewPosition
 from blastbridge.product.readiness import ReadinessStatus
 
 CSS = """
@@ -63,6 +73,16 @@ p {font-size:15.5px; font-weight:400; line-height:1.45;}
   border:0; background:transparent; padding:0 8px; min-height:36px; color:var(--bb-ink);}
 [data-testid="stButton"] button[kind="tertiary"]:hover {
   background:var(--bb-soft); color:#5D3144; text-decoration:underline;}
+[class*="st-key-brief-citations-"] button:is(:focus,:focus-visible,:active),
+[class*="st-key-brief-citations-"] button[kind="secondary"],
+[class*="st-key-brief-citations-"] button:hover {
+  background:var(--bb-soft)!important; color:#713E53!important;
+  outline:none!important; box-shadow:none!important; border-style:solid!important;}
+[class*="st-key-brief-citations-"] button,
+[class*="st-key-brief-citations-"] button * {
+  text-decoration:none!important; outline:none!important; border-bottom:0!important;}
+[class*="st-key-brief-citations-"] button::before,
+[class*="st-key-brief-citations-"] button::after {display:none!important; content:none!important;}
 [class*="st-key-discard-"] button, [class*="st-key-reject-"] button {
   color:#B64747!important; border-color:#B64747!important; background:transparent!important;}
 [class*="st-key-followup-action-"] button {
@@ -348,6 +368,74 @@ def brand(title: str = "BlastBridge") -> None:
         '<span class="bb-demo">FICTIONAL DEMO</span></div>',
         unsafe_allow_html=True,
     )
+
+
+def analysis_date(selected: date | None = None) -> date:
+    return selected if selected is not None else DEMO_STORY_DATE
+
+
+def use_suggested_replay(has_replay: bool, live_available: bool) -> bool:
+    return has_replay and (
+        os.environ.get("BLASTBRIDGE_DEMO_MODE", "").lower() == "replay" or not live_available
+    )
+
+
+def with_demo_fallback(
+    live: Callable[[], AnalystRun], replay: Callable[[], AnalystRun]
+) -> tuple[AnalystRun, bool]:
+    try:
+        result = live()
+    except Exception:
+        return replay(), True
+    return (result, False) if result.grounded and result.error is None else (replay(), True)
+
+
+def human_label(value: StrEnum) -> str:
+    if value is TrainingContext.QUALIFICATION:
+        return "Qualification"
+    return value.value.replace("_", " ").capitalize()
+
+
+def evidence_display(field: str, value: object, weapon_names: Mapping[str, str]) -> str:
+    if value is None:
+        return "Unknown"
+    if value is True:
+        return "Activity recorded"
+    if field == "weapon_system_id":
+        return weapon_names.get(str(value), "Weapon not resolved")
+    try:
+        if field == "event_type":
+            return human_label(EventType(str(value)))
+        if field == "training_context":
+            return human_label(TrainingContext(str(value)))
+        if field.startswith("member:") and isinstance(value, (tuple, list)) and len(value) == 2:
+            return f"{value[0]} · {CrewPosition(value[1]).label}"
+    except ValueError:
+        return "Needs review"
+    if isinstance(value, date):
+        return value.strftime("%d %b %Y")
+    return str(value)
+
+
+def signal_display(signal: Signal, names: Mapping[str, str]) -> str:
+    if signal.name == "participant_overlap":
+        return "Shared participants: " + ", ".join(
+            names.get(person_id, "Shared participant") for person_id in signal.evidence
+        )
+    if signal.name == "same_context" and len(signal.evidence) == 2:
+        return "Same activity and context: " + " · ".join(
+            evidence_display(field, value, {})
+            for field, value in zip(
+                ("event_type", "training_context"), signal.evidence, strict=True
+            )
+        )
+    if signal.name == "same_location":
+        return "Same location: " + "; ".join(signal.evidence)
+    return "Shared recorded evidence"
+
+
+def source_label(index: int, on_date: date) -> str:
+    return f"Range record {'A' if index == 0 else 'B'} · {on_date:%d %b %Y}"
 
 
 def symptom_prefill(proposal: SymptomProposal) -> tuple[dict[str, object], tuple[str, ...]]:

@@ -75,6 +75,12 @@ export ANTHROPIC_API_KEY="your-key"
 The app reads environment variables directly; **there is no `.env` loader**.
 Demo records live in a local SQLite database (`BLASTBRIDGE_DB` can override its path).
 
+**Presentation mode:** set `BLASTBRIDGE_DEMO_MODE=replay` in the launching environment
+(`$env:BLASTBRIDGE_DEMO_MODE = "replay"` in PowerShell, or
+`export BLASTBRIDGE_DEMO_MODE=replay` on macOS/Linux). Suggested Ask requests then use deterministic
+replays even with an API key; other free-typed questions can still use live AI. Fresh sessions start
+on 19 Oct 2026. Eligible live failures fall back to replay with an explicit on-screen caption.
+
 ## Three-minute demo
 
 1. Start at **Home → Needs attention**. If a replay-date notice appears, click

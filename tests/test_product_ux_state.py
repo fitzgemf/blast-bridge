@@ -7,8 +7,10 @@ from pathlib import Path
 import pytest
 
 from blastbridge.product import store
-from blastbridge.product.agent import IntakeResult
+from blastbridge.product.agent import IntakeResult, ScriptedProvider
+from blastbridge.product.analyst import AnalystRun
 from blastbridge.product.analyst_tools import SymptomProposal
+from blastbridge.product.evidence import Signal
 from blastbridge.product.models import EventStatus
 from blastbridge.product.readiness import ReadinessStatus
 from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE
@@ -89,3 +91,61 @@ def test_intake_results_are_selected_only_for_their_tagged_entry_mode(ui):
     assert ui.intake_result_for_mode(result, "text", "image") is None
     assert ui.intake_result_for_mode(result, None, "text") is None
     assert ui.intake_result_for_mode(None, "image", "image") is None
+
+
+def test_fresh_analysis_uses_demo_anchor_and_preserves_presenter_date(ui):
+    assert ui.analysis_date() == date(2026, 10, 19)
+    assert ui.analysis_date(date(2026, 10, 21)) == date(2026, 10, 21)
+
+
+def test_presentation_mode_forces_suggested_replay_even_with_live_key(ui, monkeypatch):
+    from blastbridge.product import anthropic_provider
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "fictional-test-key")
+    monkeypatch.setenv("BLASTBRIDGE_DEMO_MODE", "replay")
+    monkeypatch.setattr(anthropic_provider, "live_available", lambda: True)
+    assert ui.use_suggested_replay(True, anthropic_provider.live_available())
+    assert not ui.use_suggested_replay(False, anthropic_provider.live_available())
+    monkeypatch.delenv("BLASTBRIDGE_DEMO_MODE")
+    assert not ui.use_suggested_replay(True, anthropic_provider.live_available())
+
+
+def test_suggested_live_failure_chooses_recorded_response(ui):
+    provider = ScriptedProvider([])
+    recorded = AnalystRun(date(2026, 10, 19), "replay", grounded=True)
+    calls = []
+
+    def live():
+        provider.complete(system="", messages=[], tools=[], output_schema=None, allow_tools=False)
+        raise AssertionError("The scripted provider must fail")
+
+    def replay():
+        calls.append("replay")
+        return recorded
+
+    result, fallback = ui.with_demo_fallback(live, replay)
+    assert result is recorded and fallback
+    assert calls == ["replay"]
+    ungrounded = AnalystRun(date(2026, 10, 19), "live", grounded=False)
+    assert ui.with_demo_fallback(lambda: ungrounded, replay) == (recorded, True)
+    grounded = AnalystRun(date(2026, 10, 19), "live", grounded=True)
+    assert ui.with_demo_fallback(lambda: grounded, replay) == (grounded, False)
+    assert calls == ["replay", "replay"]
+
+
+def test_evidence_display_uses_human_names_and_labels(ui):
+    names = {"FIC-001": "Avery Kestrel", "FIC-002": "Jordan Pike"}
+    people = ui.signal_display(Signal("participant_overlap", tuple(names)), names)
+    context = ui.signal_display(
+        Signal("same_context", ("weapon_firing", "routine_home_station")), names
+    )
+    assert people == "Shared participants: Avery Kestrel, Jordan Pike"
+    assert context == "Same activity and context: Weapon firing · Routine home station"
+    weapon = ui.evidence_display("weapon_system_id", "m142-himars", {"m142-himars": "M142 HIMARS"})
+    assert weapon == "M142 HIMARS"
+    assert ui.source_label(0, date(2026, 10, 17)) == "Range record A · 17 Oct 2026"
+    role = ui.evidence_display("member:FIC-001", ("Launcher 1", "chief"), {})
+    assert role == "Launcher 1 · Launcher chief"
+    text = " ".join((people, context, weapon, role, ui.source_label(1, date(2026, 10, 17))))
+    for internal in ("FIC-", "EVT-", "weapon_firing", "routine_home_station", "m142-himars"):
+        assert internal not in text

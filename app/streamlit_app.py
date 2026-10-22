@@ -2,6 +2,7 @@
 
 import os
 import sqlite3
+from copy import deepcopy
 from dataclasses import replace
 from datetime import date, datetime
 from enum import StrEnum
@@ -185,7 +186,14 @@ if st.session_state.pop("reset_demo_view", False):
         st.session_state[f"{calendar_key}_day"] = DEMO_STORY_DATE
     for session_key in list(st.session_state):
         if session_key.startswith(
-            ("ask_conversation_", "ask_run_", "ask_replay_", "ask_notice_", "ask_demo_date_")
+            (
+                "ask_conversation_",
+                "ask_run_",
+                "ask_replay_",
+                "ask_notice_",
+                "ask_demo_date_",
+                "ask_live_fallback_",
+            )
         ):
             del st.session_state[session_key]
     st.session_state.pop("ask_ledger", None)
@@ -197,7 +205,7 @@ if st.session_state.pop("reset_demo_view", False):
     ):
         st.session_state.pop(session_key, None)
 # Keep the analysis date when its Home-only widget is absent on another page.
-st.session_state["analysis_as_of"] = st.session_state.get("analysis_as_of", date.today())
+st.session_state["analysis_as_of"] = ui.analysis_date(st.session_state.get("analysis_as_of"))
 ANALYSIS_AS_OF = st.session_state["analysis_as_of"]
 
 
@@ -255,8 +263,8 @@ def readiness_reason(status: ReadinessStatus) -> str:
 def render_calendar(key: str, marks: dict[date, DayMarks], person: bool) -> date | None:
     today = date.today()
     s = st.session_state
-    s.setdefault(f"{key}_month", today.replace(day=1))
-    s.setdefault(f"{key}_day", today)
+    s.setdefault(f"{key}_month", ANALYSIS_AS_OF.replace(day=1))
+    s.setdefault(f"{key}_day", ANALYSIS_AS_OF)
     month = s[f"{key}_month"]
     with st.container(key=f"cal-{key}"):
         with st.container(key=f"month-nav-{key}"):
@@ -316,9 +324,7 @@ def render_calendar(key: str, marks: dict[date, DayMarks], person: bool) -> date
 
 
 def label(value: StrEnum) -> str:
-    if value is TrainingContext.QUALIFICATION:
-        return "Qualification"
-    return value.value.replace("_", " ").capitalize()
+    return ui.human_label(value)
 
 
 def next_action(status: ReadinessStatus) -> str:
@@ -546,6 +552,8 @@ def submit_analyst(
     replay_name: str | None = None,
     replay_index: int = 0,
     stale: bool = False,
+    force_replay: bool = False,
+    live_fallback: bool = False,
 ) -> None:
     s = st.session_state
     conversation_key = f"ask_conversation_{scope}"
@@ -553,9 +561,43 @@ def submit_analyst(
     notice_key = f"ask_notice_{scope}"
     s.pop(notice_key, None)
     s.pop(f"ask_demo_date_{scope}", None)
+    s.pop(f"ask_live_fallback_{scope}", None)
     conversation = s.setdefault(conversation_key, Conversation(uuid4().hex))
+    original_conversation = deepcopy(conversation)
+    if replay_name is None and question is None:
+        replay_name, replay_index = s.get(replay_key, (None, 0))
+    if replay_name is None and question is not None:
+        for suggestion, name in analyst_suggestions(person_id):
+            try:
+                fixture = load_analyst_replay(name)
+            except (OSError, ValueError):
+                continue
+            for index, step in enumerate(fixture.steps):
+                if question in (suggestion, step.utterance):
+                    replay_name, replay_index = name, index
+                    break
+            if replay_name is not None:
+                break
+    use_live = live_available() and not (
+        force_replay or ui.use_suggested_replay(replay_name is not None, live_available())
+    )
+
+    def fallback_run() -> AnalystRun:
+        s[conversation_key] = original_conversation
+        submit_analyst(
+            scope,
+            person_id,
+            question,
+            replay_name=replay_name,
+            replay_index=replay_index,
+            stale=stale,
+            force_replay=True,
+            live_fallback=True,
+        )
+        st.rerun()
+
     try:
-        if live_available():
+        if use_live:
             provider, intake_provider = AnthropicProvider(), AnthropicProvider()
         else:
             if question is None:
@@ -613,8 +655,9 @@ def submit_analyst(
                 source_ids = [first_id, last_id]
             provider, intake_provider = replay_providers(step, utterance_ids=source_ids)
         ledger = s.setdefault("ask_ledger", {})
-        with st.spinner("Reviewing BlastBridge evidence…"):
-            s[f"ask_run_{scope}"] = ask(
+
+        def execute() -> AnalystRun:
+            return ask(
                 question,
                 context=analyst_context(person_id, stale=stale),
                 data=analyst_data(include_catalog=True),
@@ -624,8 +667,22 @@ def submit_analyst(
                 ledger=ledger,
                 reconstructions=s.setdefault("reconstructions", {}),
             )
-    except (OSError, ValueError, IndexError, StopIteration) as exc:
-        s[notice_key] = str(exc)
+
+        with st.spinner("Reviewing BlastBridge evidence…"):
+            s[f"ask_run_{scope}"] = (
+                ui.with_demo_fallback(execute, fallback_run)[0]
+                if use_live and replay_name is not None
+                else execute()
+            )
+        if live_fallback:
+            s[f"ask_live_fallback_{scope}"] = True
+    except Exception as exc:
+        if use_live and replay_name is not None:
+            fallback_run()
+        elif isinstance(exc, (OSError, ValueError, IndexError, StopIteration)):
+            s[notice_key] = str(exc)
+        else:
+            raise
     st.rerun()
 
 
@@ -775,7 +832,7 @@ def evidence_field_label(field: str, label_text: str) -> str:
     person_id = field.removeprefix("member:")
     if field.startswith("member:") and person_id in PEOPLE:
         return f"{PEOPLE[person_id].display_name} crew / position"
-    return label_text
+    return "Participant crew / position" if field.startswith("member:") else label_text
 
 
 def analyst_evidence_panels(run: AnalystRun, scope: str) -> None:
@@ -799,6 +856,13 @@ def analyst_evidence_panels(run: AnalystRun, scope: str) -> None:
     for key in keys:
         comparison: Comparison = comparisons[key]
         candidate = candidates.get(key)
+        names = {person_id: person.display_name for person_id, person in PEOPLE.items()}
+        source_names = dict(
+            zip(comparison.source_ids, ("Range record A", "Range record B"), strict=True)
+        )
+        weapon_names = {
+            source.draft.weapon_system_id: source.draft.weapon_name for source in comparison.sources
+        }
         with st.container(border=True):
             st.write(
                 "**Possible shared event — not confirmed**"
@@ -807,10 +871,14 @@ def analyst_evidence_panels(run: AnalystRun, scope: str) -> None:
             )
             if candidate is not None:
                 for signal in candidate.signals:
-                    st.caption(f"{signal.name.replace('_', ' ')}: {'; '.join(signal.evidence)}")
-                st.caption("Blockers checked: " + "; ".join(candidate.blockers_checked))
-            for source in comparison.sources:
-                st.write(f"**{source.event_id}** · {source.draft.event_date:%d %b %Y}")
+                    st.caption(ui.signal_display(signal, names))
+                st.caption(
+                    "Checked and ruled out: different known locations; "
+                    "distinct crews with the same name"
+                )
+            for index, source in enumerate(comparison.sources):
+                st.write(f"**{ui.source_label(index, source.draft.event_date)}**")
+                st.caption(source.event_id)
                 st.caption(provenance_text(source.intake_source, source.status))
                 if st.button("View source", key=f"evidence-source-{scope}-{key}-{source.event_id}"):
                     perform_ui_action(
@@ -831,9 +899,9 @@ def analyst_evidence_panels(run: AnalystRun, scope: str) -> None:
                 [
                     {
                         "Field": evidence_field_label(row.field, row.label),
-                        comparison.source_ids[0]: evidence_value(row.value_a),
-                        comparison.source_ids[1]: evidence_value(row.value_b),
-                        "State": row.state,
+                        "Range record A": ui.evidence_display(row.field, row.value_a, weapon_names),
+                        "Range record B": ui.evidence_display(row.field, row.value_b, weapon_names),
+                        "State": row.state.replace("_", " ").capitalize(),
                     }
                     for row in comparison.rows
                 ],
@@ -846,25 +914,36 @@ def analyst_evidence_panels(run: AnalystRun, scope: str) -> None:
             st.write("**Session reconstruction proposal**")
             for item in proposal.fields:
                 label_text = evidence_field_label(item.field, item.label)
-                st.write(f"{label_text}: {evidence_value(item.value)} · {item.state}")
+                value_text = ui.evidence_display(item.field, item.value, weapon_names)
+                state_text = item.state.replace("_", " ").capitalize()
+                st.write(f"{label_text}: {value_text} · {state_text}")
                 if item.state == "UNKNOWN" and item.field.startswith("count:"):
                     st.caption("Activity recorded — no source contains a count")
                 else:
                     st.caption(
                         "Supported by: "
-                        + "; ".join(f"✓ {source_id}" for source_id in item.contributing_source_ids)
+                        + "; ".join(
+                            source_names[source_id] for source_id in item.contributing_source_ids
+                        )
                     )
                 if item.conflicting_source_ids:
-                    st.caption("Conflicting sources: " + ", ".join(item.conflicting_source_ids))
+                    st.caption(
+                        "Conflicting sources: "
+                        + ", ".join(
+                            source_names[source_id] for source_id in item.conflicting_source_ids
+                        )
+                    )
                 if item.state == "HUMAN_RESOLVED":
-                    st.caption("Human-resolved: " + evidence_value(item.value))
+                    st.caption("Human-resolved: " + value_text)
                 if item.state == "UNRESOLVED":
                     st.write("BlastBridge cannot resolve this from the recorded evidence.")
                     for option in item.options:
                         label_text = (
                             "Keep Unknown"
                             if option.key == "unknown"
-                            else f"Use {evidence_value(option.value)} ({option.key})"
+                            else "Use "
+                            + ui.evidence_display(item.field, option.value, weapon_names)
+                            + f" ({source_names.get(option.key, 'Recorded source')})"
                         )
                         if st.button(
                             label_text, key=f"resolve-{scope}-{key}-{item.field}-{option.key}"
@@ -975,6 +1054,7 @@ ACTION_LABELS = {
 
 
 def review_brief(run: AnalystRun, scope: str) -> None:
+    s = st.session_state
     response = run.response
     if response is None or response.brief is None:
         return
@@ -998,10 +1078,11 @@ def review_brief(run: AnalystRun, scope: str) -> None:
                 ):
                     for number in numbers:
                         citation = citations[number - 1]
+                        is_selected = s.get(selection_key) == citation.ref
                         if st.button(
                             f"[{number}] {citation.label}",
                             key=f"{run_key}-{index}-{number}",
-                            type="tertiary",
+                            type="secondary" if is_selected else "tertiary",
                         ):
                             st.session_state[selection_key] = citation.ref
         selected = next(
@@ -1176,9 +1257,11 @@ def ask_workspace(person_id: str | None = None) -> None:
                 if st.button(label, key=f"ask-suggest-{scope}-{name}", type="tertiary"):
                     submit_analyst(scope, person_id, label, replay_name=name)
         run = s.get(f"ask_run_{scope}")
+        if s.get(f"ask_live_fallback_{scope}"):
+            st.caption("Live AI unavailable — showing the recorded demo response")
         if s.get(f"ask_notice_{scope}"):
             st.caption(s[f"ask_notice_{scope}"])
-            if s.get(f"ask_demo_date_{scope}") and not live_available():
+            if s.get(f"ask_demo_date_{scope}") and ui.use_suggested_replay(True, live_available()):
                 st.button(
                     "Use demo date (19 Oct 2026)",
                     key=f"ask-demo-date-{scope}",
