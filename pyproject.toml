@@ -24,6 +24,8 @@ packages = ["src/blastbridge"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Tests import helpers from scripts/; make the repo root importable for bare `pytest` too.
+pythonpath = ["."]
 addopts = "-ra"
 filterwarnings = ["error"]
 markers = ["slow: large deterministic assembly checks"]
