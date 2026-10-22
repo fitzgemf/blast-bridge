@@ -34,6 +34,7 @@ from blastbridge.product.analyst import (
     UIAction,
     activity_lines,
     ask,
+    comparison_action,
     evidence_count,
     evidence_fingerprint,
     is_stale,
@@ -44,7 +45,7 @@ from blastbridge.product.analyst import (
 )
 from blastbridge.product.analyst_tools import SymptomProposal
 from blastbridge.product.anthropic_provider import AnthropicProvider, live_available
-from blastbridge.product.briefing import brief_citations
+from blastbridge.product.briefing import brief_citations, uncovered_summaries
 from blastbridge.product.calendar_view import (
     DEMO_STORY_DATE,
     DayMarks,
@@ -944,6 +945,16 @@ def analyst_draft(run: AnalystRun, scope: str) -> None:
                 open_proposed_draft(draft.intake_result)
 
 
+ACTION_LABELS = {
+    "OPEN_REVIEW": "Open in Review",
+    "OPEN_PROPOSED_DRAFT": "Open proposed draft",
+    "OPEN_RECORD": "Open record",
+    "OPEN_PERSON": "Open person",
+    "OPEN_FOLLOWUP": "Open Follow-up",
+    "OPEN_EVIDENCE_COMPARISON": "Compare sources",
+}
+
+
 def review_brief(run: AnalystRun, scope: str) -> None:
     response = run.response
     if response is None or response.brief is None:
@@ -996,25 +1007,12 @@ def review_brief(run: AnalystRun, scope: str) -> None:
                     st.write(line)
                 action = selected.action
                 if (
-                    selected.kind in ("candidate", "comparison", "reconstruction")
+                    selected.kind in ("candidate", "comparison", "reconstruction", "finding")
                     and selected.evidence is not None
                 ):
-                    source_ids = selected.evidence.payload.get("source_ids", ())
-                    if (
-                        isinstance(source_ids, (list, tuple))
-                        and len(source_ids) == 2
-                        and all(isinstance(source_id, str) for source_id in source_ids)
-                    ):
-                        evidence_key = "+".join(sorted(source_ids))
-                        if any(item.key == evidence_key for item in run.comparisons):
-                            action = UIAction("OPEN_EVIDENCE_COMPARISON", evidence_key=evidence_key)
+                    action = comparison_action(selected.evidence, run) or action
                 action_label = (
-                    {
-                        "OPEN_REVIEW": "Open record",
-                        "OPEN_PERSON": "Open person",
-                        "OPEN_FOLLOWUP": "Open Follow-up",
-                        "OPEN_EVIDENCE_COMPARISON": "Compare sources",
-                    }.get(action.kind)
+                    ({**ACTION_LABELS, "OPEN_REVIEW": "Open record"}).get(action.kind)
                     if action
                     else None
                 )
@@ -1078,18 +1076,14 @@ def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
         st.caption("Generated wording was withheld; showing grounded facts from BlastBridge tools.")
     if response.clarification:
         st.info(response.clarification)
-    if response.intent == "GENERATE_BRIEF" and response.brief and response.brief.sections:
+    brief_view = bool(
+        response.intent == "GENERATE_BRIEF" and response.brief and response.brief.sections
+    )
+    if brief_view:
         review_brief(run, scope)
-    else:
-        for title, section in (
-            ("What changed", response.what_changed),
-            ("Why surfaced", response.why_surfaced),
-            ("Occupational summary", response.occupational_summary),
-            ("Symptoms & follow-up", response.symptom_followup_summary),
-            ("Evidence quality", response.data_quality_summary),
-        ):
-            if section:
-                analyst_section(title, section, run)
+    for title, section in uncovered_summaries(response, brief_view):
+        analyst_section(title, section, run)
+    if not brief_view:
         if response.brief:
             with st.expander("Readiness brief"):
                 for section in response.brief.sections:
@@ -1098,14 +1092,6 @@ def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
         st.write("**Recommended next actions**")
         for i, recommendation in enumerate(response.recommendations):
             action = recommendation_action(recommendation, run)
-            labels = {
-                "OPEN_REVIEW": "Open in Review",
-                "OPEN_PROPOSED_DRAFT": "Open proposed draft",
-                "OPEN_RECORD": "Open record",
-                "OPEN_PERSON": "Open person",
-                "OPEN_FOLLOWUP": "Open Follow-up",
-                "OPEN_EVIDENCE_COMPARISON": "Compare sources",
-            }
             if run.created_draft is not None:
                 st.session_state["ask_proposed_result"] = run.created_draft.intake_result
             if (
@@ -1114,7 +1100,7 @@ def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
                     recommendation.rationale,
                     medical=recommendation.authority == "DETERMINISTIC_GUIDANCE_RELAY",
                     key=f"{scope}-{i}",
-                    action_label=labels.get(action.kind) if action else None,
+                    action_label=ACTION_LABELS.get(action.kind) if action else None,
                 )
                 and action is not None
             ):

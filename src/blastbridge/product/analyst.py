@@ -235,6 +235,26 @@ class UIAction:
     choice: str | None = None
 
 
+def display_value(value: object) -> str:
+    if isinstance(value, float):
+        return f"{value:.2f}".rstrip("0").rstrip(".")
+    return str(value)
+
+
+def comparison_action(item: Evidence, run: AnalystRun) -> UIAction | None:
+    ids = item.payload.get("source_ids", ())
+    if not (
+        isinstance(ids, (list, tuple)) and len(ids) == 2 and all(isinstance(i, str) for i in ids)
+    ):
+        return None
+    key = "+".join(sorted(ids))
+    if any(candidate.key == key for candidate in run.candidates) or any(
+        comparison.key == key for comparison in run.comparisons
+    ):
+        return UIAction("OPEN_EVIDENCE_COMPARISON", evidence_key=key)
+    return None
+
+
 def recommendation_action(rec: Recommendation, run: AnalystRun) -> UIAction | None:
     response = run.response
     if not run.grounded or response is None or rec not in response.recommendations:
@@ -243,13 +263,9 @@ def recommendation_action(rec: Recommendation, run: AnalystRun) -> UIAction | No
     if rec.type == "REVIEW_POSSIBLE_SHARED_EVENT":
         for item in run.evidence:
             if item.ref in rec.evidence_refs and item.kind in ("candidate", "reconstruction"):
-                ids = item.payload.get("source_ids", ())
-                key = "+".join(sorted(ids))
-                if len(ids) == 2 and (
-                    any(candidate.key == key for candidate in run.candidates)
-                    or any(comparison.key == key for comparison in run.comparisons)
-                ):
-                    return UIAction("OPEN_EVIDENCE_COMPARISON", evidence_key=key)
+                action = comparison_action(item, run)
+                if action is not None:
+                    return action
         return None
     evidence = [
         item
@@ -839,11 +855,6 @@ FALLBACK_SUMMARY = "Showing grounded facts from BlastBridge tools; generated wor
 
 
 def _fallback_facts(response: AgentResponse, session: ToolSession, quality: bool) -> str:
-    def display(value: object) -> str:
-        if isinstance(value, float):
-            return f"{value:.2f}".rstrip("0").rstrip(".")
-        return str(value)
-
     evidence = [
         item
         for values in session.evidence.values()
@@ -866,10 +877,10 @@ def _fallback_facts(response: AgentResponse, session: ToolSession, quality: bool
         elif item.kind == "pattern":
             lines.append(PatternStatus(payload["status"]).label)
             if payload["reason"] is not None:
-                lines.append(display(payload["reason"]))
+                lines.append(display_value(payload["reason"]))
         elif item.kind == "facts":
             lines.extend(
-                f"{fact['label']}: {display(fact['value'])}"
+                f"{fact['label']}: {display_value(fact['value'])}"
                 for fact in payload["features"]
                 if fact["value"] is not None
             )

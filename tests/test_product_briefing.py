@@ -1,8 +1,8 @@
 """Review-brief citations use captured structured evidence, never generated source labels."""
 
-from blastbridge.product.analyst import Brief, BriefSection
+from blastbridge.product.analyst import AgentResponse, Brief, BriefSection, EvidenceSection
 from blastbridge.product.analyst_tools import Evidence
-from blastbridge.product.briefing import brief_citations
+from blastbridge.product.briefing import brief_citations, uncovered_summaries
 
 PERSON = "FIC-010"
 
@@ -62,6 +62,7 @@ def test_record_has_human_label_structured_card_and_record_target():
     assert record.ref not in citation.label
     assert dict(citation.fields)["Physical events"] == "6"
     assert dict(citation.fields)["Location / unit"] == "Demo Range North"
+    assert dict(citation.fields)["Activity"] == "Unknown"
     assert citation.action is not None
     assert citation.action.kind == "OPEN_REVIEW"
     assert citation.action.event_id == "EVT-DEMO-C3"
@@ -173,3 +174,76 @@ def test_missing_evidence_fails_closed_without_inferring_a_navigation_target():
         assert citation.evidence is None
         assert citation.action is None
         assert citation.fields == () and citation.lines == ()
+
+
+def test_record_card_shows_the_recorded_activity_type():
+    record = evidence("EVT-1", "record", {"event_id": "EVT-1", "event_type": "live_fire"})
+    citations, _ = brief_citations(brief([record.ref]), [record], PERSON)
+    assert dict(citations[0].fields)["Activity"] == "live_fire"
+
+
+def test_facts_card_formats_float_features_like_the_fallback_text():
+    features = [
+        {"label": "Prior 30 days", "value": 3.0},
+        {"label": "Cadence", "value": 1.4444444444444446},
+    ]
+    facts = evidence("facts:FIC-010", "facts", {"scope": "all", "features": features})
+    citations, _ = brief_citations(brief([facts.ref]), [facts], PERSON)
+    assert dict(citations[0].fields)["Prior 30 days"] == "3"
+    assert dict(citations[0].fields)["Cadence"] == "1.44"
+
+
+def test_captured_kinds_are_never_labelled_unavailable():
+    items = [
+        evidence("person:FIC-010", "person", {"display_name": "Reese Demo", "unit": "A Btry"}),
+        evidence(
+            "finding:X:EVT-1",
+            "finding",
+            {"source_ids": ["EVT-1"], "on_date": "2026-10-01", "message": "Verify the count."},
+            None,
+        ),
+        evidence("source:EVT-2", "source", {"event_id": "EVT-2", "status": "draft"}, None),
+        evidence("draft:k", "draft", {"status": "Draft saved", "event_id": "EVT-3"}, None),
+        evidence("symptom_proposal:FIC-010", "symptom_proposal", {"symptoms": ["headache"]}),
+        evidence("other:1", "something_new", {}),
+    ]
+    citations, _ = brief_citations(brief([item.ref for item in items]), items, PERSON)
+    assert all(item.label != "Source unavailable in this analysis" for item in citations)
+    assert all(item.evidence is not None for item in citations)
+    person, finding, source, draft, proposal, other = citations
+    assert person.action.kind == "OPEN_PERSON" and dict(person.fields)["Person"] == "Reese Demo"
+    assert "Verify the count." in finding.lines
+    assert finding.action.kind == "OPEN_REVIEW" and finding.action.event_id == "EVT-1"
+    assert source.action.event_id == "EVT-2" and draft.action.event_id == "EVT-3"
+    assert dict(proposal.fields)["Proposed symptoms"] == "headache" and proposal.action is None
+    assert other.label == "Captured analysis evidence" and other.action is None
+
+
+def summary(text):
+    return EvidenceSection(text=text, evidence_refs=[])
+
+
+def test_brief_view_keeps_top_level_sections_no_brief_heading_carries():
+    response = AgentResponse(
+        intent="GENERATE_BRIEF",
+        answer_summary="Brief",
+        what_changed=summary("changed"),
+        occupational_summary=summary("occupational"),
+        symptom_followup_summary=summary("Urgent medical evaluation recommended"),
+        data_quality_summary=summary("quality"),
+        brief=Brief(
+            sections=[
+                BriefSection(heading="WHAT CHANGED", text="changed", evidence_refs=[]),
+                BriefSection(heading="EVIDENCE QUALITY", text="quality", evidence_refs=[]),
+            ]
+        ),
+    )
+    shown = [title for title, _ in uncovered_summaries(response, brief_view=True)]
+    assert shown == ["Occupational summary", "Symptoms & follow-up"]
+    medical = response.brief.sections + [
+        BriefSection(heading="SYMPTOMS / FOLLOW-UP", text="relay", evidence_refs=[])
+    ]
+    response = response.model_copy(update={"brief": Brief(sections=medical)})
+    shown = [title for title, _ in uncovered_summaries(response, brief_view=True)]
+    assert shown == ["Occupational summary"]
+    assert len(uncovered_summaries(response, brief_view=False)) == 4

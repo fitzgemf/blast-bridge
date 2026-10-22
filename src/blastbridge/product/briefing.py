@@ -5,9 +5,42 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
-from .analyst import Brief, UIAction
+from .analyst import (
+    MEDICAL_HEADINGS,
+    AgentResponse,
+    Brief,
+    EvidenceSection,
+    UIAction,
+    display_value,
+)
 from .analyst_tools import Evidence
 from .patterns import PatternStatus
+
+# Top-level response sections and the brief headings that already carry the same content.
+SUMMARY_SECTIONS: tuple[tuple[str, str, frozenset[str]], ...] = (
+    ("What changed", "what_changed", frozenset({"WHAT CHANGED"})),
+    ("Why surfaced", "why_surfaced", frozenset({"WHY THIS PERSON WAS SURFACED"})),
+    ("Occupational summary", "occupational_summary", frozenset()),
+    ("Symptoms & follow-up", "symptom_followup_summary", frozenset(MEDICAL_HEADINGS)),
+    ("Evidence quality", "data_quality_summary", frozenset({"EVIDENCE QUALITY"})),
+)
+
+
+def uncovered_summaries(
+    response: AgentResponse, brief_view: bool
+) -> list[tuple[str, EvidenceSection]]:
+    """Top-level sections to show; in the brief view, only those no brief heading carries."""
+    headings = (
+        {section.heading for section in response.brief.sections}
+        if brief_view and response.brief
+        else set()
+    )
+    summaries = []
+    for title, attribute, covered_by in SUMMARY_SECTIONS:
+        section = getattr(response, attribute)
+        if section and not headings & covered_by:
+            summaries.append((title, section))
+    return summaries
 
 
 @dataclass(frozen=True)
@@ -26,7 +59,7 @@ def _text(value: Any) -> str:
     if value is None or value == "":
         return "Unknown"
     if isinstance(value, (str, int, float)):
-        return str(value)
+        return display_value(value)
     return "Unknown"
 
 
@@ -38,8 +71,8 @@ def _strings(value: Any) -> list[str]:
     )
 
 
-def _day(item: Evidence) -> str:
-    value = item.payload.get("date")
+def _day(item: Evidence, key: str = "date") -> str:
+    value = item.payload.get(key)
     try:
         return date.fromisoformat(str(value)).strftime("%d %b %Y")
     except ValueError:
@@ -84,6 +117,7 @@ def _descriptor(
             (
                 ("date", "Date"),
                 ("weapon_name", "Weapon"),
+                ("event_type", "Activity"),
                 ("training_context", "Training context"),
                 ("crew_name", "Crew"),
                 ("role", "Role"),
@@ -201,8 +235,54 @@ def _descriptor(
             "reconstruction": "Reconstruction proposal · human review required",
         }[kind]
         lines.append("Human review is required before recording a reconstructed draft.")
+    elif kind == "person":
+        label = "Person record"
+        fields = _fields(
+            payload,
+            (
+                ("display_name", "Person"),
+                ("callsign", "Callsign"),
+                ("unit", "Unit"),
+                ("section", "Section"),
+            ),
+        )
+        if scoped_person is not None:
+            action = UIAction("OPEN_PERSON", person_id=scoped_person)
+    elif kind == "finding":
+        label = f"{_day(item, 'on_date')} · evidence verification finding"
+        if isinstance(payload.get("message"), str):
+            lines.append(payload["message"])
+        source_ids = _strings(payload.get("source_ids"))
+        if len(source_ids) == 1:
+            action = UIAction("OPEN_REVIEW", event_id=source_ids[0])
+    elif kind == "source":
+        draft = payload.get("draft")
+        if not isinstance(draft, dict):
+            draft = {}
+        label = "Recorded source"
+        fields = _fields(draft, (("event_date", "Date"), ("weapon_name", "Weapon")))
+        fields += _fields(draft, (("event_type", "Activity"),))
+        fields += _fields(payload, (("status", "Status"),))
+        event_id = payload.get("event_id")
+        if isinstance(event_id, str) and event_id:
+            action = UIAction("OPEN_REVIEW", event_id=event_id)
+    elif kind == "draft":
+        label = "Training draft · awaiting human review"
+        if isinstance(payload.get("status"), str):
+            lines.append(payload["status"])
+        lines.extend(_strings(payload.get("unresolved")))
+        event_id = payload.get("event_id")
+        if isinstance(event_id, str) and event_id:
+            action = UIAction("OPEN_REVIEW", event_id=event_id)
+    elif kind == "symptom_proposal":
+        label = "Proposed symptom report · not yet recorded"
+        fields = _fields(payload, (("report_date", "Date"), ("source", "Recorded source")))
+        symptoms = _strings(payload.get("symptoms"))
+        if symptoms:
+            fields.append(("Proposed symptoms", "; ".join(symptoms)))
+        lines.append("Human review is required before recording a symptom report.")
     else:
-        label = "Source unavailable in this analysis"
+        label = "Captured analysis evidence"
     return Citation(
         number=number,
         ref=ref,

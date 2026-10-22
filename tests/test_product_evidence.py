@@ -16,6 +16,7 @@ from blastbridge.product.analyst import (
     AgentResponse,
     Conversation,
     ask,
+    comparison_action,
     load_analyst_replay,
     recommendation_action,
     replay_providers,
@@ -267,6 +268,10 @@ def test_repeated_prepare_reuses_human_decisions(env):
     assert evidence_fingerprint("FIC-002", context, data) == fingerprint
 
 
+def candidate_key(item):
+    return "+".join(sorted(item.payload["source_ids"]))
+
+
 def test_shared_event_replay_is_grounded_and_actions_are_code_derived(env):
     conn, data, context = env
     store.seed_demo_drafts(conn, DEMO_SOURCE_DRAFTS)
@@ -295,6 +300,14 @@ def test_shared_event_replay_is_grounded_and_actions_are_code_derived(env):
     assert result.response.symptom_followup_summary is None
     assert len(store.list_events(conn, EventStatus.DRAFT)) == 2
     assert participants(result.comparisons[0].sources[0]) == {"FIC-001", "FIC-002", "FIC-003"}
+    candidate = next(item for item in result.evidence if item.kind == "candidate")
+    surfaced_only = replace(result, comparisons=[])
+    assert surfaced_only.candidates
+    action = comparison_action(candidate, surfaced_only)
+    assert action.kind == "OPEN_EVIDENCE_COMPARISON" and action.evidence_key == candidate_key(
+        candidate
+    )
+    assert comparison_action(candidate, replace(surfaced_only, candidates=[])) is None
 
 
 def test_evidence_refs_keep_global_scope_without_weakening_person_refs(env):
