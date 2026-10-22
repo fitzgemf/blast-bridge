@@ -29,7 +29,7 @@ CSS = """
 html, body, [data-testid="stApp"] {
   background:#F1EFEC; color:var(--bb-ink); font-variant-numeric:lining-nums;}
 html, body, [data-testid="stApp"], button, input, textarea, select {
-  font-family:"Trebuchet MS",Candara,"Segoe UI",sans-serif!important;}
+  font-family:Georgia,"Times New Roman",serif!important;}
 .block-container {max-width:880px; padding:.75rem 2rem 4rem; min-width:0;}
 [data-testid="stHeader"] {display:none;}
 [data-testid="stToolbar"], [data-testid="stDecoration"], footer {display:none;}
