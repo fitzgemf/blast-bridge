@@ -5,6 +5,8 @@ from zlib import crc32
 
 import streamlit as st
 
+from blastbridge.product.agent import IntakeResult
+from blastbridge.product.analyst_tools import SymptomProposal
 from blastbridge.product.readiness import ReadinessStatus
 
 CSS = """
@@ -346,6 +348,33 @@ def brand(title: str = "BlastBridge") -> None:
         '<span class="bb-demo">FICTIONAL DEMO</span></div>',
         unsafe_allow_html=True,
     )
+
+
+def symptom_prefill(proposal: SymptomProposal) -> tuple[dict[str, object], tuple[str, ...]]:
+    values: dict[str, object] = {}
+    labels = []
+    for key, label, value in (
+        ("sym_w_event", "Linked event", proposal.event_id),
+        ("sym_w_relationship", "Temporal relationship", proposal.temporal_relationship),
+        ("sym_w_date", "Report date", proposal.report_date),
+        ("sym_w_persistence", "Persistence", proposal.persistence),
+        ("sym_w_impact", "Functional impact", proposal.functional_impact),
+        ("sym_w_source", "Source", proposal.source),
+        ("sym_w_note", "Note", proposal.note),
+    ):
+        if value is not None:
+            values[key] = value
+            labels.append(label)
+    if proposal.symptoms:
+        values.update({f"sym_w_s_{item.value}": True for item in proposal.symptoms})
+        labels.append("Symptoms")
+    return values, tuple(labels)
+
+
+def intake_result_for_mode(
+    result: IntakeResult | None, stored_mode: str | None, entry_mode: str
+) -> IntakeResult | None:
+    return result if stored_mode == entry_mode else None
 
 
 def navigation_section(page_key: str) -> str | None:

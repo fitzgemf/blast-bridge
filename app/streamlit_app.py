@@ -189,6 +189,13 @@ if st.session_state.pop("reset_demo_view", False):
         ):
             del st.session_state[session_key]
     st.session_state.pop("ask_ledger", None)
+    for session_key in (
+        "event_decision",
+        "event_proposal",
+        "event_proposal_metadata",
+        "event_proposal_image",
+    ):
+        st.session_state.pop(session_key, None)
 # Keep the analysis date when its Home-only widget is absent on another page.
 st.session_state["analysis_as_of"] = st.session_state.get("analysis_as_of", date.today())
 ANALYSIS_AS_OF = st.session_state["analysis_as_of"]
@@ -631,6 +638,7 @@ def analyst_section(title: str, section: EvidenceSection, run: AnalystRun) -> No
 def open_proposed_draft(result: IntakeResult) -> None:
     clear_ai_state()
     st.session_state["ai_result"] = result
+    st.session_state["ai_entry_mode"] = "text"
     st.session_state["ai_narrative"] = result.narrative
     st.session_state["form_init"] = {"f_mode": "Describe / paste training record"}
     st.session_state["editing_event_id"] = None
@@ -674,21 +682,9 @@ def perform_ui_action(action: UIAction, proposal: SymptomProposal | None) -> Non
                 if proposal is not None and proposal.person_id == person_id:
                     if proposal.report_date is None:
                         s["sym_ai_needs_date"] = True
-                    for key, value in (
-                        ("sym_w_event", proposal.event_id),
-                        ("sym_w_relationship", proposal.temporal_relationship),
-                        ("sym_w_date", proposal.report_date),
-                        ("sym_w_persistence", proposal.persistence),
-                        ("sym_w_impact", proposal.functional_impact),
-                        ("sym_w_source", proposal.source),
-                        ("sym_w_note", proposal.note),
-                    ):
-                        if value is not None:
-                            restore[key] = value
-                    restore.update({f"sym_w_s_{item.value}": True for item in proposal.symptoms})
-                    restore.update(
-                        {f"sym_w_d_{item.value}": True for item in proposal.danger_signs}
-                    )
+                    restore, prefilled = ui.symptom_prefill(proposal)
+                    s["sym_ai_prefilled"] = prefilled
+                    s["sym_ai_danger_signs"] = tuple(item.label for item in proposal.danger_signs)
                 s["sym_restore"] = restore
             on_date = action.on_date or ANALYSIS_AS_OF
             s["history_person_id"] = person_id
@@ -1094,7 +1090,7 @@ def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
     st.session_state.setdefault("evidence_comparisons", {}).update(
         {comparison.key: comparison for comparison in run.comparisons}
     )
-    st.write(response.answer_summary)
+    ui.compact_line(response.answer_summary)
     if run.fallback:
         st.caption("Generated wording was withheld; showing grounded facts from BlastBridge tools.")
     if response.clarification:
@@ -1326,6 +1322,7 @@ def dashboard() -> None:
 
 
 def clear_ai_state() -> None:
+    st.session_state.pop("event_proposal_image", None)
     st.session_state.pop("event_decision", None)
     st.session_state.pop("event_proposal", None)
     st.session_state.pop("event_proposal_metadata", None)
@@ -1353,6 +1350,7 @@ def run_demo_replay() -> None:
         list(PEOPLE.values()),
         reference_date,
     )
+    st.session_state["ai_entry_mode"] = "text"
 
 
 def ai_metadata(result: IntakeResult) -> dict[str, object]:
@@ -1437,6 +1435,7 @@ def image_intake() -> None:
                     reference_date,
                 )
             st.session_state["ai_result"] = result
+            st.session_state["ai_entry_mode"] = "image"
             st.session_state["ai_metadata"] = {
                 **metadata,
                 "source_type": "uploaded image",
@@ -1447,7 +1446,9 @@ def image_intake() -> None:
         except (OSError, ValueError, KeyError, TypeError) as exc:
             st.warning(str(exc))
             st.caption("Use manual entry to record the training event.")
-    result = st.session_state.get("ai_result")
+    result = ui.intake_result_for_mode(
+        st.session_state.get("ai_result"), st.session_state.get("ai_entry_mode"), "image"
+    )
     if result is not None:
         st.markdown("**WHAT BLASTBRIDGE READ**")
         with st.expander("Observed on source", expanded=True):
@@ -1460,6 +1461,12 @@ def image_intake() -> None:
 
 
 def ai_intake(*, image_mode: bool = False) -> None:
+    entry_mode = "image" if image_mode else "text"
+    matching_result = ui.intake_result_for_mode(
+        st.session_state.get("ai_result"), st.session_state.get("ai_entry_mode"), entry_mode
+    )
+    if st.session_state.get("ai_result") is not None and matching_result is None:
+        clear_ai_state()
     if not image_mode and st.session_state.get("ai_result") is None:
         text_intake_controls()
     result = st.session_state.get("ai_result")
@@ -1509,6 +1516,7 @@ def text_intake_controls() -> None:
                     list(PEOPLE.values()),
                     date.today(),
                 )
+                st.session_state["ai_entry_mode"] = "text"
     replay.button("Use demo replay", on_click=run_demo_replay)
     notice = st.session_state.pop("ai_replay_notice", None)
     if notice:
@@ -1622,6 +1630,12 @@ def render_intake_proposal(
                 st.caption(f"{field_name}: {origin}")
             for step in result.trace:
                 st.write(f"{'✓' if step.ok else '!'} {step.text}")
+        source_image = st.session_state.get("ai_image_bytes") or st.session_state.get(
+            "event_proposal_image"
+        )
+        if metadata.get("source_type") and source_image is not None:
+            st.image(source_image, width=320)
+            st.caption("AI transcription — compare with the source image before approving")
         approve_col = edit_col = save_col = discard_col = ui.actions()
         approve = approve_col.button("Approve event", disabled=result.draft is None, type="primary")
         edit = edit_col.button("Edit", type="tertiary")
@@ -1652,6 +1666,8 @@ def render_intake_proposal(
             st.session_state["editing_event_id"] = None
             st.session_state["editing_revision"] = None
             clear_ai_state()
+            if source_image is not None:
+                st.session_state["event_proposal_image"] = source_image
             st.session_state["ai_pending"] = metadata
             st.rerun()
         with discard_col.container(key="discard-proposal"):
@@ -2160,6 +2176,18 @@ def symptom_form(person_id: str) -> None:
         return
     if s.get("sym_ai_proposal"):
         st.info("AI-assisted proposal — review before confirming")
+        if s.get("sym_ai_prefilled"):
+            st.caption(
+                "Pre-filled from the AI-assisted proposal: "
+                + ", ".join(s["sym_ai_prefilled"])
+                + "; confirm each before saving"
+            )
+        if s.get("sym_ai_danger_signs"):
+            st.caption(
+                "The AI-assisted proposal mentioned possible danger signs ("
+                + ", ".join(s["sym_ai_danger_signs"])
+                + "). Tick them only if the person reported them."
+            )
     st.caption(BOUNDARY_NOTE)
     pending = s.get("sym_review")
     if pending is not None:
@@ -2669,6 +2697,16 @@ PAGES = {
 try:
     page = st.navigation(list(PAGES.values()), position="hidden")
     current_page = next(key for key, target in PAGES.items() if target.url_path == page.url_path)
+    previous_page = st.session_state.get("previous_page")
+    if current_page == "new" and previous_page != "new":
+        for session_key in (
+            "event_decision",
+            "event_proposal",
+            "event_proposal_metadata",
+            "event_proposal_image",
+        ):
+            st.session_state.pop(session_key, None)
+    st.session_state["previous_page"] = current_page
     pending_count = len(store.list_events(CONN, EventStatus.DRAFT, limit=-1))
     ui.navigation(PAGES, current_page, pending_count)
     page.run()

@@ -68,7 +68,7 @@ def test_exact_visible_count_stays_exact(envelope):
     assert result.error is None
     assert result.draft is not None
     assert result.draft.crews[0].physical_event_count == 6
-    assert result.origins["Launcher 1 physical events"] == "image transcription"
+    assert result.origins["Launcher 1 physical events"] == "AI transcription (check against image)"
     assert result.origins["Launcher 1 · Launcher chief"] == "fictional roster"
 
 
@@ -153,3 +153,11 @@ def test_image_bytes_are_not_written_to_storage(conn, tmp_path, envelope):
             validate_upload(data, media_type)
     with pytest.raises(ValueError, match="Use manual entry"):
         load_image_replay(IMAGE)
+
+
+def test_upload_limit_is_five_megabytes():
+    assert MAX_IMAGE_BYTES == 5 * 1024 * 1024
+    boundary = IMAGE + b"\0" * (MAX_IMAGE_BYTES - len(IMAGE))
+    assert validate_upload(boundary, "image/png") == "image/png"
+    with pytest.raises(ValueError, match="no larger than 5 MB"):
+        validate_upload(boundary + b"\0", "image/png")
