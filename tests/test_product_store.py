@@ -262,6 +262,7 @@ def test_version_three_upgrades_with_manual_provenance(tmp_path):
         store.init_db(connection)
         after = dict(connection.execute("SELECT * FROM training_events").fetchone())
         assert after.pop("intake_source") == "manual"
+        assert after.pop("reconstructed_from") is None
         assert after == before
         assert connection.execute("PRAGMA user_version").fetchone()[0] == 4
     finally:
