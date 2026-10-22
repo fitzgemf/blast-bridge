@@ -1079,6 +1079,7 @@ def review_brief(run: AnalystRun, scope: str) -> None:
             with st.container(border=True):
                 st.caption("SOURCE EVIDENCE")
                 st.write(f"**[{selected.number}] {selected.label}**")
+                source_fields = []
                 for heading, value in selected.fields:
                     if heading in ("Training context", "Activity"):
                         try:
@@ -1089,7 +1090,8 @@ def review_brief(run: AnalystRun, scope: str) -> None:
                             )
                         except ValueError:
                             value = "Unknown"
-                    ui.field(heading, value)
+                    source_fields.append((heading, value))
+                ui.definition_list(source_fields)
                 for line in selected.lines:
                     st.write(line)
                 action = selected.action
@@ -1176,7 +1178,7 @@ def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
                 for section in response.brief.sections:
                     analyst_section(section.heading.capitalize(), section, run)
     if response.recommendations:
-        st.write("**Recommended next actions**")
+        st.write("**Take action**")
         for i, recommendation in enumerate(response.recommendations):
             action = recommendation_action(recommendation, run)
             if run.created_draft is not None:
@@ -1239,8 +1241,11 @@ def ask_workspace(person_id: str | None = None) -> None:
             submitted = st.form_submit_button("Ask", type="primary")
         if submitted and question.strip():
             submit_analyst(scope, person_id, question)
-        with st.container(horizontal=True, gap="small"):
-            for label, name in analyst_suggestions(person_id):
+        suggestions = analyst_suggestions(person_id)
+        if suggestions:
+            st.caption("Suggested")
+        with st.container(key=f"ask-suggestions-{scope}", horizontal=True, gap="small"):
+            for label, name in suggestions:
                 if st.button(label, key=f"ask-suggest-{scope}-{name}", type="tertiary"):
                     submit_analyst(scope, person_id, label, replay_name=name)
         run = s.get(f"ask_run_{scope}")
@@ -1293,19 +1298,24 @@ def dashboard() -> None:
     marks = organization_marks(approved, reports, ANALYSIS_AS_OF)
     with ui.surface("org"):
         selected = render_calendar("org", marks, person=False)
-        day_column, log_column = st.columns([4, 1], vertical_alignment="center")
-        with log_column:
-            if selected and can_record_on(selected, date.today()):
-                with st.container(key="log-action"):
-                    with st.popover("+ Log", type="primary"):
-                        if st.button("Training event · describe with AI"):
-                            open_form(on_date=selected, mode="Describe / paste training record")
-                        if st.button("Training event · enter manually"):
-                            open_form(on_date=selected, mode="Enter manually")
-        with day_column:
-            if selected:
-                with st.container(key="selected-day"):
-                    st.subheader(f"{selected:%B} {selected.day}")
+        if selected:
+            with st.container(key="selected-day"):
+                with st.container(key="selected-day-heading-org"):
+                    heading_column, log_column = st.columns([4, 1.5], vertical_alignment="center")
+                    with heading_column:
+                        st.subheader(f"{selected:%B} {selected.day}")
+                    with log_column:
+                        if can_record_on(selected, date.today()):
+                            with st.container(key="log-action"):
+                                with st.popover("+ Log", type="primary"):
+                                    if st.button("Training event · describe with AI"):
+                                        open_form(
+                                            on_date=selected,
+                                            mode="Describe / paste training record",
+                                        )
+                                    if st.button("Training event · enter manually"):
+                                        open_form(on_date=selected, mode="Enter manually")
+                with st.container():
                     day_events = [event for event in approved if event.draft.event_date == selected]
                     urgent_day = marks.get(selected, DayMarks()).urgent
                     if not day_events and not urgent_day:
@@ -2598,34 +2608,38 @@ def history() -> None:
         selected = render_calendar(
             "person", person_marks(entries, reports, ANALYSIS_AS_OF), person=True
         )
-    if selected:
-        with st.container(key="person-selected-day"):
-            st.subheader(f"{selected:%B} {selected.day}")
-            day_entries = [entry for entry in entries if entry.event_date == selected]
-            day_reports = [report for report in reports if report.draft.report_date == selected]
-            if not day_entries and not day_reports:
-                st.caption("No records on this date.")
-            for entry in day_entries:
-                st.write(f"**{entry.weapon_name}** · {entry.position.label}")
-                st.caption(f"Physical events: {count_text(entry.physical_event_count)}")
-                st.caption(short_provenance(entry.intake_source, EventStatus.APPROVED))
-            for report in day_reports:
-                st.write("**Symptom report**")
-                st.write(
-                    ", ".join(item.label for item in report.draft.symptoms)
-                    or "No symptoms recorded"
-                )
-                st.caption(report.draft.temporal_relationship.label)
-                st.caption(
-                    f"{report.draft.persistence.label} · {report.draft.functional_impact.label}"
-                )
-                followup_card(evaluate(report.draft))
-            if can_record_on(selected, date.today()):
-                if ui.action("+ Log symptom", "symptom-log", primary=True):
-                    clear_symptom_state()
-                    st.session_state["sym_person"] = person_id
-                    st.session_state["sym_open"] = True
-                    st.session_state["sym_restore"] = {"sym_w_date": selected}
+        if selected:
+            with st.container(key="person-selected-day"):
+                with st.container(key="selected-day-heading-person"):
+                    heading_column, log_column = st.columns([4, 1.5], vertical_alignment="center")
+                    with heading_column:
+                        st.subheader(f"{selected:%B} {selected.day}")
+                    with log_column:
+                        if can_record_on(selected, date.today()):
+                            if ui.action("+ Log symptom", "symptom-log", primary=True):
+                                clear_symptom_state()
+                                st.session_state["sym_person"] = person_id
+                                st.session_state["sym_open"] = True
+                                st.session_state["sym_restore"] = {"sym_w_date": selected}
+                day_entries = [entry for entry in entries if entry.event_date == selected]
+                day_reports = [report for report in reports if report.draft.report_date == selected]
+                if not day_entries and not day_reports:
+                    st.caption("No records on this date.")
+                for entry in day_entries:
+                    st.write(f"**{entry.weapon_name}** · {entry.position.label}")
+                    st.caption(f"Physical events: {count_text(entry.physical_event_count)}")
+                    st.caption(short_provenance(entry.intake_source, EventStatus.APPROVED))
+                for report in day_reports:
+                    st.write("**Symptom report**")
+                    st.write(
+                        ", ".join(item.label for item in report.draft.symptoms)
+                        or "No symptoms recorded"
+                    )
+                    st.caption(report.draft.temporal_relationship.label)
+                    st.caption(
+                        f"{report.draft.persistence.label} · {report.draft.functional_impact.label}"
+                    )
+                    followup_card(evaluate(report.draft))
     symptom_form(person_id)
 
     st.subheader("Insights")
