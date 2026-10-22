@@ -64,6 +64,7 @@ from blastbridge.product.evidence import (
     resolve,
     to_draft,
 )
+from blastbridge.product.evidence_graph import evidence_map
 from blastbridge.product.followup import (
     ABSENCE_NOTE,
     BOUNDARY_NOTE,
@@ -796,6 +797,16 @@ def analyst_evidence_panels(run: AnalystRun, scope: str) -> None:
                         UIAction("OPEN_SOURCE_RECORD", event_id=source.event_id, evidence_key=key),
                         None,
                     )
+            st.subheader("Evidence map")
+            st.mermaid_chart(
+                evidence_map(
+                    comparison,
+                    s.get("reconstructions", {}).get(key),
+                    candidate,
+                    {person_id: person.display_name for person_id, person in PEOPLE.items()},
+                ),
+                alt="Source records, shared participants and evidence leading to human review.",
+            )
             st.dataframe(
                 [
                     {
