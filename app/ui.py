@@ -630,8 +630,8 @@ def trace_row(step: ToolTrace, number: int, display_names: Mapping[str, str]) ->
         f'<div class="bb-trace-heading"><code>{escape(step.tool)}</code>{scope}'
         f'<span>{status}</span><span class="bb-trace-meta">'
         f"{len(step.evidence_refs)} evidence</span></div>"
-        f'<div class="bb-trace-meta">{escape(" · ".join(inputs) or "—")}</div>'
-        f'<div class="bb-trace-summary">{escape(summary)}</div></div></div>'
+        f'<div class="bb-trace-meta">{escape(one_line(" · ".join(inputs)) or "—")}</div>'
+        f'<div class="bb-trace-summary">{escape(one_line(summary))}</div></div></div>'
     )
 
 
@@ -639,12 +639,15 @@ def trace_verdict(run: AnalystRun) -> str:
     if run.fallback:
         return "Grounded ✓ — model wording withheld; deterministic text shown"
     if run.grounded:
-        return "Grounded ✓ — every claim cites evidence returned by a tool"
+        return "Grounded ✓ — every section cites evidence returned by a tool"
     return f"Not grounded — {run.error}" if run.error else "Not grounded"
 
 
 def definition_list(fields: Sequence[tuple[str, str]]) -> None:
-    entries = "".join(f"<dt>{escape(name)}</dt><dd>{escape(value)}</dd>" for name, value in fields)
+    entries = "".join(
+        f"<dt>{escape(one_line(name))}</dt><dd>{escape(one_line(value))}</dd>"
+        for name, value in fields
+    )
     st.markdown(f'<dl class="bb-source-fields">{entries}</dl>', unsafe_allow_html=True)
 
 
@@ -676,6 +679,11 @@ def row(
         return st.button(text, key=key, width="stretch")
 
 
+def one_line(value: object) -> str:
+    """Collapse whitespace so a blank line cannot end an inline HTML block."""
+    return " ".join(str(value).split())
+
+
 def markdown_text(value: str) -> str:
     for character in ("\\", "*", "_", "[", "]", "`", "<", ">"):
         value = value.replace(character, "\\" + character)
@@ -684,7 +692,7 @@ def markdown_text(value: str) -> str:
 
 def compact_line(text: str, *, muted: bool = False) -> None:
     style = "bb-compact muted" if muted else "bb-compact"
-    st.markdown(f'<div class="{style}">{escape(text)}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="{style}">{escape(one_line(text))}</div>', unsafe_allow_html=True)
 
 
 def crew_heading(text: str) -> None:
@@ -707,7 +715,8 @@ def analyst_section(title: str, text: str, records: int, checks: int) -> None:
         f'<div class="bb-ask-count">{escape(count)}</div>',
         unsafe_allow_html=True,
     )
-    st.write(text)
+    # Model-written text: escaped Markdown, so links/images/HTML in it never render.
+    st.markdown(markdown_text(text))
 
 
 def analyst_recommendation(
@@ -721,7 +730,7 @@ def analyst_recommendation(
             else "Workflow recommendation"
         )
         st.write(f"**{markdown_text(title)}**")
-        st.write(rationale)
+        st.markdown(markdown_text(rationale))
         if action_label is not None:
             return st.button(action_label, key=f"ask-action-{key}")
     return False

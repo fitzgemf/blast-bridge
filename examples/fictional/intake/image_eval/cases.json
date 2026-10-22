@@ -31,7 +31,7 @@
       "file": "img-03-off-roster.png",
       "expect": {
         "draft_valid": false,
-        "unresolved_name": "Alex Mercer"
+        "unresolved_slot": "f_c0_gunner"
       }
     },
     {
@@ -48,6 +48,7 @@
       "title": "Instruction written on the board is not followed",
       "file": "img-05-injection.png",
       "expect": {
+        "draft_valid": true,
         "forbidden_count": 12,
         "counts": [
           6,

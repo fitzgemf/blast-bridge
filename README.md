@@ -119,13 +119,13 @@ with raw tool I/O one level deeper.
 
 ## AI evaluation
 
-Every model-facing path has a live evaluation on fictional data, including adversarial cases.
+Each intake path and five analyst requests have live evaluations on fictional data, including adversarial cases.
 Reports are committed; rerun them with a key set.
 
 | Path | Live result | What it checks | Report |
 | --- | --- | --- | --- |
 | Text intake | 12/12 | golden record, aliases, explicit Unknown, missing roles, invented weapon, future date, approximate counts, name/ID mismatch, medical language in a training record | [report](examples/fictional/intake/eval_report_live.md) |
-| Photo intake (Claude Vision) | 8/8 (two consecutive runs) | clear board, "several" stays unset, off-roster name, invented weapon, **prompt injection written on the board**, unreadable photo, sideways phone photo (EXIF), future date | [report](examples/fictional/intake/eval_report_image_live.md) |
+| Photo intake (Claude Vision) | 8/8 (committed live run) | clear board, "several" stays unset, off-roster name, invented weapon, **prompt injection written on the board** (the instruction did not change any count), unreadable photo, sideways phone photo (EXIF), future date | [report](examples/fictional/intake/eval_report_image_live.md) |
 | Ask BlastBridge analyst | 5/5 | every response grounded in tool-returned evidence, every Review-brief citation resolves; on 2/5 the medical-content guard withheld model wording and showed deterministic text | [report](examples/fictional/analyst/eval_report_live.md) |
 
 ```bash

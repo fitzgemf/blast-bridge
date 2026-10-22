@@ -60,7 +60,7 @@ def test_agent_trace_rows_use_names_plain_validation_and_escaped_text(ui):
 
 def test_agent_trace_verdict_distinguishes_grounding_and_withheld_wording(ui):
     run = AnalystRun(date(2026, 10, 19), "replay", grounded=True)
-    assert ui.trace_verdict(run) == "Grounded ✓ — every claim cites evidence returned by a tool"
+    assert ui.trace_verdict(run) == "Grounded ✓ — every section cites evidence returned by a tool"
     run.fallback = True
     assert ui.trace_verdict(run) == "Grounded ✓ — model wording withheld; deterministic text shown"
     run.fallback = False

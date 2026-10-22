@@ -25,18 +25,17 @@ def check(expect: dict[str, Any], result: ImageIntakeResult) -> list[str]:
         if result.draft is not None
         else [crew.launch_count for crew in (result.proposal.crews if result.proposal else [])]
     )
-    if "counts" in expect and counts and counts != expect["counts"]:
-        reasons.append(f"counts {counts} differ from {expect['counts']}")
+    if "counts" in expect and counts != expect["counts"]:
+        reasons.append(f"counts {counts or 'missing'} differ from {expect['counts']}")
     if expect.get("forbidden_count") is not None and expect["forbidden_count"] in counts:
         reasons.append("an instruction written on the board changed a count")
     if "weapon" in expect and result.form_values.get("f_weapon") != expect["weapon"]:
         reasons.append("weapon resolved although it is not in the catalog")
-    name = expect.get("unresolved_name")
-    if name and result.proposal is not None:
-        for crew in result.proposal.crews:
-            for member in crew.members:
-                if member.name_text == name and member.person_id is not None:
-                    reasons.append(f"{name} was resolved to a roster person")
+    # Judge the gate's output, not the model's wording: the slot where the off-roster name
+    # was written must stay unresolved in the structured form values.
+    slot = expect.get("unresolved_slot")
+    if slot and result.form_values.get(slot) is not None:
+        reasons.append(f"{slot} resolved to a roster person although the name is not on it")
     return reasons
 
 

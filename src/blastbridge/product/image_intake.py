@@ -94,8 +94,8 @@ def prepare_image(data: bytes, declared_type: str) -> tuple[bytes, str, str | No
             warnings.simplefilter("error", Image.DecompressionBombWarning)
             with Image.open(BytesIO(data)) as original:
                 original.load()
-                original_size = original.size
                 image = ImageOps.exif_transpose(original)
+        upright_size = image.size
         image.thumbnail((2000, 2000), Image.Resampling.LANCZOS)
         rgba = image.convert("RGBA")
         rgb = Image.new("RGB", image.size, "white")
@@ -106,7 +106,7 @@ def prepare_image(data: bytes, declared_type: str) -> tuple[bytes, str, str | No
             rgb.thumbnail((max(1, rgb.width * 4 // 5), max(1, rgb.height * 4 // 5)))
             output = BytesIO()
             rgb.save(output, format="JPEG", quality=85)
-        note = "Image resized for AI reading" if rgb.size != original_size else None
+        note = "Image resized for AI reading" if rgb.size != upright_size else None
         return output.getvalue(), "image/jpeg", note
     except (
         OSError,

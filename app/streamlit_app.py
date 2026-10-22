@@ -22,7 +22,6 @@ from blastbridge.product import store
 from blastbridge.product.agent import (
     GOLDEN_NARRATIVE,
     IntakeResult,
-    ProviderError,
     load_replay,
     run_intake,
 )
@@ -670,16 +669,6 @@ def submit_analyst(
             )
         if live_fallback:
             s[f"ask_live_fallback_{scope}"] = True
-    except ProviderError:
-        if (
-            use_live
-            and replay_name is not None
-            and replay_name != "log_event"
-            and replay_index == 0
-        ):
-            fallback_run()
-        else:
-            raise
     except (OSError, ValueError, IndexError, StopIteration) as exc:
         s[notice_key] = str(exc)
     st.rerun()

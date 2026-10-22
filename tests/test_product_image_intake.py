@@ -192,7 +192,7 @@ def test_exif_rotated_jpeg_is_transposed_before_ai_reading():
     exif[315] = "Private photo metadata"
     original = image_bytes(Image.new("RGB", (90, 40), "red"), "JPEG", exif=exif)
     prepared, media_type, note = prepare_image(original, "image/jpeg")
-    assert media_type == "image/jpeg" and note is not None
+    assert media_type == "image/jpeg" and note is None  # rotated only, not resized
     with Image.open(BytesIO(prepared)) as image:
         image.load()
         assert image.size == (40, 90)
