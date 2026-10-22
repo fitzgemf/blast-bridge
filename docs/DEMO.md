@@ -41,6 +41,21 @@ Five minutes, one laptop, fictional data only. Every step below has a recovery m
 | 7 | 4:10 | **Home → Find possible duplicate records → Compare sources** | "Two separately recorded drafts look like the same range day. The Evidence map shows why: shared people, which record supports which fact, and that the reconstruction still needs human review." | If the map is slow, the comparison table below carries the same facts. |
 | 8 | 4:40 | (Close) | "AI proposes; deterministic rules and people decide; everything is traceable." | — |
 
+## Optional live moment: photograph a handwritten board (+60 s)
+
+Only with a working key and network, and **not** in place of step 5 (keep the bundled board as the safe path).
+
+1. Before going on stage, hand-write a small *fictional* board on paper or a whiteboard, e.g.
+   `2026-10-19 · Demo Range North · HIMARS · Live-fire qualification`, `Launcher 1 — 6` with
+   Chief Avery Kestrel / Gunner Jordan Pike / Driver Riley Marsh, and `Launcher 2 — ?` with Casey Thorne /
+   Morgan Vale / Taylor Brook. Use only names from the fictional roster (People page).
+2. On stage, photograph it with the phone, transfer it (AirDrop/cable), and upload it at
+   **Log training event → Upload / photograph record → Create proposal** (about 10 s).
+   Say: "Any real range log works the same way — names only resolve if they are written and on the roster."
+3. Phone tips: iPhone saves HEIC by default — set *Settings → Camera → Formats → Most Compatible* (JPEG) the
+   day before, or upload a screenshot of the photo. Large photos (up to 20 MB) are rotated and resized
+   automatically. If the live read fails, say "here's the recorded one" and upload the bundled board.
+
 ## Likely judge questions
 
 - **Does it diagnose TBI or predict injury?** No. It records occupational activity and applies fixed,

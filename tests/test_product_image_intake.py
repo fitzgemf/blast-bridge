@@ -3,9 +3,11 @@
 import base64
 import json
 from datetime import date
+from io import BytesIO
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from blastbridge.data.catalog import load_weapon_catalog
 from blastbridge.product import store
@@ -15,6 +17,7 @@ from blastbridge.product.image_intake import (
     image_content_block,
     image_sha256,
     load_image_replay,
+    prepare_image,
     run_image_intake,
     validate_upload,
 )
@@ -23,9 +26,15 @@ from blastbridge.product.seed import DEMO_PEOPLE
 
 ROOT = Path(__file__).resolve().parents[1]
 TODAY = date(2026, 10, 19)
-IMAGE = base64.b64decode(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j1xoAAAAASUVORK5CYII="
-)
+
+
+def image_bytes(image, format="PNG", **options):
+    output = BytesIO()
+    image.save(output, format=format, **options)
+    return output.getvalue()
+
+
+IMAGE = image_bytes(Image.new("RGB", (1, 1), "white"))
 
 
 @pytest.fixture
@@ -155,9 +164,50 @@ def test_image_bytes_are_not_written_to_storage(conn, tmp_path, envelope):
         load_image_replay(IMAGE)
 
 
-def test_upload_limit_is_five_megabytes():
-    assert MAX_IMAGE_BYTES == 5 * 1024 * 1024
+def test_original_upload_limit_is_twenty_megabytes():
+    assert MAX_IMAGE_BYTES == 20 * 1024 * 1024
     boundary = IMAGE + b"\0" * (MAX_IMAGE_BYTES - len(IMAGE))
     assert validate_upload(boundary, "image/png") == "image/png"
-    with pytest.raises(ValueError, match="no larger than 5 MB"):
+    with pytest.raises(ValueError, match="no larger than 20 MB"):
         validate_upload(boundary + b"\0", "image/png")
+
+
+def test_large_image_is_prepared_in_memory_as_a_small_valid_image_block():
+    original = image_bytes(Image.new("RGBA", (3200, 2400), (0, 0, 0, 0)))
+    prepared, media_type, note = prepare_image(original, "image/png")
+    assert media_type == "image/jpeg" and note == "Image resized for AI reading"
+    assert len(prepared) < 4.5 * 1024 * 1024
+    with Image.open(BytesIO(prepared)) as image:
+        image.load()
+        assert image.size == (2000, 1500)
+        assert image.getpixel((0, 0)) == (255, 255, 255)
+    block = image_content_block(original, "image/png")
+    assert block["source"]["media_type"] == "image/jpeg"
+    assert base64.b64decode(block["source"]["data"]) == prepared
+
+
+def test_exif_rotated_jpeg_is_transposed_before_ai_reading():
+    exif = Image.Exif()
+    exif[274] = 6
+    original = image_bytes(Image.new("RGB", (90, 40), "red"), "JPEG", exif=exif)
+    prepared, media_type, note = prepare_image(original, "image/jpeg")
+    assert media_type == "image/jpeg" and note is not None
+    with Image.open(BytesIO(prepared)) as image:
+        image.load()
+        assert image.size == (40, 90)
+        assert image.getexif().get(274, 1) == 1
+
+
+def test_demo_board_passes_through_unchanged_for_digest_matching():
+    original = (ROOT / "examples/fictional/intake/demo_range_board.png").read_bytes()
+    prepared, media_type, note = prepare_image(original, "image/png")
+    assert prepared == original
+    assert image_sha256(prepared) == image_sha256(original)
+    assert media_type == "image/png" and note is None
+
+
+def test_undecodable_image_has_a_friendly_error():
+    with pytest.raises(
+        ValueError, match="The image could not be read. Use a JPEG, PNG or WebP photo."
+    ):
+        prepare_image(b"\x89PNG\r\n\x1a\nnot an image", "image/png")

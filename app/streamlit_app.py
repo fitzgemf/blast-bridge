@@ -84,8 +84,8 @@ from blastbridge.product.followup import (
 from blastbridge.product.image_intake import (
     image_sha256,
     load_image_replay,
+    prepare_image,
     run_image_intake,
-    validate_upload,
 )
 from blastbridge.product.models import (
     Crew,
@@ -1483,7 +1483,7 @@ def image_intake() -> None:
         return
     data = upload.getvalue()
     try:
-        validate_upload(data, upload.type)
+        prepared, _, preparation_note = prepare_image(data, upload.type)
     except ValueError as exc:
         st.warning(str(exc))
         return
@@ -1491,9 +1491,11 @@ def image_intake() -> None:
     if st.session_state.get("ai_image_digest") != digest:
         clear_ai_state()
         st.session_state["ai_image_digest"] = digest
-    st.session_state["ai_image_bytes"] = data
+    st.session_state["ai_image_bytes"] = prepared
     st.markdown("**SOURCE IMAGE**")
-    st.image(data, width="stretch")
+    st.image(prepared, width="stretch")
+    if preparation_note:
+        st.caption(preparation_note)
     if st.button("Create proposal", type="primary"):
         try:
             metadata: dict[str, object] = {}

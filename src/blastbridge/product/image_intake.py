@@ -4,9 +4,11 @@ import base64
 import hashlib
 import json
 import re
+import warnings
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date
+from io import BytesIO
 from pathlib import Path
 from typing import Any, Literal
 
@@ -26,7 +28,8 @@ from .agent import (
 )
 from .models import Person
 
-MAX_IMAGE_BYTES = 5 * 1024 * 1024
+MAX_IMAGE_BYTES = 20 * 1024 * 1024
+MAX_AI_IMAGE_BYTES = int(4.5 * 1024 * 1024)
 REPLAY_PATH = Path(__file__).resolve().parents[3] / "examples/fictional/intake/image_replay.json"
 IMAGE_PROMPT = """
 Read only the written training record in the image. Return an ImageIntakeProposal envelope.
@@ -69,7 +72,7 @@ def image_sha256(data: bytes) -> str:
 
 def validate_upload(data: bytes, declared_type: str) -> str:
     if not data or len(data) > MAX_IMAGE_BYTES:
-        raise ValueError("Upload a nonempty image no larger than 5 MB.")
+        raise ValueError("Upload a nonempty image no larger than 20 MB.")
     media_type = None
     if data.startswith(b"\xff\xd8\xff"):
         media_type = "image/jpeg"
@@ -82,14 +85,49 @@ def validate_upload(data: bytes, declared_type: str) -> str:
     return media_type
 
 
-def image_content_block(data: bytes, declared_type: str) -> dict[str, Any]:
+def prepare_image(data: bytes, declared_type: str) -> tuple[bytes, str, str | None]:
+    from PIL import Image, ImageOps
+
     media_type = validate_upload(data, declared_type)
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(BytesIO(data)) as original:
+                original.load()
+                orientation = original.getexif().get(274, 1)
+                image = ImageOps.exif_transpose(original)
+        resize = max(image.size) > 2000 or len(data) > MAX_AI_IMAGE_BYTES
+        if not resize and orientation not in (2, 3, 4, 5, 6, 7, 8):
+            return data, media_type, None
+        image.thumbnail((2000, 2000), Image.Resampling.LANCZOS)
+        rgba = image.convert("RGBA")
+        rgb = Image.new("RGB", image.size, "white")
+        rgb.paste(rgba, mask=rgba.getchannel("A"))
+        output = BytesIO()
+        rgb.save(output, format="JPEG", quality=85)
+        while output.tell() >= MAX_AI_IMAGE_BYTES:
+            rgb.thumbnail((max(1, rgb.width * 4 // 5), max(1, rgb.height * 4 // 5)))
+            output = BytesIO()
+            rgb.save(output, format="JPEG", quality=85)
+        return output.getvalue(), "image/jpeg", "Image resized for AI reading"
+    except (
+        OSError,
+        ValueError,
+        SyntaxError,
+        Image.DecompressionBombError,
+        Image.DecompressionBombWarning,
+    ):
+        raise ValueError("The image could not be read. Use a JPEG, PNG or WebP photo.") from None
+
+
+def image_content_block(data: bytes, declared_type: str) -> dict[str, Any]:
+    prepared, media_type, _ = prepare_image(data, declared_type)
     return {
         "type": "image",
         "source": {
             "type": "base64",
             "media_type": media_type,
-            "data": base64.b64encode(data).decode("ascii"),
+            "data": base64.b64encode(prepared).decode("ascii"),
         },
     }
 
