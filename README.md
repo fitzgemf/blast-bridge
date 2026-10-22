@@ -84,6 +84,8 @@ The bundled demo board image also replays in presentation mode or on live failur
 
 ## Three-minute demo
 
+Presenting live? Use the [presenter run sheet](docs/DEMO.md) (checklist, timed click path, recovery moves, judge Q&A). A two-minute [backup recording](docs/demo/blastbridge-demo.webm) of the full flow is included.
+
 1. Start at **Home → Needs attention**. If a replay-date notice appears, click
    **Use demo date (19 Oct 2026)**. This changes the analysis/calendar view without resetting the database;
    repeat the suggested request after changing the date.
