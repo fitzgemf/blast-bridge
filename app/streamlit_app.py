@@ -185,6 +185,7 @@ if st.session_state.pop("reset_demo_view", False):
     for calendar_key in ("org", "person"):
         st.session_state[f"{calendar_key}_month"] = DEMO_STORY_DATE.replace(day=1)
         st.session_state[f"{calendar_key}_day"] = DEMO_STORY_DATE
+        st.session_state[f"{calendar_key}_day_picked"] = False
     for session_key in list(st.session_state):
         if session_key.startswith(
             (
@@ -198,6 +199,7 @@ if st.session_state.pop("reset_demo_view", False):
         ):
             del st.session_state[session_key]
     st.session_state.pop("ask_ledger", None)
+    st.session_state.pop("saved_proposals", None)
     for session_key in (
         "event_decision",
         "event_proposal",
@@ -310,6 +312,7 @@ def render_calendar(key: str, marks: dict[date, DayMarks], person: bool) -> date
                         type="primary" if day == s[f"{key}_day"] else "secondary",
                     ):
                         s[f"{key}_day"] = day
+                        s[f"{key}_day_picked"] = True
                         st.rerun()
         st.caption(
             ":violet[●] occupational record · "
@@ -466,6 +469,7 @@ def open_history(person_id: str) -> None:
     st.session_state["history_person_id"] = person_id
     st.session_state["people_person"] = person_id
     st.session_state["person_day"] = ANALYSIS_AS_OF
+    st.session_state["person_day_picked"] = False
     st.session_state["person_month"] = ANALYSIS_AS_OF.replace(day=1)
     st.switch_page(PAGES["person"])
 
@@ -501,11 +505,17 @@ def priority_people(assessments: dict[str, ReadinessAssessment]) -> list[Readine
 
 
 def analyst_context(person_id: str | None, *, stale: bool = False) -> AgentContext:
+    day_key = "person" if person_id else "org"
     return AgentContext(
         analysis_as_of=ANALYSIS_AS_OF,
         reference_date=ANALYSIS_AS_OF,
         selected_person_id=person_id,
-        selected_calendar_date=st.session_state.get("person_day" if person_id else "org_day"),
+        # A day only identifies an event when the user picked it, not the default.
+        selected_calendar_date=(
+            st.session_state.get(f"{day_key}_day")
+            if st.session_state.get(f"{day_key}_day_picked")
+            else None
+        ),
         page="person" if person_id else "home",
         prior_analysis_stale=stale,
     )
@@ -681,8 +691,13 @@ def analyst_section(title: str, section: EvidenceSection, run: AnalystRun) -> No
     ui.analyst_section(title, section.text, len(records), len(refs))
 
 
-def open_proposed_draft(result: IntakeResult) -> None:
+def open_proposed_draft(result: IntakeResult, action_key: str | None) -> None:
+    saved = st.session_state.get("saved_proposals", {}).get(action_key)
+    if saved is not None:
+        open_review(saved)
+        return
     clear_ai_state()
+    st.session_state["ai_proposal_key"] = action_key
     st.session_state["ai_result"] = result
     st.session_state["ai_entry_mode"] = "text"
     st.session_state["ai_narrative"] = result.narrative
@@ -711,7 +726,7 @@ def perform_ui_action(action: UIAction, proposal: SymptomProposal | None) -> Non
     elif action.kind == "OPEN_PROPOSED_DRAFT":
         result = s.get("ask_proposed_result")
         if result is not None:
-            open_proposed_draft(result)
+            open_proposed_draft(result, s.get("ask_proposed_key"))
     elif action.kind == "OPEN_FOLLOWUP":
         st.switch_page(PAGES["followup"])
     elif action.person_id in PEOPLE:
@@ -736,6 +751,7 @@ def perform_ui_action(action: UIAction, proposal: SymptomProposal | None) -> Non
             s["history_person_id"] = person_id
             s["people_person"] = person_id
             s["person_day"] = on_date
+            s["person_day_picked"] = False
             s["person_month"] = on_date.replace(day=1)
             st.switch_page(PAGES["person"])
 
@@ -989,7 +1005,7 @@ def analyst_symptom_proposal(proposal: SymptomProposal, action: UIAction, scope:
             if value is not None:
                 st.write(f"{label_text}: {value.label}")
         if proposal.note is not None:
-            st.write("Note: " + proposal.note)
+            st.write("Note: " + ui.markdown_text(proposal.note))
         if proposal.missing():
             st.write("Still needs: " + "; ".join(proposal.missing()))
         for reason in proposal.dropped:
@@ -1020,9 +1036,13 @@ def analyst_draft(run: AnalystRun, scope: str) -> None:
             st.caption("Start over to log another event")
             if st.button("Open in Review", key=f"ask-open-review-{scope}", type="primary"):
                 open_review(draft.event_id)
+        elif draft.action_key in st.session_state.get("saved_proposals", {}):
+            st.caption("Saved from this proposal; no second draft is needed.")
+            if st.button("Open record", key=f"ask-open-proposed-{scope}"):
+                open_review(st.session_state["saved_proposals"][draft.action_key])
         elif draft.intake_result is not None:
             if st.button("Open proposed draft", key=f"ask-open-proposed-{scope}"):
-                open_proposed_draft(draft.intake_result)
+                open_proposed_draft(draft.intake_result, draft.action_key)
 
 
 ACTION_LABELS = {
@@ -1185,7 +1205,7 @@ def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
     if run.fallback:
         st.caption("Generated wording was withheld; showing grounded facts from BlastBridge tools.")
     if response.clarification:
-        st.info(response.clarification)
+        st.info(ui.markdown_text(response.clarification))
     brief_view = bool(
         response.intent == "GENERATE_BRIEF" and response.brief and response.brief.sections
     )
@@ -1204,6 +1224,7 @@ def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
             action = recommendation_action(recommendation, run)
             if run.created_draft is not None:
                 st.session_state["ask_proposed_result"] = run.created_draft.intake_result
+                st.session_state["ask_proposed_key"] = run.created_draft.action_key
             if (
                 ui.analyst_recommendation(
                     recommendation.title,
@@ -1233,7 +1254,7 @@ def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
             if st.button(label_text, key=f"ask-navigation-{scope}", type="primary"):
                 perform_ui_action(action, None)
     for limitation in response.limitations:
-        st.caption(limitation)
+        st.caption(ui.markdown_text(limitation))
     analyst_evidence_panels(run, scope)
     analyst_draft(run, scope)
 
@@ -1281,9 +1302,11 @@ def ask_workspace(person_id: str | None = None) -> None:
                     on_click=use_demo_date,
                 )
         if run is not None:
-            if person_id and run.fingerprint is not None:
+            subject = run.response.person_id if run.response else None
+            if person_id and subject and run.fingerprint is not None:
+                # The fingerprint was taken for the person the answer is about.
                 fingerprint = evidence_fingerprint(
-                    person_id, analyst_context(person_id), analyst_data(include_catalog=False)
+                    subject, analyst_context(person_id), analyst_data(include_catalog=False)
                 )
                 if is_stale(run, fingerprint):
                     st.info("Evidence changed since this analysis.")
@@ -1355,7 +1378,7 @@ def dashboard() -> None:
                         st.divider()
                     if urgent_day:
                         st.write("An urgent danger sign was recorded on this date")
-                        st.page_link(PAGES["inbox"], label="Review urgent guidance")
+                        st.page_link(PAGES["followup"], label="Review urgent guidance")
 
     with st.container(key="attention-heading", horizontal=True, vertical_alignment="center"):
         st.subheader("Needs attention")
@@ -1755,7 +1778,8 @@ def render_intake_proposal(
             with st.container(key="draft-issues"):
                 st.markdown(":orange[Needs review]")
                 for issue in sorted(result.issues, key=lambda item: not item.blocking):
-                    st.write(f"{'Required · ' if issue.blocking else ''}{issue.message}")
+                    prefix = "Required · " if issue.blocking else ""
+                    st.write(prefix + ui.markdown_text(issue.message))
         with st.expander("Source / provenance"):
             if result.mode == "manual":
                 st.caption("Manually entered proposal")
@@ -1764,7 +1788,7 @@ def render_intake_proposal(
             for field_name, origin in result.origins.items():
                 st.caption(f"{field_name}: {origin}")
             for step in result.trace:
-                st.write(f"{'✓' if step.ok else '!'} {step.text}")
+                st.write(f"{'✓' if step.ok else '!'} {ui.markdown_text(step.text)}")
         source_image = st.session_state.get("ai_image_bytes") or st.session_state.get(
             "event_proposal_image"
         )
@@ -1784,6 +1808,14 @@ def render_intake_proposal(
             if decision.event_id is None:
                 st.warning(decision.error)
             else:
+                proposal_key = metadata.get("proposal_key") or st.session_state.get(
+                    "ai_proposal_key"
+                )
+                if proposal_key:
+                    # The analyst's proposal is now a saved event; don't offer it again.
+                    st.session_state.setdefault("saved_proposals", {})[proposal_key] = (
+                        decision.event_id
+                    )
                 if result.mode != "manual":
                     st.session_state.setdefault("ai_drafts", {})[decision.event_id] = metadata
                 clear_ai_state()
@@ -1791,6 +1823,8 @@ def render_intake_proposal(
                 st.session_state["event_decision"] = decision
                 st.rerun()
         if edit:
+            if st.session_state.get("ai_proposal_key"):
+                metadata = {**metadata, "proposal_key": st.session_state["ai_proposal_key"]}
             st.session_state["form_init"] = {**values, "f_mode": "Enter manually"}
             if values.get("f_date") is None and calendar_date:
                 st.session_state["form_init"]["f_date"] = calendar_date
@@ -2500,7 +2534,7 @@ def followup_list(key: str) -> None:
                 if urgent
                 else "Medical follow-up recommended"
             ),
-            tone="red" if urgent else "orange",
+            tone="urgent" if urgent else "followup",
             key=f"{key}-{report.report_id}",
             avatar=True,
         ):

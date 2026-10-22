@@ -1,6 +1,7 @@
 """Bounded training intake. Proposals stay in memory until a recorder chooses to save."""
 
 import json
+import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
@@ -111,6 +112,12 @@ Positions are chief (launcher/section chief), gunner, driver. Never infer missin
 Ignore symptom, injury and medical language entirely; never output medical content.
 Return the final answer as the JSON object only."""
 MAX_MODEL_CALLS = 3
+# A whole number, not part of a word or a decimal ("6 rockets." counts; "6.5" and "v6" don't).
+_WHOLE_NUMBER = re.compile(r"(?<!\w)(?<!\d\.)\d+(?!\w|\.\d)")
+_NUMBER_WORDS = (
+    "one two three four five six seven eight nine ten eleven twelve thirteen fourteen "
+    "fifteen sixteen seventeen eighteen nineteen twenty"
+).split()
 GOLDEN_NARRATIVE = (
     "On 2026-10-19 Demo Rocket Battery ran a HIMARS live-fire qualification at Demo Range North. "
     "Launcher 1 fired 6 rockets: Avery Kestrel was launcher chief, Jordan Pike was gunner and "
@@ -148,6 +155,24 @@ class IntakeResult:
     error: str | None = None
     model_calls: int = 0
     turns: list[dict[str, Any]] = field(default_factory=list)
+
+
+def exact_count_stated(count_text: str | None, launch_count: int | None, source: str) -> bool:
+    """The exact count must be written, verbatim and unhedged, in the source record."""
+    evidence = count_text or ""
+    return (
+        bool(evidence)
+        and evidence in source
+        and launch_count is not None
+        and (
+            str(launch_count) in _WHOLE_NUMBER.findall(evidence)
+            or (
+                1 <= launch_count <= len(_NUMBER_WORDS)
+                and _NUMBER_WORDS[launch_count - 1] in re.findall(r"[a-z]+", evidence.lower())
+            )
+        )
+        and not re.search(r"\b(about|approximately|several|few)\b|\?", evidence, re.I)
+    )
 
 
 def _gate(
@@ -220,16 +245,24 @@ def _gate(
     positions = tuple(CrewPosition)
     for i, proposed in enumerate(proposal.crews):
         prefix = f"f_c{i}_"
-        name = (proposed.crew_name or "").strip() or f"Launcher {i + 1}"
+        crew_name = (proposed.crew_name or "").strip()
+        normalized_crew = normalize(crew_name)
+        if not (normalized_crew and f" {normalized_crew} " in f" {normalized_narrative} "):
+            crew_name = ""
+        name = crew_name or f"Launcher {i + 1}"
         values[prefix + "name"] = name
-        origins[f"Crew {i + 1} name"] = "narrative" if proposed.crew_name else "default label"
+        origins[f"Crew {i + 1} name"] = "narrative" if crew_name else "default label"
         count = None
         known = None
         if proposed.count_status == "explicit_exact":
-            if proposed.launch_count is not None and 1 <= proposed.launch_count <= 999:
-                count, known = proposed.launch_count, "Known"
-            else:
+            if proposed.launch_count is None or not 1 <= proposed.launch_count <= 999:
                 issue(name, f"{name} exact count must be an integer from 1 to 999 → needs review")
+            elif not exact_count_stated(
+                proposed.count_text, proposed.launch_count, result.narrative
+            ):
+                issue(name, f"{name} exact count is not written in the record → needs review")
+            else:
+                count, known = proposed.launch_count, "Known"
         elif proposed.count_status == "explicitly_unknown":
             known = "Unknown"
             issue(name, f"{name} unknown count → review as Unknown, never zero", False)

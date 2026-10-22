@@ -3,8 +3,6 @@
 import base64
 import hashlib
 import json
-import re
-import warnings
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date
@@ -25,11 +23,14 @@ from .agent import (
     ProviderTurn,
     ScriptedProvider,
     _run_intake,
+    exact_count_stated,
 )
 from .models import Person
 
 MAX_IMAGE_BYTES = 20 * 1024 * 1024
 MAX_AI_IMAGE_BYTES = int(3.7 * 1024 * 1024)
+# Pillow's own decompression-bomb warning threshold (about 89 megapixels).
+MAX_IMAGE_PIXELS = 89_478_485
 REPLAY_PATH = Path(__file__).resolve().parents[3] / "examples/fictional/intake/image_replay.json"
 IMAGE_PROMPT = """
 Read only the written training record in the image. Return an ImageIntakeProposal envelope.
@@ -90,11 +91,12 @@ def prepare_image(data: bytes, declared_type: str) -> tuple[bytes, str, str | No
 
     validate_upload(data, declared_type)
     try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("error", Image.DecompressionBombWarning)
-            with Image.open(BytesIO(data)) as original:
-                original.load()
-                image = ImageOps.exif_transpose(original)
+        with Image.open(BytesIO(data)) as original:
+            # Check the header's pixel count before decoding anything.
+            if original.width * original.height > MAX_IMAGE_PIXELS:
+                raise ValueError("image too large")
+            original.load()
+            image = ImageOps.exif_transpose(original)
         upright_size = image.size
         image.thumbnail((2000, 2000), Image.Resampling.LANCZOS)
         rgba = image.convert("RGBA")
@@ -113,7 +115,6 @@ def prepare_image(data: bytes, declared_type: str) -> tuple[bytes, str, str | No
         ValueError,
         SyntaxError,
         Image.DecompressionBombError,
-        Image.DecompressionBombWarning,
     ):
         raise ValueError("The image could not be read. Use a JPEG, PNG or WebP photo.") from None
 
@@ -162,13 +163,8 @@ def run_image_intake(
         proposal = proposal.model_copy(deep=True)
         for crew in proposal.crews:
             if crew.count_status == "explicit_exact":
-                evidence = crew.count_text or ""
-                numbers = re.findall(r"(?<![\w.])\d+(?![\w.])", evidence)
-                if (
-                    not evidence
-                    or evidence not in envelope.observed_text
-                    or str(crew.launch_count) not in numbers
-                    or re.search(r"\b(about|approximately|several|few)\b|\?", evidence, re.I)
+                if not exact_count_stated(
+                    crew.count_text, crew.launch_count, envelope.observed_text
                 ):
                     crew.count_status = "approximate_or_ambiguous"
                     crew.launch_count = None

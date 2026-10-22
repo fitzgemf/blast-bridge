@@ -1,6 +1,7 @@
 """Quiet, date-first presentation helpers for the Streamlit application."""
 
 import os
+import re
 from collections.abc import Callable, Mapping, Sequence
 from datetime import date
 from enum import StrEnum
@@ -685,9 +686,10 @@ def one_line(value: object) -> str:
 
 
 def markdown_text(value: str) -> str:
-    for character in ("\\", "*", "_", "[", "]", "`", "<", ">"):
+    # ":" and "www." are escaped too, so bare URLs, emails and :color[] directives stay text.
+    for character in ("\\", "*", "_", "[", "]", "`", "<", ">", ":", "@"):
         value = value.replace(character, "\\" + character)
-    return value
+    return re.sub(r"(?i)\bwww\.", lambda match: match.group()[:3] + "\\.", value)
 
 
 def compact_line(text: str, *, muted: bool = False) -> None:

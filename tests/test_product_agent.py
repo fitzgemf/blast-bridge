@@ -165,6 +165,44 @@ def test_gate_refuses_bad_output(catalog, golden):
     assert result.form_values["f_c0_known"] is None
 
 
+def test_gate_requires_exact_counts_and_crew_names_written_in_the_record(catalog, golden):
+    invented_count = deepcopy(golden["stub_proposal"])
+    invented_count["crews"][0].update(launch_count=9, count_text="9 rockets")
+    unstated_number = deepcopy(golden["stub_proposal"])
+    unstated_number["crews"][0].update(launch_count=7, count_text="6 rockets")
+    for proposal in (invented_count, unstated_number):
+        result = run_intake(
+            GOLDEN_NARRATIVE, proposal_provider(proposal), catalog, DEMO_PEOPLE, TODAY
+        )
+        assert result.draft is None
+        assert result.form_values["f_c0_count"] is None
+        assert any("not written in the record" in issue.message for issue in result.issues)
+    renamed = deepcopy(golden["stub_proposal"])
+    renamed["crews"][0]["crew_name"] = "Alpha Section"
+    result = run_intake(GOLDEN_NARRATIVE, proposal_provider(renamed), catalog, DEMO_PEOPLE, TODAY)
+    assert result.form_values["f_c0_name"] == "Launcher 1"
+    assert result.origins["Crew 1 name"] == "default label"
+
+
+@pytest.mark.parametrize(
+    ("count_text", "launch_count", "stated"),
+    [
+        ("6 rockets", 6, True),
+        ("fired 6.", 6, True),
+        ("We fired six", 6, True),
+        ("6.5 rockets", 6, False),
+        ("v6 rockets", 6, False),
+        ("about 6", 6, False),
+        ("6?", 6, False),
+        ("twenty rockets", 0, False),
+    ],
+)
+def test_exact_count_stated(count_text, launch_count, stated):
+    source = f"Launcher 1: {count_text} today"
+    assert agent.exact_count_stated(count_text, launch_count, source) is stated
+    assert agent.exact_count_stated(count_text, launch_count, "unrelated text") is False
+
+
 def test_gate_refuses_name_id_mismatch_and_missing_weapon_lookup(catalog, golden):
     proposal = deepcopy(golden["stub_proposal"])
     proposal["crews"][0]["members"][2].update(name_text="Alex", person_id="FIC-008")

@@ -489,14 +489,10 @@ class ToolSession:
         self.outer_calls += 1
         safe_input = arguments if isinstance(arguments, dict) else {}
         try:
-            if name == "create_training_event_draft":
-                if self.draft_action_called:
-                    raise ValueError("one draft action per request")
-                self.draft_action_called = True
-            if name == "prepare_symptom_report":
-                if self.symptom_action_called:
-                    raise ValueError("one symptom proposal per request")
-                self.symptom_action_called = True
+            if name == "create_training_event_draft" and self.draft_action_called:
+                raise ValueError("one draft action per request")
+            if name == "prepare_symptom_report" and self.symptom_action_called:
+                raise ValueError("one symptom proposal per request")
             if self.outer_calls > 8:
                 raise ValueError("tool budget exhausted")
             if name in READ_TOOLS:
@@ -513,9 +509,12 @@ class ToolSession:
                 payload = self.attention()
             elif name == "create_training_event_draft":
                 draft_input = DraftInput.model_validate(arguments)
+                # Spent only by a well-formed call within budget; a rejected call can be retried.
+                self.draft_action_called = True
                 payload = self.create_draft(draft_input.utterance_ids)
             elif name == "prepare_symptom_report":
                 proposal_input = SymptomProposalInput.model_validate_json(canonical_json(arguments))
+                self.symptom_action_called = True
                 payload = self.prepare_symptom_report(proposal_input)
             elif name in ("find_evidence_issues", "find_possible_shared_events"):
                 scope = EvidenceScopeInput.model_validate(arguments)
@@ -1025,6 +1024,14 @@ class ToolSession:
                 )
                 try:
                     event_id = self.data.save_draft(result.draft, source)
+                except (store.StoreError, sqlite3.Error) as exc:
+                    # The save transaction rolled back, so nothing was written.
+                    self.ledger[key] = ActionEntry(
+                        "failed",
+                        error="Draft was not saved",
+                        conversation_id=self.conversation.conversation_id,
+                    )
+                    raise ValueError(f"Draft was not saved: {exc}") from None
                 except Exception:
                     raise ValueError(
                         "Save outcome uncertain; needs review in Review queue"

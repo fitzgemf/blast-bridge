@@ -839,6 +839,31 @@ def test_uncertain_save_is_never_repeated(env):
     assert len(store.list_events(env[0], EventStatus.DRAFT)) == 1
 
 
+def test_definite_save_failure_is_recorded_as_failed_not_running(env):
+    state = session(env)
+    state.conversation.add_user(GOLDEN_NARRATIVE)
+
+    def rejected(draft, source):
+        raise store.StoreError("event date cannot be in the future")
+
+    state.data = replace(state.data, save_draft=rejected)
+    _, error = state.execute("create_training_event_draft", {"utterance_ids": ["U1"]})
+    assert error
+    entry = state.ledger[action_key(state.conversation.conversation_id, ["U1"])]
+    assert entry.state == "failed" and entry.error == "Draft was not saved"
+    assert not store.list_events(env[0], EventStatus.DRAFT)
+
+
+def test_rejected_draft_call_does_not_spend_the_requests_action(env):
+    state = session(env)
+    state.conversation.add_user(GOLDEN_NARRATIVE)
+    _, error = state.execute("create_training_event_draft", {"utterance_ids": "U1"})
+    assert error and not state.draft_action_called
+    payload, error = state.execute("create_training_event_draft", {"utterance_ids": ["U1"]})
+    assert not error and payload["untrusted_record_data"]["kind"] == "review"
+    assert len(store.list_events(env[0], EventStatus.DRAFT)) == 1
+
+
 def test_open_draft_recommendation_needs_this_turns_native_outcome(env):
     state = session(env)
     state.conversation.add_user(GOLDEN_NARRATIVE)

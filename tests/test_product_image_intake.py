@@ -234,3 +234,17 @@ def test_undecodable_image_has_a_friendly_error():
         ValueError, match="The image could not be read. Use a JPEG, PNG or WebP photo."
     ):
         prepare_image(b"\x89PNG\r\n\x1a\nnot an image", "image/png")
+
+
+def test_oversized_pixel_count_is_refused_before_decoding(monkeypatch):
+    buffer = BytesIO()
+    Image.new("1", (40, 30)).save(buffer, format="PNG")
+    monkeypatch.setattr(image_intake, "MAX_IMAGE_PIXELS", 40 * 30 - 1)
+
+    def no_decode(self):
+        raise AssertionError("pixels must not be decoded")
+
+    monkeypatch.setattr(Image.Image, "load", no_decode)
+    monkeypatch.setattr("PIL.ImageFile.ImageFile.load", no_decode)
+    with pytest.raises(ValueError, match="could not be read"):
+        prepare_image(buffer.getvalue(), "image/png")
