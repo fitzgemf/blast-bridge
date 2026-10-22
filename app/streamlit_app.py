@@ -20,7 +20,6 @@ from blastbridge.models.training_tempo import TrainingContext
 from blastbridge.product import store
 from blastbridge.product.agent import (
     GOLDEN_NARRATIVE,
-    IntakeProvider,
     IntakeResult,
     load_replay,
     run_intake,
@@ -1498,25 +1497,42 @@ def image_intake() -> None:
     if st.button("Create proposal", type="primary"):
         try:
             metadata: dict[str, object] = {}
-            intake_provider: IntakeProvider
-            provider = AnthropicProvider() if live_available() else None
-            reference_date = date.today()
-            if provider is None:
+            try:
                 replay_provider, replay_metadata = load_image_replay(data)
-                metadata.update(replay_metadata)
-                reference_date = date.fromisoformat(replay_metadata["reference_date"])
-                intake_provider = replay_provider
-            else:
-                intake_provider = provider
-            with st.spinner("Reading the training record…"):
-                result = run_image_intake(
+            except ValueError:
+                replay_provider = None
+                replay_metadata = {}
+            catalog = load_weapon_catalog(ROOT / "data/reference/weapons.json")
+
+            def live_image() -> IntakeResult:
+                return run_image_intake(
                     data,
                     upload.type,
-                    intake_provider,
-                    load_weapon_catalog(ROOT / "data/reference/weapons.json"),
+                    AnthropicProvider(),
+                    catalog,
                     list(PEOPLE.values()),
-                    reference_date,
+                    date.today(),
                 )
+
+            def replay_image() -> IntakeResult:
+                assert replay_provider is not None
+                metadata.update(replay_metadata)
+                return run_image_intake(
+                    data,
+                    upload.type,
+                    replay_provider,
+                    catalog,
+                    list(PEOPLE.values()),
+                    date.fromisoformat(replay_metadata["reference_date"]),
+                )
+
+            with st.spinner("Reading the training record…"):
+                result, fallback = ui.image_with_demo_fallback(
+                    live_image,
+                    replay_image if replay_provider is not None else None,
+                    live_available=live_available(),
+                )
+            st.session_state["ai_image_live_fallback"] = fallback
             st.session_state["ai_result"] = result
             st.session_state["ai_entry_mode"] = "image"
             st.session_state["ai_metadata"] = {
@@ -1533,6 +1549,8 @@ def image_intake() -> None:
         st.session_state.get("ai_result"), st.session_state.get("ai_entry_mode"), "image"
     )
     if result is not None:
+        if st.session_state.get("ai_image_live_fallback"):
+            st.caption("Live AI unavailable — showing the recorded demo response")
         st.markdown("**WHAT BLASTBRIDGE READ**")
         with st.expander("Observed on source", expanded=True):
             st.text(result.narrative)

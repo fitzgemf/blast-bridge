@@ -7,10 +7,11 @@ from pathlib import Path
 import pytest
 
 from blastbridge.product import store
-from blastbridge.product.agent import IntakeResult, ScriptedProvider
+from blastbridge.product.agent import IntakeResult, ProviderError, ScriptedProvider
 from blastbridge.product.analyst import AnalystRun
 from blastbridge.product.analyst_tools import SymptomProposal
 from blastbridge.product.evidence import Signal
+from blastbridge.product.image_intake import load_image_replay
 from blastbridge.product.models import EventStatus
 from blastbridge.product.readiness import ReadinessStatus
 from blastbridge.product.seed import DEMO_EVENTS, DEMO_PEOPLE
@@ -149,3 +150,52 @@ def test_evidence_display_uses_human_names_and_labels(ui):
     text = " ".join((people, context, weapon, role, ui.source_label(1, date(2026, 10, 17))))
     for internal in ("FIC-", "EVT-", "weapon_firing", "routine_home_station", "m142-himars"):
         assert internal not in text
+
+
+def test_presentation_mode_chooses_digest_matched_board_replay_with_live_available(ui, monkeypatch):
+    path = Path(__file__).resolve().parents[1] / "examples/fictional/intake/demo_range_board.png"
+    data = path.read_bytes()
+    load_image_replay(data)
+    monkeypatch.setenv("BLASTBRIDGE_DEMO_MODE", "replay")
+    recorded = IntakeResult(narrative="Fictional board", mode="replay")
+
+    def live():
+        raise AssertionError("Presentation mode must not call live AI for the demo board")
+
+    result, fallback = ui.image_with_demo_fallback(live, lambda: recorded, live_available=True)
+    assert result is recorded and not fallback
+
+
+def test_demo_board_live_failure_uses_replay_and_sets_fallback_flag(ui, monkeypatch):
+    path = Path(__file__).resolve().parents[1] / "examples/fictional/intake/demo_range_board.png"
+    data = path.read_bytes()
+    load_image_replay(data)
+    monkeypatch.delenv("BLASTBRIDGE_DEMO_MODE", raising=False)
+    provider = ScriptedProvider([])
+    recorded = IntakeResult(narrative="Fictional board", mode="replay")
+
+    def live():
+        provider.complete(system="", messages=[], tools=[], output_schema=None, allow_tools=False)
+        raise AssertionError("The scripted provider must fail")
+
+    result, fallback = ui.image_with_demo_fallback(live, lambda: recorded, live_available=True)
+    assert result is recorded and fallback
+    failed = IntakeResult(narrative="", mode="live", error="Provider unavailable")
+    assert ui.image_with_demo_fallback(lambda: failed, lambda: recorded, live_available=True) == (
+        recorded,
+        True,
+    )
+
+
+def test_non_demo_image_never_uses_replay_even_in_presentation_mode(ui, monkeypatch):
+    with pytest.raises(ValueError, match="Use manual entry"):
+        load_image_replay(b"not the demo board")
+    monkeypatch.setenv("BLASTBRIDGE_DEMO_MODE", "replay")
+
+    def live():
+        raise ProviderError("Live provider unavailable")
+
+    with pytest.raises(ProviderError, match="Live provider unavailable"):
+        ui.image_with_demo_fallback(live, None, live_available=True)
+    failed = IntakeResult(narrative="", mode="live", error="Provider unavailable")
+    assert ui.image_with_demo_fallback(lambda: failed, None, live_available=True) == (failed, False)

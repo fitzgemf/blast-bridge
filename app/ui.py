@@ -390,6 +390,26 @@ def with_demo_fallback(
     return (result, False) if result.grounded and result.error is None else (replay(), True)
 
 
+def image_with_demo_fallback(
+    live: Callable[[], IntakeResult],
+    replay: Callable[[], IntakeResult] | None,
+    *,
+    live_available: bool,
+) -> tuple[IntakeResult, bool]:
+    if use_suggested_replay(replay is not None, live_available):
+        assert replay is not None
+        return replay(), False
+    if not live_available:
+        raise ValueError("Live AI isn't available for this image. Use manual entry.")
+    if replay is None:
+        return live(), False
+    try:
+        result = live()
+    except Exception:
+        return replay(), True
+    return (result, False) if result.error is None else (replay(), True)
+
+
 def human_label(value: StrEnum) -> str:
     if value is TrainingContext.QUALIFICATION:
         return "Qualification"

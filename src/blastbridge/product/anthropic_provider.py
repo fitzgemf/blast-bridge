@@ -15,7 +15,7 @@ class AnthropicProvider:
 
         self.model = model
         self._sdk: Any = anthropic
-        self._client: Any = anthropic.Anthropic(max_retries=1, timeout=60.0)
+        self._client: Any = anthropic.Anthropic(max_retries=0, timeout=45.0)
 
     def complete(
         self,
