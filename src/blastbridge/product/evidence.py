@@ -41,13 +41,27 @@ def _location(source: TrainingEvent) -> str | None:
     return value.strip().casefold() if value and value.strip() else None
 
 
+def _reconstruction_pairs(sources: Sequence[TrainingEvent]) -> set[frozenset[str]]:
+    excluded: set[frozenset[str]] = set()
+    for event in sources:
+        if event.reconstructed_from:
+            excluded.update(
+                frozenset((event.event_id, source_id)) for source_id in event.reconstructed_from
+            )
+            excluded.update(frozenset(pair) for pair in combinations(event.reconstructed_from, 2))
+    return excluded
+
+
 def possible_shared_events(sources: Sequence[TrainingEvent]) -> list[SharedEventCandidate]:
     candidates = []
+    excluded = _reconstruction_pairs(sources)
     eligible = sorted(
         (source for source in sources if source.status != EventStatus.REJECTED),
         key=lambda source: source.event_id,
     )
     for a, b in combinations(eligible, 2):
+        if frozenset((a.event_id, b.event_id)) in excluded:
+            continue
         if a.event_id == b.event_id or (
             a.draft.event_date != b.draft.event_date
             or a.draft.weapon_system_id != b.draft.weapon_system_id
@@ -349,6 +363,8 @@ def to_draft(proposal: EvidenceReconstructionProposal) -> TrainingEventDraft:
 def creation_block_reason(
     proposal: EvidenceReconstructionProposal, sources: Sequence[TrainingEvent]
 ) -> str | None:
+    if any(source.reconstructed_from for source in sources):
+        return "A reconstruction cannot be a source"
     if any(item.state == "UNRESOLVED" for item in proposal.fields):
         return "Resolve conflicting fields before creating a training draft."
     by_id = {source.event_id: source for source in sources}

@@ -33,6 +33,7 @@ from blastbridge.product.calendar_view import DEMO_STORY_DATE
 from blastbridge.product.evidence import (
     can_create_draft,
     compare_sources,
+    creation_block_reason,
     participants,
     possible_shared_events,
     prepare_reconstruction,
@@ -101,6 +102,36 @@ def test_demo_is_a_strong_candidate_without_colliding_approved_sources():
             sources[0].draft.event_date,
             sources[0].draft.weapon_system_id,
         )
+
+
+def test_reconstruction_excludes_its_sources_and_their_pair_from_candidates_and_queue():
+    a, b = source_pair()
+    proposal = prepare_reconstruction(compare_sources(a, b))
+    reconstruction = TrainingEvent(
+        event_id="EVT-RECONSTRUCTED",
+        status=EventStatus.DRAFT,
+        intake_source=IntakeSource.MANUAL,
+        revision=1,
+        draft=to_draft(proposal),
+        reconstructed_from=proposal.source_ids,
+    )
+    assert possible_shared_events([a, reconstruction]) == []
+    assert possible_shared_events([b, reconstruction]) == []
+    assert possible_shared_events([a, b, reconstruction]) == []
+    assert not any(
+        item.code == "POSSIBLE_SHARED_EVENT"
+        for item in verification_queue([a, b, reconstruction], TODAY)
+    )
+    unrelated = a.model_copy(update={"event_id": "EVT-UNRELATED"})
+    candidates = possible_shared_events([a, b, reconstruction, unrelated])
+    assert any(
+        set(item.source_ids) == {reconstruction.event_id, unrelated.event_id} for item in candidates
+    )
+    nested = prepare_reconstruction(compare_sources(reconstruction, unrelated))
+    assert (
+        creation_block_reason(nested, [reconstruction, unrelated])
+        == "A reconstruction cannot be a source"
+    )
 
 
 def test_weak_signal_and_contradictory_locations_do_not_group():

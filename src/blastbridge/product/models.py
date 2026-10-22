@@ -147,6 +147,7 @@ class TrainingEventDraft(ProductModel):
 
 
 class TrainingEvent(ProductModel):
+    reconstructed_from: tuple[str, ...] | None = None
     event_id: Text
     status: EventStatus
     intake_source: IntakeSource

@@ -72,6 +72,43 @@ def test_draft_is_not_in_history(conn):
     assert exposure_rows(conn) == 0
 
 
+def test_reconstruction_provenance_round_trips_and_manual_events_have_none(conn):
+    source_ids = [store.save_draft(conn, draft(6)), store.save_draft(conn, draft(6))]
+    event_id = store.save_draft(conn, draft(6), reconstructed_from=list(reversed(source_ids)))
+    event = store.get_event(conn, event_id)
+    assert event.reconstructed_from == tuple(sorted(source_ids))
+    listed = {item.event_id: item for item in store.list_events(conn, EventStatus.DRAFT, limit=-1)}
+    assert listed[event_id].reconstructed_from == event.reconstructed_from
+    for source_id in source_ids:
+        assert listed[source_id].reconstructed_from is None
+        assert store.live_reconstruction_for_source(conn, source_id) == event
+    store.reject_event(conn, event_id, 1)
+    assert store.live_reconstruction_for_source(conn, source_ids[0]) is None
+
+
+@pytest.mark.parametrize("approve_source_first", [False, True])
+def test_reconstruction_and_its_sources_cannot_both_enter_history(conn, approve_source_first):
+    source_ids = [store.save_draft(conn, draft(6)), store.save_draft(conn, draft(6))]
+    event_id = store.save_draft(conn, draft(6), reconstructed_from=source_ids)
+    if approve_source_first:
+        assert store.approve_event(conn, source_ids[0], 1)
+        with pytest.raises(
+            store.StoreError, match="a source of this reconstruction is already approved"
+        ):
+            store.approve_event(conn, event_id, 1)
+        assert store.get_event(conn, event_id).status is EventStatus.DRAFT
+    else:
+        assert store.approve_event(conn, event_id, 1)
+        assert store.approve_event(conn, event_id, 1) is False
+        for source_id in source_ids:
+            assert store.get_event(conn, source_id).status is EventStatus.DRAFT
+            with pytest.raises(store.StoreError, match="was replaced by approved reconstruction"):
+                store.approve_event(conn, source_id, 1)
+        assert store.get_event(conn, event_id).status is EventStatus.APPROVED
+    assert len(store.list_events(conn, EventStatus.APPROVED, limit=-1)) == 1
+    assert all(len(store.member_history(conn, person_id)) == 1 for person_id in CREW)
+
+
 def test_reconstruction_sources_persist_across_creation_paths(conn):
     source_ids = ["EVT-DEMO-S1", "EVT-DEMO-S2"]
     manual_id = store.save_draft(conn, draft(4))

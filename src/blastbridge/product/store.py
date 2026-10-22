@@ -230,6 +230,18 @@ def find_reconstruction(
     return get_event(conn, row["event_id"]) if row is not None else None
 
 
+def live_reconstruction_for_source(conn: sqlite3.Connection, event_id: str) -> TrainingEvent | None:
+    rows = conn.execute(
+        "SELECT event_id, reconstructed_from FROM training_events "
+        "WHERE reconstructed_from IS NOT NULL AND status IN ('draft', 'approved') "
+        "ORDER BY CASE status WHEN 'approved' THEN 0 ELSE 1 END, event_id"
+    ).fetchall()
+    for row in rows:
+        if event_id in json.loads(row["reconstructed_from"]):
+            return get_event(conn, row["event_id"])
+    return None
+
+
 def save_draft(
     conn: sqlite3.Connection,
     draft: TrainingEventDraft,
@@ -367,6 +379,19 @@ def approve_event(conn: sqlite3.Connection, event_id: str, revision: int) -> boo
             return False
         if status is not EventStatus.DRAFT:
             raise StoreError(f"{event_id} is {status}, not a draft")
+        replacement = live_reconstruction_for_source(conn, event_id)
+        if replacement is not None and replacement.status is EventStatus.APPROVED:
+            raise StoreError(
+                f"{event_id} was replaced by approved reconstruction {replacement.event_id}; "
+                "reject it instead"
+            )
+        event = get_event(conn, event_id)
+        for source_id in event.reconstructed_from or ():
+            source = conn.execute(
+                "SELECT status FROM training_events WHERE event_id = ?", (source_id,)
+            ).fetchone()
+            if source is not None and source["status"] == EventStatus.APPROVED:
+                raise StoreError("a source of this reconstruction is already approved")
         decided = _now()
         conn.execute(
             "UPDATE training_events SET status = 'approved', decided_at = ? WHERE event_id = ?",
@@ -426,6 +451,11 @@ def get_event(conn: sqlite3.Connection, event_id: str) -> TrainingEvent:
         event_id=event_id,
         status=row["status"],
         intake_source=row["intake_source"],
+        reconstructed_from=(
+            tuple(json.loads(row["reconstructed_from"]))
+            if row["reconstructed_from"] is not None
+            else None
+        ),
         revision=row["revision"],
         draft=draft,
     )

@@ -738,6 +738,12 @@ def perform_evidence_action(action: UIAction) -> None:
                 open_review(existing.event_id)
                 return
             sources = [store.get_event(CONN, event_id) for event_id in proposal.source_ids]
+            for source in sources:
+                existing = store.live_reconstruction_for_source(CONN, source.event_id)
+                if existing is not None:
+                    proposals[key] = replace(proposal, created_draft_id=existing.event_id)
+                    open_review(existing.event_id)
+                    return
             if not can_create_draft(proposal, sources):
                 st.warning(creation_block_reason(proposal, sources))
                 return
@@ -1881,6 +1887,16 @@ def new_event() -> None:
     open_review(event_id)
 
 
+def reconstruction_provenance(event: TrainingEvent) -> str | None:
+    if event.reconstructed_from:
+        return "Reconstructed from " + ", ".join(event.reconstructed_from)
+    replacement = store.live_reconstruction_for_source(CONN, event.event_id)
+    if replacement is not None:
+        status = DRAFT_STATUS if replacement.status is EventStatus.DRAFT else APPROVED_STATUS
+        return f"Replaced by reconstruction {replacement.event_id} ({status})"
+    return None
+
+
 def status_pill(event: TrainingEvent) -> str:
     return {
         EventStatus.DRAFT: f'<span class="bb-pill draft">{DRAFT_STATUS}</span>',
@@ -1926,6 +1942,9 @@ def show_decision(event_id: str) -> None:
         st.session_state["last_decided"] = None
         return
     d = event.draft
+    provenance = reconstruction_provenance(event) or provenance_text(
+        event.intake_source, event.status
+    )
     with st.container(key="decision-summary"):
         st.markdown(
             f"{status_pill(event)} &nbsp; **{escape(d.weapon_name)}** · "
@@ -1933,10 +1952,10 @@ def show_decision(event_id: str) -> None:
             unsafe_allow_html=True,
         )
         if event.status is not EventStatus.APPROVED:
-            st.caption(provenance_text(event.intake_source, event.status))
+            st.caption(provenance)
             st.caption("This event was not added to anyone's history.")
             return
-        st.caption(provenance_text(event.intake_source, event.status))
+        st.caption(provenance)
         st.info("Approved. Each participant's history now includes this event.")
         st.write(f"{label(d.training_context)} · {d.location_unit or 'Location not recorded'}")
         training_crew_rows(d)
@@ -2002,7 +2021,9 @@ def review() -> None:
         f"{status_pill(event)} &nbsp; <small>{escape(event.event_id)}</small>",
         unsafe_allow_html=True,
     )
-    st.caption(provenance_text(event.intake_source, event.status))
+    st.caption(
+        reconstruction_provenance(event) or provenance_text(event.intake_source, event.status)
+    )
     st.write("")
 
     metadata = st.session_state.get("ai_drafts", {}).get(event.event_id)
@@ -2353,7 +2374,8 @@ def inbox() -> None:
             crew_text = f"{len(d.crews)} {'crew' if len(d.crews) == 1 else 'crews'}"
             if ui.row(
                 f"{d.event_date.day} {d.event_date:%b} · {d.weapon_name} · {crew_text}",
-                short_provenance(event.intake_source, event.status),
+                reconstruction_provenance(event)
+                or short_provenance(event.intake_source, event.status),
                 state="Awaiting approval",
                 tone="violet",
                 key=f"inbox-{event.event_id}",
