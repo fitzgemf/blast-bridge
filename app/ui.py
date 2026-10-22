@@ -13,7 +13,7 @@ from blastbridge.models.enums import EventType
 from blastbridge.models.training_tempo import TrainingContext
 from blastbridge.product.agent import IntakeResult, ProviderError
 from blastbridge.product.analyst import AnalystRun
-from blastbridge.product.analyst_tools import SymptomProposal
+from blastbridge.product.analyst_tools import SymptomProposal, ToolTrace
 from blastbridge.product.calendar_view import DEMO_STORY_DATE
 from blastbridge.product.evidence import Signal
 from blastbridge.product.models import CrewPosition
@@ -23,7 +23,7 @@ CSS = """
 <style>
 :root {--bb-ink:#211F22; --bb-muted:#6B6569; --bb-line:#D8D2D4; --bb-accent:#713E53;
   --bb-accent-hover:#5D3144; --bb-surface:#FAF8F6; --bb-soft:#E6D9DE;
-  --bb-review:#67578C; --bb-followup:#A36B24; --bb-urgent:#B64747;}
+  --bb-review:#67578C; --bb-followup:#83561C; --bb-urgent:#B64747;}
 /* Shell and typography. */
 [data-testid="stMarkdownContainer"], [data-testid="stCaptionContainer"] {margin-bottom:0!important;}
 [data-testid="stMarkdownContainer"] > :last-child,
@@ -240,18 +240,21 @@ input, textarea {background:var(--bb-surface)!important;}
 .bb-compact.muted {font-size:13px; color:var(--bb-muted);}
 [class*="st-key-listrow-"][class*="-attention-"] {
   border-left:4px solid var(--attention-color); padding-left:12px;}
-[class*="-attention-urgent"], .st-key-attention-band-urgent {--attention-color:#B64747;}
-[class*="-attention-followup"], .st-key-attention-band-followup {--attention-color:#A36B24;}
-[class*="-attention-review"], .st-key-attention-band-review {--attention-color:#67578C;}
+[class*="-attention-urgent"], .st-key-attention-band-urgent {
+  --attention-color:#B64747; --attention-text:var(--bb-urgent);}
+[class*="-attention-followup"], .st-key-attention-band-followup {
+  --attention-color:#A36B24; --attention-text:var(--bb-followup);}
+[class*="-attention-review"], .st-key-attention-band-review {
+  --attention-color:#67578C; --attention-text:var(--bb-review);}
 [class*="st-key-listrow-"][class*="-attention-"] button p span {
-  color:var(--attention-color)!important;}
+  color:var(--attention-text)!important;}
 [class*="st-key-listrow-"][class*="-attention-"] button p span strong {
-  color:var(--attention-color); font-size:14px;}
+  color:var(--attention-text); font-size:14px;}
 [class*="st-key-listrow-"][class*="-attention-"] .bb-avatar {left:12px;}
 [class*="st-key-attention-band-"] {
   border-left:4px solid var(--attention-color); padding:12px 16px;
   background:var(--bb-surface); border-radius:6px; margin:8px 0;}
-[class*="st-key-attention-band-"] strong {color:var(--attention-color);}
+[class*="st-key-attention-band-"] strong {color:var(--attention-text);}
 [class*="st-key-insight-"] summary p {
   font-size:14px; line-height:1.5; white-space:pre-line; color:var(--bb-muted);}
 [class*="st-key-insight-"] summary p strong {
@@ -347,6 +350,18 @@ input, textarea {background:var(--bb-surface)!important;}
 .bb-ask-activity {font-size:13.5px; color:var(--bb-muted); line-height:1.5;}
 .bb-ask-section {font-size:15.5px; font-weight:600; margin:8px 0 0;}
 .bb-ask-count {font-size:13.5px; color:var(--bb-muted);}
+/* Agent trace uses a single list, with raw I/O available separately. */
+[class*="st-key-agent-trace-"] .bb-trace-row {
+  display:grid; grid-template-columns:24px minmax(0,1fr); gap:8px;
+  padding:12px 0; border-bottom:1px solid var(--bb-line); font-size:14px;}
+[class*="st-key-agent-trace-"] .bb-trace-number,
+[class*="st-key-agent-trace-"] .bb-trace-meta {color:var(--bb-muted); font-size:13px;}
+[class*="st-key-agent-trace-"] .bb-trace-heading {
+  display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px;}
+[class*="st-key-agent-trace-"] .bb-trace-heading code {
+  font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:12px;
+  background:var(--bb-soft); color:var(--bb-ink); padding:2px 4px; border-radius:4px;}
+[class*="st-key-agent-trace-"] .bb-trace-summary {margin-top:4px; overflow-wrap:anywhere;}
 [class*="st-key-ask-workflow-"] {padding:8px 0; border-bottom:1px solid var(--bb-line);}
 [class*="st-key-ask-medical-"] {background:#F1E5D3; border-radius:12px; padding:16px;}
 [class*="st-key-ask-draft-"] {background:var(--bb-soft); border-radius:12px; padding:16px;}
@@ -377,7 +392,7 @@ def profile(name: str) -> None:
     palette = (
         ("#E5DFED", "#67578C"),
         ("#E6D9DE", "#713E53"),
-        ("#F1E5D3", "#A36B24"),
+        ("#F1E5D3", "#83561C"),
         ("#E4DFDB", "#746E72"),
     )
     background, foreground = palette[crc32(name.encode()) % len(palette)]
@@ -585,6 +600,47 @@ def field(name: str, value: str) -> None:
         f'<div class="bb-label">{escape(name)}</div><div class="bb-value">{escape(value)}</div>',
         unsafe_allow_html=True,
     )
+
+
+def trace_row(step: ToolTrace, number: int, display_names: Mapping[str, str]) -> str:
+    """Format captured tool activity without rendering model text as Markdown."""
+    inputs = []
+    for key, value in step.input.items():
+        if key == "person_id":
+            inputs.append(display_names.get(str(value), "Person"))
+        elif key in ("event_ids", "source_ids") and isinstance(value, (list, tuple)):
+            inputs.append(f"{len(value)} records")
+        elif key in ("event_id", "event_ref"):
+            inputs.append("1 record")
+        else:
+            inputs.append(f"{key.replace('_', ' ')}: {value}")
+    summary = step.summary
+    if step.scope == "validation":
+        code, separator, path = summary.partition(":")
+        wording = {
+            "MEDICAL_CONTENT": "medical wording withheld",
+            "UNKNOWN_REF": "unknown evidence reference",
+        }.get(code, code)
+        summary = f"{wording}: {path}" if separator else wording
+    badge = "nested intake" if step.scope == "nested" else step.scope
+    scope = f'<span class="bb-trace-meta">{escape(badge)}</span>' if badge != "outer" else ""
+    status = "✓ ok" if step.ok else "! issue"
+    return (
+        f'<div class="bb-trace-row"><span class="bb-trace-number">{number}</span><div>'
+        f'<div class="bb-trace-heading"><code>{escape(step.tool)}</code>{scope}'
+        f'<span>{status}</span><span class="bb-trace-meta">'
+        f"{len(step.evidence_refs)} evidence</span></div>"
+        f'<div class="bb-trace-meta">{escape(" · ".join(inputs) or "—")}</div>'
+        f'<div class="bb-trace-summary">{escape(summary)}</div></div></div>'
+    )
+
+
+def trace_verdict(run: AnalystRun) -> str:
+    if run.fallback:
+        return "Grounded ✓ — model wording withheld; deterministic text shown"
+    if run.grounded:
+        return "Grounded ✓ — every claim cites evidence returned by a tool"
+    return f"Not grounded — {run.error}" if run.error else "Not grounded"
 
 
 def definition_list(fields: Sequence[tuple[str, str]]) -> None:

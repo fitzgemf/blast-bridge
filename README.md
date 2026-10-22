@@ -113,6 +113,10 @@ from application-owned deterministic guidance. Humans approve training events an
 reports. Provenance distinguishes manual, live-AI and replay input. No AI confidence percentages
 or injury probabilities are presented. Replays are scripted demonstrations, not fresh live responses.
 
+Every Ask BlastBridge answer opens an **Agent trace**: each tool call with its subject, status and evidence count,
+the grounding verdict (including when the medical-content guard withheld model wording), and run totals,
+with raw tool I/O one level deeper.
+
 ## AI evaluation
 
 Every model-facing path has a live evaluation on fictional data, including adversarial cases.

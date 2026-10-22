@@ -1117,34 +1117,60 @@ def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
     ui.analyst_activity(activity_lines(run))
     checks = evidence_count(run)
     if checks or run.tool_trace:
-        details_label = (
-            f"{checks} evidence {'check' if checks == 1 else 'checks'} · View evidence & actions"
-            if checks
-            else "View evidence & actions"
-        )
+        counts = [
+            f"{count} {name}"
+            for count, name in (
+                (run.counts.outer_model_turns, "model turns"),
+                (run.counts.outer_tool_calls, "tool calls"),
+                (checks, "evidence items"),
+            )
+            if count
+        ]
+        details_label = " · ".join(["Agent trace", *counts])
         with st.expander(details_label):
             if run.mode == "replay":
                 st.caption(
                     "Scripted model turns authored for the fictional demo — not a live recording. "
                     "Tools, intake and validation run for real."
                 )
-            for step in run.tool_trace:
-                st.write(f"**{step.tool}** · {step.scope} · {'ok' if step.ok else 'error'}")
-                st.json({"input": step.input, "refs": step.evidence_refs, "summary": step.summary})
-            st.json(
-                {
-                    "mode": run.mode,
-                    "model": run.model,
-                    "outer_model_turns": run.counts.outer_model_turns,
-                    "outer_tool_calls": run.counts.outer_tool_calls,
-                    "nested_intake_model_calls": run.counts.nested_intake_model_calls,
-                    "nested_intake_tool_calls": run.counts.nested_intake_tool_calls,
-                    "grounded": run.grounded,
-                    "validation": [
-                        {"code": item.code, "path": item.path} for item in run.validation
-                    ],
-                }
-            )
+            else:
+                st.caption(f"Live · {run.model or 'unavailable'}")
+            with st.container(key=f"agent-trace-{scope}"):
+                display_names = {key: person.display_name for key, person in PEOPLE.items()}
+                for number, step in enumerate(run.tool_trace, 1):
+                    st.markdown(ui.trace_row(step, number, display_names), unsafe_allow_html=True)
+                ui.compact_line(ui.trace_verdict(run))
+                call_counts = counts[:]
+                if checks:
+                    call_counts.pop()
+                for count, name in (
+                    (run.counts.nested_intake_model_calls, "nested intake model calls"),
+                    (run.counts.nested_intake_tool_calls, "nested intake tool calls"),
+                ):
+                    if count:
+                        call_counts.append(f"{count} {name}")
+                if call_counts:
+                    st.caption(" · ".join(call_counts))
+            with st.expander("Raw tool I/O", expanded=False):
+                for step in run.tool_trace:
+                    st.write(f"**{step.tool}** · {step.scope} · {'ok' if step.ok else 'error'}")
+                    st.json(
+                        {"input": step.input, "refs": step.evidence_refs, "summary": step.summary}
+                    )
+                st.json(
+                    {
+                        "mode": run.mode,
+                        "model": run.model,
+                        "outer_model_turns": run.counts.outer_model_turns,
+                        "outer_tool_calls": run.counts.outer_tool_calls,
+                        "nested_intake_model_calls": run.counts.nested_intake_model_calls,
+                        "nested_intake_tool_calls": run.counts.nested_intake_tool_calls,
+                        "grounded": run.grounded,
+                        "validation": [
+                            {"code": item.code, "path": item.path} for item in run.validation
+                        ],
+                    }
+                )
     if not run.grounded or run.response is None:
         st.write("BlastBridge couldn't produce a grounded answer.")
         if run.error:

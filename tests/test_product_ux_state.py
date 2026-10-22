@@ -9,7 +9,7 @@ import pytest
 from blastbridge.product import store
 from blastbridge.product.agent import IntakeResult, ProviderError, ScriptedProvider
 from blastbridge.product.analyst import AnalystRun
-from blastbridge.product.analyst_tools import SymptomProposal
+from blastbridge.product.analyst_tools import SymptomProposal, ToolTrace
 from blastbridge.product.evidence import Signal
 from blastbridge.product.image_intake import load_image_replay
 from blastbridge.product.models import EventStatus
@@ -36,6 +36,37 @@ def test_navigation_sections_cover_visible_and_nested_pages(ui):
     }
     assert {page: ui.navigation_section(page) for page in expected} == expected
     assert ui.navigation_section("unknown") is None
+
+
+def test_agent_trace_rows_use_names_plain_validation_and_escaped_text(ui):
+    step = ToolTrace(
+        "get_person_record",
+        {"person_id": "FIC-002"},
+        "Read <record>",
+        True,
+        evidence_refs=("record:1", "record:2"),
+    )
+    row = ui.trace_row(step, 1, {"FIC-002": "Jordan Pike"})
+    assert "Jordan Pike" in row and "FIC-002" not in row
+    assert "2 evidence" in row and "✓ ok" in row
+    assert "Read &lt;record&gt;" in row and "<record>" not in row
+    for code, wording in (
+        ("MEDICAL_CONTENT", "medical wording withheld"),
+        ("UNKNOWN_REF", "unknown evidence reference"),
+    ):
+        validation = ToolTrace("validation", {}, f"{code}:sections.0", False, "validation")
+        assert f"{wording}: sections.0" in ui.trace_row(validation, 2, {})
+
+
+def test_agent_trace_verdict_distinguishes_grounding_and_withheld_wording(ui):
+    run = AnalystRun(date(2026, 10, 19), "replay", grounded=True)
+    assert ui.trace_verdict(run) == "Grounded ✓ — every claim cites evidence returned by a tool"
+    run.fallback = True
+    assert ui.trace_verdict(run) == "Grounded ✓ — model wording withheld; deterministic text shown"
+    run.fallback = False
+    run.grounded = False
+    run.error = "Unknown evidence reference"
+    assert ui.trace_verdict(run) == "Not grounded — Unknown evidence reference"
 
 
 def test_review_badge_counts_only_pending_training_drafts(tmp_path, ui):
