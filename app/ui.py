@@ -56,14 +56,11 @@ p {font-size:15px; font-weight:400; line-height:1.5;}
 .bb-sub {color:var(--bb-muted); margin:0 0 8px;}
 .bb-brand {display:flex; align-items:baseline; justify-content:space-between; gap:16px;}
 .bb-brand h1 {margin:0; padding:0 0 4px;}
-.bb-demo {font-size:11px; font-weight:600; letter-spacing:.08em; color:var(--bb-muted);
-  white-space:nowrap;}
 .bb-pill {display:inline-block; color:var(--bb-muted); font-size:13px; line-height:1.6;}
 .bb-pill.review {color:var(--bb-review);}
 .bb-pill.medical {color:var(--bb-followup); font-weight:600;}
 .bb-pill.urgent {color:var(--bb-urgent); font-weight:600;}
 .bb-pill.approved {color:var(--bb-approved);}
-.bb-pill.fictional {font-size:11px; letter-spacing:.08em;}
 .bb-label {font-size:12px; font-weight:600; letter-spacing:.02em;
   color:var(--bb-muted); margin-bottom:2px;}
 .bb-value {font-size:15px; margin-bottom:12px;}
@@ -497,8 +494,7 @@ def empty_state() -> None:
 
 def brand(title: str = "BlastBridge") -> None:
     st.markdown(
-        f'<div class="bb-brand"><h1>{escape(title)}</h1>'
-        '<span class="bb-demo">FICTIONAL DEMO</span></div>',
+        f'<div class="bb-brand"><h1>{escape(title)}</h1></div>',
         unsafe_allow_html=True,
     )
 
@@ -664,12 +660,13 @@ def navigation(pages: dict, current_page: str, pending_count: int) -> None:
 
 
 def demo_details(note: str) -> None:
-    st.caption("Demo histories are intentionally arranged to demonstrate prototype states.")
     with st.expander("About this demo"):
         st.caption(
-            "FICTIONAL DEMO — All people and events are invented. "
+            "BlastBridge is a hackathon prototype using synthetic demonstration data. "
+            "No real personnel or medical records are used. "
             "BlastBridge records occupational exposure; exposure does not imply injury."
         )
+        st.caption("Demo histories are intentionally arranged to demonstrate prototype states.")
         st.caption(note)
 
 

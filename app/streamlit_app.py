@@ -145,7 +145,7 @@ DB_PATH = Path(
 )
 POSITIONS = (CrewPosition.CHIEF, CrewPosition.GUNNER, CrewPosition.DRIVER)
 DEMO_ARRANGEMENT_NOTE = (
-    "Fictional demo history is arranged: EVT-DEMO-B1–B3 (Oct 2025–Mar 2026) were added so "
+    "Demo history is arranged: EVT-DEMO-B1–B3 (Oct 2025–Mar 2026) were added so "
     "most of the roster has the 365-day history the comparison requires, and EVT-DEMO-C1–C3 "
     "(Oct 2026) were constructed so Reese Calder demonstrates an elevated-cadence comparison. "
     "The model, threshold, reference and rules were not changed for the demo."
@@ -334,7 +334,7 @@ def label(value: StrEnum) -> str:
 def next_action(status: ReadinessStatus) -> str:
     if status is ReadinessStatus.REVIEW_PRIORITY:
         return (
-            "Recent HIMARS training cadence is elevated relative to the fictional scenario "
+            "Recent HIMARS training cadence is elevated relative to the prototype scenario "
             "reference. Review the record."
         )
     return calendar_next_action(status)
@@ -362,7 +362,8 @@ def header(title: str, subtitle: str) -> None:
 def demo_banner() -> None:
     with st.expander("About this demo"):
         st.caption(
-            "FICTIONAL DEMO — All people and events are invented. "
+            "BlastBridge is a hackathon prototype using synthetic demonstration data. "
+            "No real personnel or medical records are used. "
             "BlastBridge records occupational exposure; exposure does not imply injury."
         )
 
@@ -475,10 +476,6 @@ def open_history(person_id: str) -> None:
 
 
 # ---- pages --------------------------------------------------------------------------------------
-
-
-def fictional_pill() -> None:
-    st.markdown('<span class="bb-pill fictional">FICTIONAL DEMO</span>', unsafe_allow_html=True)
 
 
 def short_provenance(source: IntakeSource, status: EventStatus) -> str:
@@ -1067,7 +1064,7 @@ def review_brief(run: AnalystRun, scope: str) -> None:
     with st.container(key=f"review-{run_key}"):
         st.subheader("Review brief")
         st.write(person.display_name if person else "Selected person")
-        st.caption(f"Analysis as of {run.analysis_as_of:%d %b %Y} · FICTIONAL DEMO")
+        st.caption(f"Analysis as of {run.analysis_as_of:%d %b %Y}")
         st.caption(f"Grounded in {len(citations)} cited evidence items")
         for index, (section, numbers) in enumerate(
             zip(response.brief.sections, section_numbers, strict=True)
@@ -1145,7 +1142,7 @@ def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
         with st.expander(details_label):
             if run.mode == "replay":
                 st.caption(
-                    "Scripted model turns authored for the fictional demo — not a live recording. "
+                    "Scripted model turns authored for the demo — not a live recording. "
                     "Tools, intake and validation run for real."
                 )
             else:
@@ -1440,9 +1437,7 @@ def dashboard() -> None:
                     del st.session_state[key]
             st.session_state["reset_demo_view"] = True
             st.rerun()
-        st.caption(
-            "Reset restores the fictional demo state and the demo analysis date (19 Oct 2026)."
-        )
+        st.caption("Reset restores the demo state and the demo analysis date (19 Oct 2026).")
 
 
 def clear_ai_state() -> None:
@@ -1516,7 +1511,7 @@ def load_example_narrative() -> None:
 
 def image_intake() -> None:
     st.caption(
-        "FICTIONAL DEMO — do not upload real personnel, medical, PHI/PII, "
+        "Do not upload real personnel, medical, PHI/PII, "
         "controlled or operational military records."
     )
     st.caption("Uploaded image bytes remain session-only and are not persisted by BlastBridge.")
@@ -1631,7 +1626,7 @@ def ai_intake(*, image_mode: bool = False) -> None:
     if result.error:
         st.warning(result.error)
         if result.mode == "live":
-            st.caption("Demo replay uses the golden fictional narrative instead of your text.")
+            st.caption("Demo replay uses the recorded demo narrative instead of your text.")
             st.button("Use demo replay instead", on_click=run_demo_replay)
         st.button("Start Over", on_click=clear_ai_state)
         return
@@ -2327,7 +2322,7 @@ def linked_event_text(event_id: str | None) -> str:
 
 
 def report_fields(report: SymptomReportDraft) -> None:
-    st.write(f"{PEOPLE[report.person_id].display_name} · FICTIONAL · {report.person_id}")
+    st.write(f"{PEOPLE[report.person_id].display_name} · {report.person_id}")
     st.write(f"Report date: {report.report_date:%d %b %Y}")
     st.write(f"Linked event: {linked_event_text(report.event_id)}")
     st.write(report.temporal_relationship.label)
@@ -2565,7 +2560,7 @@ def guidance_resources() -> None:
 
 
 def followup() -> None:
-    header("Follow-up", "Confirmed reports for fictional personnel.")
+    header("Follow-up", "Confirmed symptom reports.")
     st.caption(f"Analysis as of {ANALYSIS_AS_OF:%d %b %Y}")
     followup_list("followup")
     with st.expander("Official resources"):
@@ -2628,7 +2623,7 @@ def history() -> None:
             if query in f"{p.display_name} {p.callsign} {p.section}".casefold()
         ]
         if not matches:
-            st.caption("No fictional personnel match your search.")
+            st.caption("No personnel match your search.")
         for p in matches:
             status = assessments[p.person_id].overall_readiness_status
             if ui.row(
@@ -2730,7 +2725,7 @@ def history() -> None:
                     "(informational)."
                 )
             elif pattern.status is not PatternStatus.ATYPICAL_ELEVATED_ACTIVITY:
-                st.write("Recorded HIMARS training cadence within the fictional scenario reference")
+                st.write("Recorded HIMARS training cadence within the prototype scenario reference")
             st.caption("See Why was this surfaced? for evidence and comparison details.")
     with st.container(key="insight-symptoms"):
         if visible_reports:
@@ -2786,13 +2781,12 @@ def history() -> None:
             for item in pattern.differing:
                 st.write(
                     f"{item.label}: {item.value:g} "
-                    "(fictional HIMARS scenario reference median "
+                    "(prototype scenario reference median "
                     f"{comparison_number(item.median)})"
                 )
             if not pattern.differing:
                 st.caption(
-                    "No features outside the fictional HIMARS scenario reference's "
-                    "percentile ranges."
+                    "No features outside the prototype scenario reference's percentile ranges."
                 )
         elif pattern:
             st.caption(pattern.reason)
@@ -2818,7 +2812,7 @@ def history() -> None:
             for name, assumption in metadata.get("scenario_assumptions", {}).items():
                 st.caption(f"{name}: {assumption['value']} · {assumption['basis']}")
             st.write(
-                f"{metadata.get('independent_fictional_careers')} independent fictional careers · "
+                f"{metadata.get('independent_fictional_careers')} independent synthetic careers · "
                 f"{metadata.get('repeated_analysis_windows')} repeated analysis windows"
             )
             st.caption(metadata.get("observation_note", ""))
