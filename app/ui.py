@@ -11,7 +11,7 @@ import streamlit as st
 
 from blastbridge.models.enums import EventType
 from blastbridge.models.training_tempo import TrainingContext
-from blastbridge.product.agent import IntakeResult
+from blastbridge.product.agent import IntakeResult, ProviderError
 from blastbridge.product.analyst import AnalystRun
 from blastbridge.product.analyst_tools import SymptomProposal
 from blastbridge.product.calendar_view import DEMO_STORY_DATE
@@ -381,13 +381,19 @@ def use_suggested_replay(has_replay: bool, live_available: bool) -> bool:
 
 
 def with_demo_fallback(
-    live: Callable[[], AnalystRun], replay: Callable[[], AnalystRun]
+    live: Callable[[], AnalystRun],
+    replay: Callable[[], AnalystRun],
+    *,
+    replay_name: str = "suggested",
+    replay_index: int = 0,
 ) -> tuple[AnalystRun, bool]:
+    if replay_name == "log_event" or replay_index > 0:
+        return live(), False
     try:
         result = live()
-    except Exception:
+    except ProviderError:
         return replay(), True
-    return (result, False) if result.grounded and result.error is None else (replay(), True)
+    return (replay(), True) if result.provider_error else (result, False)
 
 
 def image_with_demo_fallback(
@@ -405,9 +411,9 @@ def image_with_demo_fallback(
         return live(), False
     try:
         result = live()
-    except Exception:
+    except ProviderError:
         return replay(), True
-    return (result, False) if result.error is None else (replay(), True)
+    return (replay(), True) if result.provider_error else (result, False)
 
 
 def human_label(value: StrEnum) -> str:

@@ -128,10 +128,12 @@ def test_suggested_live_failure_chooses_recorded_response(ui):
     assert result is recorded and fallback
     assert calls == ["replay"]
     ungrounded = AnalystRun(date(2026, 10, 19), "live", grounded=False)
-    assert ui.with_demo_fallback(lambda: ungrounded, replay) == (recorded, True)
+    assert ui.with_demo_fallback(lambda: ungrounded, replay) == (ungrounded, False)
     grounded = AnalystRun(date(2026, 10, 19), "live", grounded=True)
     assert ui.with_demo_fallback(lambda: grounded, replay) == (grounded, False)
-    assert calls == ["replay", "replay"]
+    assert calls == ["replay"]
+    failed = AnalystRun(date(2026, 10, 19), "live", provider_error=True)
+    assert ui.with_demo_fallback(lambda: failed, replay) == (recorded, True)
 
 
 def test_evidence_display_uses_human_names_and_labels(ui):
@@ -180,7 +182,9 @@ def test_demo_board_live_failure_uses_replay_and_sets_fallback_flag(ui, monkeypa
 
     result, fallback = ui.image_with_demo_fallback(live, lambda: recorded, live_available=True)
     assert result is recorded and fallback
-    failed = IntakeResult(narrative="", mode="live", error="Provider unavailable")
+    failed = IntakeResult(
+        narrative="", mode="live", error="Provider unavailable", provider_error=True
+    )
     assert ui.image_with_demo_fallback(lambda: failed, lambda: recorded, live_available=True) == (
         recorded,
         True,
@@ -199,3 +203,38 @@ def test_non_demo_image_never_uses_replay_even_in_presentation_mode(ui, monkeypa
         ui.image_with_demo_fallback(live, None, live_available=True)
     failed = IntakeResult(narrative="", mode="live", error="Provider unavailable")
     assert ui.image_with_demo_fallback(lambda: failed, None, live_available=True) == (failed, False)
+
+
+@pytest.mark.parametrize("error", [ValueError("content error"), AssertionError("bug")])
+def test_fallback_does_not_hide_non_provider_exceptions(ui, monkeypatch, error):
+    monkeypatch.delenv("BLASTBRIDGE_DEMO_MODE", raising=False)
+
+    def live():
+        raise error
+
+    def replay():
+        raise AssertionError("Replay must not be called")
+
+    with pytest.raises(type(error), match=str(error)):
+        ui.with_demo_fallback(live, replay)
+    with pytest.raises(type(error), match=str(error)):
+        ui.image_with_demo_fallback(live, replay, live_available=True)
+
+
+@pytest.mark.parametrize("name,index", [("log_event", 0), ("log_event", 1), ("attention", 1)])
+def test_multistep_requests_never_fall_back(ui, name, index):
+    def live():
+        raise ProviderError("Provider unavailable")
+
+    with pytest.raises(ProviderError):
+        ui.with_demo_fallback(live, live, replay_name=name, replay_index=index)
+
+
+def test_image_content_error_is_not_replaced_by_replay(ui, monkeypatch):
+    monkeypatch.delenv("BLASTBRIDGE_DEMO_MODE", raising=False)
+    failed = IntakeResult(narrative="", mode="live", error="The record isn't clear enough")
+    recorded = IntakeResult(narrative="Fictional board", mode="replay")
+    assert ui.image_with_demo_fallback(lambda: failed, lambda: recorded, live_available=True) == (
+        failed,
+        False,
+    )

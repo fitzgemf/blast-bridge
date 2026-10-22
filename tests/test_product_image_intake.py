@@ -10,7 +10,7 @@ import pytest
 from PIL import Image
 
 from blastbridge.data.catalog import load_weapon_catalog
-from blastbridge.product import store
+from blastbridge.product import image_intake, store
 from blastbridge.product.agent import ProviderTurn, ScriptedProvider
 from blastbridge.product.image_intake import (
     MAX_IMAGE_BYTES,
@@ -152,7 +152,7 @@ def test_image_bytes_are_not_written_to_storage(conn, tmp_path, envelope):
     assert image_sha256(IMAGE) not in dump
     assert result.narrative not in dump
     block = image_content_block(IMAGE, "image/png")
-    assert base64.b64decode(block["source"]["data"]) == IMAGE
+    assert base64.b64decode(block["source"]["data"]) == prepare_image(IMAGE, "image/png")[0]
     for data, media_type in (
         (IMAGE, "image/jpeg"),
         (b"not an image", "image/png"),
@@ -176,7 +176,7 @@ def test_large_image_is_prepared_in_memory_as_a_small_valid_image_block():
     original = image_bytes(Image.new("RGBA", (3200, 2400), (0, 0, 0, 0)))
     prepared, media_type, note = prepare_image(original, "image/png")
     assert media_type == "image/jpeg" and note == "Image resized for AI reading"
-    assert len(prepared) < 4.5 * 1024 * 1024
+    assert len(prepared) < 3.7 * 1024 * 1024
     with Image.open(BytesIO(prepared)) as image:
         image.load()
         assert image.size == (2000, 1500)
@@ -189,6 +189,7 @@ def test_large_image_is_prepared_in_memory_as_a_small_valid_image_block():
 def test_exif_rotated_jpeg_is_transposed_before_ai_reading():
     exif = Image.Exif()
     exif[274] = 6
+    exif[315] = "Private photo metadata"
     original = image_bytes(Image.new("RGB", (90, 40), "red"), "JPEG", exif=exif)
     prepared, media_type, note = prepare_image(original, "image/jpeg")
     assert media_type == "image/jpeg" and note is not None
@@ -196,14 +197,36 @@ def test_exif_rotated_jpeg_is_transposed_before_ai_reading():
         image.load()
         assert image.size == (40, 90)
         assert image.getexif().get(274, 1) == 1
+        assert not image.getexif()
+    assert b"Exif\x00\x00" not in prepared
 
 
-def test_demo_board_passes_through_unchanged_for_digest_matching():
+def test_demo_board_is_reencoded_but_replay_matching_uses_original_digest():
     original = (ROOT / "examples/fictional/intake/demo_range_board.png").read_bytes()
     prepared, media_type, note = prepare_image(original, "image/png")
-    assert prepared == original
-    assert image_sha256(prepared) == image_sha256(original)
-    assert media_type == "image/png" and note is None
+    assert prepared != original
+    assert image_sha256(prepared) != image_sha256(original)
+    assert media_type == "image/jpeg" and note is None
+    load_image_replay(original)
+    with pytest.raises(ValueError, match="Use manual entry"):
+        load_image_replay(prepared)
+    with Image.open(BytesIO(prepared)) as image:
+        assert image.mode == "RGB" and not image.getexif()
+
+
+def test_prepared_input_is_not_decoded_again_and_provider_failure_is_tagged(monkeypatch):
+    prepared, media_type, _ = prepare_image(IMAGE, "image/png")
+
+    def unexpected_preparation(*args):
+        raise AssertionError("Prepared session bytes must not be decoded again")
+
+    monkeypatch.setattr(image_intake, "prepare_image", unexpected_preparation)
+    block = image_content_block(prepared, media_type, prepared=True)
+    assert base64.b64decode(block["source"]["data"]) == prepared
+    result = run_image_intake(
+        prepared, media_type, ScriptedProvider([]), [], [], TODAY, prepared=True
+    )
+    assert result.provider_error and result.error
 
 
 def test_undecodable_image_has_a_friendly_error():

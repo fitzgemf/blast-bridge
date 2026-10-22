@@ -135,6 +135,7 @@ class Issue:
 
 @dataclass
 class IntakeResult:
+    provider_error: bool = field(default=False, kw_only=True)
     narrative: str
     mode: str
     model: str | None = None
@@ -347,6 +348,7 @@ def _run_intake(
                 allow_tools=allow_tools,
             )
         except ProviderError as exc:
+            result.provider_error = True
             result.error = str(exc)
             return result
         result.model = turn.model

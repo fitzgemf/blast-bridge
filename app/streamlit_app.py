@@ -8,6 +8,7 @@ from datetime import date, datetime
 from enum import StrEnum
 from html import escape
 from pathlib import Path
+from typing import NoReturn
 from uuid import uuid4
 
 import streamlit as st
@@ -21,6 +22,7 @@ from blastbridge.product import store
 from blastbridge.product.agent import (
     GOLDEN_NARRATIVE,
     IntakeResult,
+    ProviderError,
     load_replay,
     run_intake,
 )
@@ -86,6 +88,7 @@ from blastbridge.product.image_intake import (
     load_image_replay,
     prepare_image,
     run_image_intake,
+    validate_upload,
 )
 from blastbridge.product.models import (
     Crew,
@@ -581,7 +584,7 @@ def submit_analyst(
         force_replay or ui.use_suggested_replay(replay_name is not None, live_available())
     )
 
-    def fallback_run() -> AnalystRun:
+    def fallback_run() -> NoReturn:
         s[conversation_key] = original_conversation
         submit_analyst(
             scope,
@@ -601,16 +604,6 @@ def submit_analyst(
         else:
             if question is None:
                 replay_name, replay_index = s.get(replay_key, (None, 0))
-            if replay_name is None and question is not None:
-                names = [name for _, name in analyst_suggestions(person_id)]
-                for name in names:
-                    fixture = load_analyst_replay(name)
-                    for index, step in enumerate(fixture.steps):
-                        if question == step.utterance:
-                            replay_name, replay_index = name, index
-                            break
-                    if replay_name is not None:
-                        break
             if replay_name is None:
                 raise ValueError(
                     "Demo replay covers the suggested requests. "
@@ -669,19 +662,26 @@ def submit_analyst(
 
         with st.spinner("Reviewing BlastBridge evidence…"):
             s[f"ask_run_{scope}"] = (
-                ui.with_demo_fallback(execute, fallback_run)[0]
+                ui.with_demo_fallback(
+                    execute, fallback_run, replay_name=replay_name, replay_index=replay_index
+                )[0]
                 if use_live and replay_name is not None
                 else execute()
             )
         if live_fallback:
             s[f"ask_live_fallback_{scope}"] = True
-    except Exception as exc:
-        if use_live and replay_name is not None:
+    except ProviderError:
+        if (
+            use_live
+            and replay_name is not None
+            and replay_name != "log_event"
+            and replay_index == 0
+        ):
             fallback_run()
-        elif isinstance(exc, (OSError, ValueError, IndexError, StopIteration)):
-            s[notice_key] = str(exc)
         else:
             raise
+    except (OSError, ValueError, IndexError, StopIteration) as exc:
+        s[notice_key] = str(exc)
     st.rerun()
 
 
@@ -813,18 +813,6 @@ def perform_evidence_action(action: UIAction) -> None:
             open_review(event_id)
     except (ValueError, store.StoreError, sqlite3.Error) as exc:
         st.warning(str(exc))
-
-
-def evidence_value(value: object) -> str:
-    if value is None:
-        return "Unknown"
-    if value is True:
-        return "Activity recorded"
-    if isinstance(value, date):
-        return value.isoformat()
-    if isinstance(value, tuple):
-        return " · ".join(str(item) for item in value)
-    return str(value)
 
 
 def evidence_field_label(field: str, label_text: str) -> str:
@@ -1260,7 +1248,7 @@ def ask_workspace(person_id: str | None = None) -> None:
             st.caption("Live AI unavailable — showing the recorded demo response")
         if s.get(f"ask_notice_{scope}"):
             st.caption(s[f"ask_notice_{scope}"])
-            if s.get(f"ask_demo_date_{scope}") and ui.use_suggested_replay(True, live_available()):
+            if s.get(f"ask_demo_date_{scope}"):
                 st.button(
                     "Use demo date (19 Oct 2026)",
                     key=f"ask-demo-date-{scope}",
@@ -1482,18 +1470,25 @@ def image_intake() -> None:
     if upload is None:
         return
     data = upload.getvalue()
+    digest = image_sha256(data)
     try:
-        prepared, _, preparation_note = prepare_image(data, upload.type)
+        validate_upload(data, upload.type)
+        if (
+            st.session_state.get("ai_image_digest") != digest
+            or "ai_image_prepared" not in st.session_state
+        ):
+            preparation = prepare_image(data, upload.type)
+            clear_ai_state()
+            st.session_state["ai_image_digest"] = digest
+            st.session_state["ai_image_prepared"] = preparation
+        prepared, media_type, preparation_note = st.session_state["ai_image_prepared"]
     except ValueError as exc:
         st.warning(str(exc))
         return
-    digest = image_sha256(data)
-    if st.session_state.get("ai_image_digest") != digest:
-        clear_ai_state()
-        st.session_state["ai_image_digest"] = digest
     st.session_state["ai_image_bytes"] = prepared
     st.markdown("**SOURCE IMAGE**")
     st.image(prepared, width="stretch")
+    replay_caption = st.empty()
     if preparation_note:
         st.caption(preparation_note)
     if st.button("Create proposal", type="primary"):
@@ -1508,24 +1503,26 @@ def image_intake() -> None:
 
             def live_image() -> IntakeResult:
                 return run_image_intake(
-                    data,
-                    upload.type,
+                    prepared,
+                    media_type,
                     AnthropicProvider(),
                     catalog,
                     list(PEOPLE.values()),
                     date.today(),
+                    prepared=True,
                 )
 
             def replay_image() -> IntakeResult:
                 assert replay_provider is not None
                 metadata.update(replay_metadata)
                 return run_image_intake(
-                    data,
-                    upload.type,
+                    prepared,
+                    media_type,
                     replay_provider,
                     catalog,
                     list(PEOPLE.values()),
                     date.fromisoformat(replay_metadata["reference_date"]),
+                    prepared=True,
                 )
 
             with st.spinner("Reading the training record…"):
@@ -1551,6 +1548,8 @@ def image_intake() -> None:
         st.session_state.get("ai_result"), st.session_state.get("ai_entry_mode"), "image"
     )
     if result is not None:
+        if result.mode == "replay":
+            replay_caption.caption("Demo replay — recorded AI response")
         if st.session_state.get("ai_image_live_fallback"):
             st.caption("Live AI unavailable — showing the recorded demo response")
         st.markdown("**WHAT BLASTBRIDGE READ**")
@@ -1635,6 +1634,8 @@ def render_intake_proposal(
         st.write(
             "Proposal"
             if result.mode == "manual"
+            else "Demo replay — recorded AI response"
+            if result.mode == "replay" and metadata.get("source_type")
             else "AI-assisted proposal from uploaded record"
             if metadata.get("source_type")
             else "AI-assisted proposal"

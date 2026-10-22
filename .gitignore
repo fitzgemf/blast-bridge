@@ -30,3 +30,6 @@ htmlcov/
 !/research/sources/README.md
 /notebooks/*
 !/notebooks/README.md
+
+# Streamlit secrets (never commit API keys)
+.streamlit/secrets.toml

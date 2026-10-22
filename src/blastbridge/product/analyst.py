@@ -193,6 +193,7 @@ class RunCounts:
 
 @dataclass
 class AnalystRun:
+    provider_error: bool = field(default=False, kw_only=True)
     analysis_as_of: date
     mode: str
     response: AgentResponse | None = None
@@ -438,7 +439,7 @@ def load_analyst_replay(name: str, *, analysis_as_of: date | None = None) -> Ana
     if analysis_as_of is not None and analysis_as_of != replay.analysis_as_of:
         raise ValueError(
             f"Demo replay requires analysis as of {replay.analysis_as_of:%d %b %Y}. "
-            "Reset the demo or use Live AI."
+            "Use the demo date to run it."
         )
     return replay
 
@@ -1211,6 +1212,7 @@ def ask(
                 allow_tools=allow_tools,
             )
         except ProviderError as exc:
+            run.provider_error = True
             run.error = str(exc)
             break
         run.model = turn.model
