@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "blastbridge"
 version = "0.1.0"
-description = "Research schemas for longitudinal occupational blast exposure records"
+description = "AI-assisted occupational blast-exposure records and human review for training"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = ["pydantic>=2.12,<3"]

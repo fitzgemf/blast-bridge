@@ -1,22 +1,29 @@
 # BlastBridge product prototype
 
-An AI-assisted occupational brain-health readiness system that reconstructs longitudinal
-blast-exposure history and surfaces service members whose recorded exposure patterns or symptoms
-deserve attention.
+AI-assisted occupational blast-exposure records and human review for military training,
+with longitudinal histories and separate occupational-pattern and symptom-follow-up signals.
 
-This hackathon prototype uses invented people, events and reports. It brings four distinct signals
-into one review workflow without merging them into a score.
+This hackathon prototype uses invented people, events and reports. It brings structured records
+and distinct attention signals into one review workflow without merging them into a score.
 
-## Four capabilities
+## Current capabilities
 
-1. **AI-assisted record intake:** turn a pasted training record into a proposed structured event.
-   Local catalog and fictional-roster lookups ground the proposal; Python validates it.
+1. **Text, photo and manual intake:** turn text or a photographed training record into a structured
+   proposal with Claude, or enter it manually. Catalog/fictional-roster tools and a Python gate
+   ground AI proposals; Unknown stays Unknown. All paths share one **Review event** decision:
+   **Approve event**, **Edit**, **Save for later** or **Discard**.
 2. **Longitudinal occupational history:** reconstruct approved activity across dates, people, crews
    and roles, with persistent manual/live-AI/replay provenance.
 3. **ML occupational-pattern comparison:** compare HIMARS event-day cadence with the SME-informed
    fictional HIMARS scenario reference; only elevated atypical cadence surfaces an ML review signal.
 4. **Deterministic symptom/follow-up guidance:** record human-confirmed reports and apply the
    existing TBICoE/CDC guidance rules independently of the occupational-pattern model.
+5. **Ask BlastBridge and Review Brief:** a bounded analyst queries existing evidence and produces
+   a first-class Review brief with numbered, clickable citations to captured structured sources.
+   Medical sections remain code-owned deterministic guidance, not model interpretation.
+6. **Evidence Intelligence:** surface possible duplicate records, compare fields, inspect an
+   Evidence map and prepare a reconstruction with explicit conflicts and source provenance.
+   Human decisions remain necessary; possible shared events are not confirmed duplicates.
 
 ## Boundaries
 
@@ -24,10 +31,11 @@ Exposure is not injury. A report after an event is a temporal association, not a
 Screening and follow-up are not diagnoses. Unknown is never zero or reassurance.
 The prototype does not estimate TBI/CTE probability, diagnose a condition, or infer injury from
 physical-event counts. CTE is mentioned only as long-term research motivation.
-The AI handles training records only; it does not interpret symptoms or make medical decisions.
+AI intake structures training records; the analyst can relay code-owned symptom/follow-up text.
+Neither interprets symptoms or makes medical decisions.
 MACE 2 is linked as an external resource for medically trained personnel, never reproduced.
-Red indicates recorded urgent danger-sign guidance only; amber indicates review/follow-up attention.
-Occupational records and routine monitoring use neutral styling.
+Urgent attention uses red; medical follow-up uses amber; occupational review priority uses muted violet.
+Routine monitoring is quiet. Destructive record actions use restrained red text/borders.
 
 ## Recorder workflow
 
@@ -36,21 +44,31 @@ calendar and a compact selected-day card. Neutral dots mark approved training da
 mark only the date of a confirmed urgent danger-sign report, within the analysis date.
 Current readiness never colors historical training dates. Blue diamonds on a person's calendar
 mark confirmed symptom reports; neither calendar uses amber attention markers.
-Select a past or current day and **+ Log** to describe a training event with AI or enter manually,
-with the selected date prefilled. **View record** opens the hidden Training record page.
+Select a past or current day and **+ Log** to describe, upload or manually enter a training event,
+with the selected date prefilled. **Open record** opens the hidden Training record page.
 Future days are visible but disabled and have no markers.
-Choose AI-assisted intake or enter manually; both paths lead to the same review screen.
-“Load example narrative” fills the input with real text. Empty/short text never calls the model.
-AI output remains a proposal until a recorder saves a draft and explicitly approves it.
-Approve/Edit/Reject controls bind to the reviewed revision; approval is atomic and repeat-safe.
+Choose **Describe / paste training record**, **Upload / photograph record** or **Enter manually**.
+All paths converge on the unsaved **Review event** surface. **Load example narrative** fills the
+input with fictional text; empty/short text never calls the model. The demo board photo has a
+SHA-256-matched replay; other images require live AI or manual entry. Image bytes stay session-only.
+**Approve event** saves the validated proposal and approves that exact saved revision, without a
+mandatory second Review stop. If approval fails after saving, the event remains a draft with an
+explicit notice and a path to Review; approval is never automatically retried.
+**Save for later** creates a draft only; **Edit** returns to the prefilled manual form and then the
+same Review event surface; **Discard** clears the unsaved proposal.
+An explicit source date is kept when it differs from calendar context, with a visible warning.
+Saved-draft Approve/Edit/Reject controls bind to the reviewed revision; approval is atomic and repeat-safe.
 Drafts and rejected events never enter personnel history.
 The person's calendar supports explicitly human symptom entry, review and Confirm.
 Confirmed reports and approved training events retain separate records and provenance.
-People opens as a searchable roster. A selected person has a full-width calendar and three
+People opens as a searchable roster. A selected person has a full-width calendar, a visible
+deterministic attention band for non-routine states, and three
 separate insight cards: Exposure pattern, Symptoms and Follow-up. Evidence, reference metadata,
 guidance/sources and chronological detail remain in collapsed expanders.
-Review has **Training drafts** and **Follow-up** tabs; the hidden logging, training-record and
-Follow-up routes remain available. Human approval and symptom confirmation stay explicit.
+Review has **Training drafts** and **Follow-up** tabs. Training drafts are saved items awaiting a
+decision, including saved-for-later and reconstructed drafts. Its navigation badge counts pending
+training drafts only. Hidden logging, person-detail, training-record and Follow-up routes remain
+available. Human approval and symptom confirmation stay explicit.
 Home's **Demo / Advanced** expander holds the analysis date, recorded-events table and confirmed
 demo reset. Reset restores the fictional records and the 19 Oct 2026 analysis/calendar date.
 
@@ -232,6 +250,10 @@ The replay uses its recorded fictional narrative and reference date, not the rec
 The calendar and readiness views use the independently selected analysis date.
 **Reset to demo state** requires confirmation and restores the fictional records and 19 Oct 2026
 analysis/calendar state. It deletes recorded events and symptom reports in the demo database.
+Ask replays require the bundled analysis date. If prompted, **Use demo date (19 Oct 2026)** changes
+only session analysis/calendar dates and clears prior Ask state; it does not reset stored records.
+Repeat the suggested request after switching dates. Live AI reads `ANTHROPIC_API_KEY` from the
+launching environment; the app does not load `.env` files.
 
 ## Privacy and governance
 

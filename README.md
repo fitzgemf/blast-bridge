@@ -1,200 +1,178 @@
 # BlastBridge
 
-Hackathon product prototype: see [PRODUCT.md](PRODUCT.md).
+AI-assisted occupational blast-exposure records and review for military training, using fictional demo data.
 
-A Python 3.12 research foundation for longitudinal reconstruction of occupational
-blast exposure among U.S. military service members.
+**Exposure is not injury.** BlastBridge records training activity and supports human review;
+it does not diagnose TBI, predict injury, assign medical probabilities or determine medical clearance.
+A symptom report after an event is a temporal association, not evidence of causation.
+Use only fictional records in this demo, never real personnel, medical, PHI/PII, controlled or operational records.
 
-**Blast exposure and brain injury are not equivalent.** BlastBridge does not
-diagnose TBI, predict whether a person has TBI, assign injury probabilities, or
-define medical risk thresholds. Symptom records are self-reports; linking one
-to an exposure does not establish causation.
+## What it does
 
-Research Dataset V0.1 contains 18 weapon/category records, 8 occupational
-specialties, 12 supported relationships, 10 taxonomy nodes and 11 official
-sources. Dataset and schema versions begin at **0.1.0**. The original typed
-research records and validation remain available. The project has no web
-application, trained model, NLP extraction, unsupported exposure scores, or
-provider-summary generator (research dataset scope; see [PRODUCT.md](PRODUCT.md) for the
-product/hackathon Streamlit prototype with a runtime-fitted IsolationForest).
-The earlier V0.4/V0.5 fictional synthetic-engine foundation has been removed from this branch;
-it remains in git history. It makes no medical inference. Exposure is not injury.
+- **Training intake:** Claude structures text or a photographed training record using fictional-roster
+  and weapon-catalog tools. Unknown stays Unknown. Text, photo and manual entry converge on one
+  **Review event** decision: Approve event, Edit, Save for later or Discard.
+- **Longitudinal history:** approved records connect dates, people, crews and roles in organization
+  and person calendars. Drafts and rejected records stay out of personnel history.
+- **Occupational-pattern comparison:** IsolationForest compares recorded HIMARS event-day cadence
+  with an SME-informed fictional HIMARS scenario reference. Elevated atypical activity is a review
+  signal only; symptoms and physical-event counts are excluded from the model.
+- **Symptom follow-up:** human-confirmed structured reports feed deterministic TBICoE/CDC guidance
+  rules, separate from the occupational-pattern model. Guidance is not a diagnosis.
+- **Ask BlastBridge:** a bounded analyst uses application tools to produce an evidence-cited
+  **Review brief**. Click numbered citations to inspect structured source evidence and open its record or view.
+- **Evidence Intelligence:** possible duplicate records have field comparisons and an **Evidence map**.
+  Reconstructions preserve conflicts and Unknowns and require a human decision before entering history.
 
-Research Dataset V0.2 adds **40 training-tempo evidence records**, **31 source
-records** (29 official, one SME recollection and one research-definition source),
-eight counting definitions, a separate schema and a separate release manifest.
-The V0.1 JSON release remains byte-identical to commit
-`0c3ede2dadff3b21dda2c901407a214658f63b9b`, annotated tag `v0.1.0`.
-V0.2 separates requirements, reported activity, plans and retrospective estimates;
-it supplies no fitted priors or individual exposure frequencies. All 29 official
-V0.2 sources lack archived originals and retain explicit retrieval limitations.
-See the [V0.2 review and validation](research/notes/training-tempo-v0.2.md).
-Dataset/schema versions are independent of the Python package version, which
-remains 0.1.0. V0.3 prior and uncertainty design is complete; no empirical
-population priors were justified. No production synthetic careers have been
-generated, and no ML models have been trained (research dataset scope; product prototype:
-[PRODUCT.md](PRODUCT.md)). The removed V0.4 design is recorded in the
-[V0.4 architecture note](research/notes/synthetic-generator-architecture-v0.4.md).
+## Screenshots
 
-## Setup (Windows PowerShell)
+| Home | Review event | Photo intake |
+| --- | --- | --- |
+| ![Home](docs/screenshots/home.png) | ![Review event](docs/screenshots/review-event.png) | ![Photo intake](docs/screenshots/photo-intake.png) |
 
-Python is restricted to 3.12.x; `.python-version` also records this choice.
+| Review brief | Evidence map | Person follow-up |
+| --- | --- | --- |
+| ![Review brief](docs/screenshots/review-brief.png) | ![Evidence map](docs/screenshots/evidence-map.png) | ![Person follow-up](docs/screenshots/person-followup.png) |
+
+## Quick start
+
+Use **Python 3.12** from the repository root.
+
+Windows PowerShell:
 
 ```powershell
 py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
-.\.venv\Scripts\python.exe -m pytest
-.\.venv\Scripts\python.exe -m ruff check .
-.\.venv\Scripts\python.exe -m ruff format --check .
-.\.venv\Scripts\python.exe -m mypy
-.\.venv\Scripts\python.exe -m pip check
-.\.venv\Scripts\python.exe -m blastbridge.validation.reference
-.\.venv\Scripts\python.exe -m blastbridge.validation.training_tempo --source-directory research/sources/tempo-downloads
-.\.venv\Scripts\python.exe -m blastbridge.validation.priors
-.\.venv\Scripts\python.exe scripts\verify_release_history.py --source-archive
+.\.venv\Scripts\Activate.ps1
+pip install -e ".[app]"
+streamlit run app/streamlit_app.py
 ```
 
-On other platforms, substitute `python3.12` and `.venv/bin/python`.
-Development dependency versions used for verification are recorded in
-`requirements-dev.lock.txt`; install that file before the editable package to
-reproduce those tool versions. The version ranges in pyproject.toml describe
-compatibility, while the lock snapshot records the tested environment.
+macOS / Linux:
 
-## Design
-
-**Pydantic v2** provides validation at construction/import boundaries, typed
-nested models, JSON serialization and JSON Schema generation. Dataclasses would
-require custom runtime parsing and validation for each ingestion path.
-[Pydantic model validators](https://pydantic.dev/docs/validation/latest/concepts/validators/)
-support the cross-field checks here.
-
-All seven requested records are public in `blastbridge.models`:
-ServiceMember, Assignment, WeaponSystem, ExposureEvent, SensorReading,
-SymptomReport, and DataSource. Enumerations live in `models.enums`.
-
-- Stable anonymous local IDs link career assignments, exposures, sensor readings,
-  and symptom reports. Names, contact details, exact birth dates and military
-  identifiers are excluded. Age at service entry is optional.
-- Record provenance supplies sources and evidence kind. `Evidence[T]` attaches
-  independent provenance to counts, distances, orientation and symptom duration.
-  Pressure and impulse each carry a value, their own unit and provenance.
-- Evidence kinds separate **measured**, **estimated**, **self_reported**,
-  **synthetic**, and **documented** facts. Documented accommodates official career
-  records without calling them measurements. Source type describes the source;
-  evidence kind describes how a particular value was obtained.
-- Every estimate requires at least one cited source, confidence in [0, 1], and a
-  nonempty method note. Confidence is a research annotation, not injury probability.
-  No confidence value is supplied by default. A rubric remains to be decided.
-- Measured observations require a sensor source; symptom reports require a
-  self-report source. Synthetic observations require an explicit synthetic source,
-  and cannot be inserted into real records or linked to real members.
-- Event pressure/impulse fields accept measured observations (or explicitly
-  synthetic values in synthetic records), never undocumented weapon defaults.
-  Sensor availability alone does not assert that a valid measurement exists.
-  Sensor quality is retained independently from confidence.
-- Unknown quantities use `None`, never zero. Unknown symptoms use `None`;
-  `False` means explicitly absent. Unknown PPE uses `None`; an empty tuple means
-  explicitly no PPE reported. Enum values include unknown where appropriate.
-- Rounds and firing events are distinct nonnegative integer counts, with no
-  assumed conversion. Distances use meters, durations hours, and orientation
-  degrees in [0, 360) with a required free-text reference frame.
-- Pressure and impulse use separate dimension-specific units. There are no
-  automatic conversions, physiological thresholds, clinical severity scales,
-  unit-based risk limits, or cumulative dose calculations.
-- Dates are ordered, timestamps require timezone offsets, numeric strings and
-  booleans cannot silently become counts, nonfinite values are rejected, and
-  unknown fields fail validation. Records are frozen with tuple collections;
-  revalidate complete records when making changes.
-- Branch/component can change at assignment level. The reference layer now has
-  typed occupational specialties and separate weapon relationships. Assignment's
-  existing free-text MOS field is retained; automatic reconciliation of historical
-  assignments to the new vocabulary is not implemented.
-- The canonical reference catalog requires field-level citations and official
-  DoD/DHA list evidence for known Tier-1 status. Classification is scoped to the
-  reviewed 2021 report. HIMARS, MLRS and Abrams remain unknown, with no Tier-1
-  category assigned. This classification is not a medical injury rating.
-- `ResearchDataset` adds unique-ID, relationship ownership, synthetic-boundary,
-  weapon-reference and career-date checks to a closed batch. Synthetic members
-  and real members require separate batches. Symptoms may be
-  reported after service ends. Individual records alone cannot validate links.
-
-## Example: a recalled exposure count
-
-This small code example illustrates schema use; it is not a research dataset,
-a military frequency assumption, or an exposure estimate.
-
-```python
-from datetime import datetime, timezone
-
-from blastbridge.models import DataSource, Evidence, ExposureEvent, Provenance
-from blastbridge.models.enums import DataKind, SourceType
-
-source = DataSource(
-    source_id="example-report",
-    source_type=SourceType.RETROSPECTIVE_SELF_REPORT,
-    citation="Illustrative report locator; replace with an approved source ID",
-)
-reported = Provenance(kind=DataKind.SELF_REPORTED, sources=(source,))
-event = ExposureEvent(
-    exposure_id="example-event",
-    member_id="anonymous-example",
-    timestamp=datetime(2025, 1, 1, 12, tzinfo=timezone.utc),
-    weapon_system_id="m777",
-    rounds=Evidence[int](value=2, provenance=reported),
-    provenance=reported,
-)
-payload = event.model_dump_json()
-assert ExposureEvent.model_validate_json(payload) == event
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[app]"
+streamlit run app/streamlit_app.py
 ```
 
-Use `load_weapon_catalog("data/reference/weapons.json")` from
-`blastbridge.data.catalog` to validate the complete reference release and return
-canonical weapon records. The return type is now `CanonicalWeapon`, distinct
-from the original observation-layer `WeaponSystem`. Call
-`ExposureEvent.model_json_schema()` for a machine-readable schema.
-Deserialize external inputs with `model_validate` or `model_validate_json`;
-do not use validation-bypassing construction/copy methods for ingestion.
+After dependencies are installed, the demo works offline with deterministic scripted replays.
+Without a live key, suggested Ask requests use their bundled replays, and **Use demo replay**
+supplies the fictional text-intake example. Photo replay accepts only the bundled
+[demo board image](examples/fictional/intake/demo_range_board.png), matched by SHA-256;
+other images require live AI or manual entry. Uploaded image bytes remain session-only.
 
-## Repository layout
+Live AI is optional. Set `ANTHROPIC_API_KEY` in the launching environment, then start Streamlit:
 
-```text
-BlastBridge/
-  README.md
-  pyproject.toml
-  requirements-dev.lock.txt
-  .python-version
-  .gitignore
-  src/blastbridge/
-    __init__.py
-    py.typed
-    models/       # Core records plus versioned reference schemas
-    data/         # Reference bundle, source registry and catalog loaders
-    validation/   # Cross-record integrity
-  data/
-    reference/    # Sources, weapons, occupations, relationships, taxonomy,
-                  # exported schema and release manifest
-                  # plus separately manifested training_tempo* V0.2 files
-  research/
-    sources/      # Source-register guidance
-    notes/        # Decisions needed before dataset work
-  tests/
+```powershell
+$env:ANTHROPIC_API_KEY = "your-key"
 ```
 
-The working repository has moved out of OneDrive. This reduces accidental cloud
-synchronization; it does not approve the repository for PHI, PII, controlled
-military information or actual participant records. During development use only
-public references and explicitly fictional/synthetic demonstration records.
-Do not store actual medical records, SSNs, DoD IDs, EDIPI, names, addresses or
-exact birth dates. Real synthetic generation remains unauthorized, and no medical inference
-is supported. Exposure is not injury.
-See [data governance](research/notes/data-governance.md) and the
-[migration record](research/notes/repository-migration.md).
+```bash
+export ANTHROPIC_API_KEY="your-key"
+```
 
-Before dataset work, resolve the governance, career/date semantics, measurement
-definitions, official source review, confidence rubric and symptom instruments
-listed in [dataset decisions](research/notes/dataset-decisions.md).
-Reference evidence, conflicts and remaining unknowns are documented in the
-[V0.1 research review](research/notes/reference-v0.1.md). Read
-[reference guidance](data/reference/README.md) for validation and reproducible updates.
-No repository license is selected; choose licensing and data-use terms before
-publishing or distributing the project.
+The app reads environment variables directly; **there is no `.env` loader**.
+Demo records live in a local SQLite database (`BLASTBRIDGE_DB` can override its path).
+
+## Three-minute demo
+
+1. Start at **Home → Needs attention**. If a replay-date notice appears, click
+   **Use demo date (19 Oct 2026)**. This changes the analysis/calendar view without resetting the database;
+   repeat the suggested request after changing the date.
+2. Open **Jordan Pike** from Home or People. Inspect the medical follow-up band and click
+   **View Follow-up** to see deterministic guidance and sources.
+3. Open **Reese Calder → Summarize Reese for review**. In the Review brief, click a record,
+   Unknown-count and occupational-pattern citation to inspect their source cards.
+4. Open **Log training event**. Choose **Describe / paste training record → Use demo replay**,
+   or **Upload / photograph record**, upload `examples/fictional/intake/demo_range_board.png`,
+   and click **Create proposal**. At **Review event**, check the details and Unknown count, then
+   choose **Approve event** or **Save for later**. Approval enters history; saving leaves a draft in Review.
+5. From **Home → Find possible duplicate records → Compare sources**, inspect the **Evidence map**
+   and field comparison. Choose **Create training draft**, then decide in **Review**.
+   Sources are unchanged; the app does not silently discard them or confirm that they describe one event.
+
+For a repeatable starting database, **Home → Demo / Advanced → Reset to demo state** requires
+confirmation and replaces recorded events and symptom reports with the fictional fixtures.
+Unlike **Use demo date**, this reset changes stored data.
+
+## How the AI is kept honest
+
+Tool/model-call budgets are bounded. Roster/catalog lookups and a Python grounding gate constrain
+intake; analyst references are validated against returned evidence. Medical section text comes
+from application-owned deterministic guidance. Humans approve training events and confirm symptom
+reports. Provenance distinguishes manual, live-AI and replay input. No AI confidence percentages
+or injury probabilities are presented. Replays are scripted demonstrations, not fresh live responses.
+
+## Architecture
+
+| Location | Responsibility |
+| --- | --- |
+| `app/` | Streamlit UI, navigation, calendars and human decisions |
+| `src/blastbridge/product/agent.py`, `image_intake.py` | Shared bounded intake and photo-of-record envelope |
+| `analyst.py`, `analyst_tools.py` | Ask BlastBridge, evidence tools and grounding |
+| `briefing.py` | Code-owned citation labels and captured-evidence source cards |
+| `evidence.py`, `evidence_graph.py` | Deterministic comparisons/reconstruction and read-only provenance map |
+| `readiness.py`, `followup.py`, `symptoms.py` | Deterministic states and confirmed symptom guidance |
+| `patterns.py` | Occupational cadence comparison with the fictional scenario reference |
+| `review_flow.py`, `store.py` | Save/approve fail-safe, revision protections and SQLite persistence |
+| `data/`, `examples/fictional/` | Versioned public references, fictional scenarios and replays |
+
+Module names after the first product row are relative to `src/blastbridge/product/`.
+[PRODUCT.md](PRODUCT.md) documents model assumptions, coverage and reference limitations.
+
+## Development
+
+In an activated Python 3.12 environment:
+
+```bash
+pip install -e ".[dev,app]"
+pytest
+ruff check .
+ruff format --check .
+mypy
+python -m blastbridge.validation.reference
+python -m blastbridge.validation.priors
+```
+
+The reference and priors validators need no gitignored source downloads. Training-tempo source
+audits and optional source-archive release checks require local research originals; see
+[reference guidance](data/reference/README.md). Historical-release tests require the repository's
+annotated release tags. CI fetches history/tags and runs the checks above.
+`requirements-dev.lock.txt` records a development-tool snapshot; `pyproject.toml` specifies compatible ranges.
+
+## Research foundation
+
+The original typed research records and validators remain available alongside the product prototype.
+Dataset/schema versions are independent of the Python package version, which remains **0.1.0**.
+
+- **V0.1 (0.1.0):** 18 weapon/category records, eight occupational specialties, 12 supported
+  relationships, ten taxonomy nodes and 11 official sources. Field-level citations preserve source
+  scope and conflicts. HIMARS, MLRS and Abrams Tier-1 status remains unknown under the reviewed
+  2021 report; no category is invented. See the [V0.1 review](research/notes/reference-v0.1.md).
+- **V0.2:** 40 training-tempo evidence records, 31 sources (29 official, one SME recollection and
+  one research-definition source), eight counting definitions and a separate release manifest.
+  Requirements, observations, plans and recollections are distinct. All 29 official sources lack
+  archived originals and retain retrieval limitations. V0.1 JSON was retained byte-for-byte from
+  `v0.1.0` at `0c3ede2dadff3b21dda2c901407a214658f63b9b`.
+  See the [V0.2 review](research/notes/training-tempo-v0.2.md).
+- **V0.3:** prior/uncertainty design, not empirical population priors. `empirical_priors` remains
+  null; source claims do not establish individual annual exposure frequency or medical truth.
+  Earlier release artifacts are retained, and tagged-tree checks verify historical releases
+  independently of the current README. See [prior design](research/notes/prior-design-v0.3.md)
+  and [dependency modeling](research/notes/dependency-modeling-v0.3.md).
+
+Pydantic models preserve provenance and distinguish measured, estimated, self-reported, synthetic
+and documented evidence. Unknown quantities use `None`, never zero. Pressure and impulse require
+their own units and evidence; there are no undocumented weapon defaults, cumulative-dose formulas
+or physiological thresholds. Research estimate-confidence annotations are not injury probabilities
+and are separate from the product's AI presentation. Real and synthetic records require separate
+validated batches; individual records alone cannot validate cross-record links.
+
+The product's runtime-fitted IsolationForest and arranged fictional histories are demonstration
+components, not an empirical population model or clinical validation. Historical V0.4/V0.5 design
+notes remain in [research/notes/](research/notes/); they do not authorize real synthetic population
+generation. Read [data governance](research/notes/data-governance.md),
+[dataset decisions](research/notes/dataset-decisions.md) and the
+[repository migration record](research/notes/repository-migration.md) before research use.
+No repository license has been selected; licensing and data-use terms need a decision before distribution.

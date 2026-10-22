@@ -184,7 +184,9 @@ if st.session_state.pop("reset_demo_view", False):
         st.session_state[f"{calendar_key}_month"] = DEMO_STORY_DATE.replace(day=1)
         st.session_state[f"{calendar_key}_day"] = DEMO_STORY_DATE
     for session_key in list(st.session_state):
-        if session_key.startswith(("ask_conversation_", "ask_run_", "ask_replay_", "ask_notice_")):
+        if session_key.startswith(
+            ("ask_conversation_", "ask_run_", "ask_replay_", "ask_notice_", "ask_demo_date_")
+        ):
             del st.session_state[session_key]
     st.session_state.pop("ask_ledger", None)
 # Keep the analysis date when its Home-only widget is absent on another page.
@@ -543,6 +545,7 @@ def submit_analyst(
     replay_key = f"ask_replay_{scope}"
     notice_key = f"ask_notice_{scope}"
     s.pop(notice_key, None)
+    s.pop(f"ask_demo_date_{scope}", None)
     conversation = s.setdefault(conversation_key, Conversation(uuid4().hex))
     try:
         if live_available():
@@ -565,7 +568,10 @@ def submit_analyst(
                     "Demo replay covers the suggested requests. "
                     "Live AI isn't available in this demo."
                 )
-            fixture = load_analyst_replay(replay_name, analysis_as_of=ANALYSIS_AS_OF)
+            fixture = load_analyst_replay(replay_name)
+            if fixture.analysis_as_of != ANALYSIS_AS_OF:
+                s[f"ask_demo_date_{scope}"] = fixture.analysis_as_of == DEMO_STORY_DATE
+                fixture = load_analyst_replay(replay_name, analysis_as_of=ANALYSIS_AS_OF)
             step = fixture.steps[replay_index]
             if replay_index and question is not None:
                 previous = s.get(f"ask_run_{scope}")
@@ -1139,6 +1145,10 @@ def analyst_result(run: AnalystRun, scope: str, person_id: str | None) -> None:
     analyst_draft(run, scope)
 
 
+def use_demo_date() -> None:
+    st.session_state["reset_demo_view"] = True
+
+
 def ask_workspace(person_id: str | None = None) -> None:
     scope = person_id or "home"
     s = st.session_state
@@ -1166,6 +1176,12 @@ def ask_workspace(person_id: str | None = None) -> None:
         run = s.get(f"ask_run_{scope}")
         if s.get(f"ask_notice_{scope}"):
             st.caption(s[f"ask_notice_{scope}"])
+            if s.get(f"ask_demo_date_{scope}") and not live_available():
+                st.button(
+                    "Use demo date (19 Oct 2026)",
+                    key=f"ask-demo-date-{scope}",
+                    on_click=use_demo_date,
+                )
         if run is not None:
             if person_id and run.fingerprint is not None:
                 fingerprint = evidence_fingerprint(

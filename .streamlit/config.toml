@@ -1,9 +1,9 @@
 [theme]
 base = "light"
-primaryColor = "#EC5D7B"
-backgroundColor = "#FFF9FA"
-secondaryBackgroundColor = "#FFF0F4"
-textColor = "#261B22"
+primaryColor = "#713E53"
+backgroundColor = "#F1EFEC"
+secondaryBackgroundColor = "#FAF8F6"
+textColor = "#211F22"
 font = "'Trebuchet MS', Candara, 'Segoe UI', sans-serif"
 headingFont = "'Trebuchet MS', Candara, 'Segoe UI', sans-serif"
 codeFont = "ui-monospace, SFMono-Regular, Consolas, monospace"
