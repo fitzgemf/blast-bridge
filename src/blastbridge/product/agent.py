@@ -1,7 +1,7 @@
 """Bounded training intake. Proposals stay in memory until a recorder chooses to save."""
 
 import json
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -307,12 +307,29 @@ def run_intake(
     if len("".join(narrative.split())) < 20:
         result.error = "Paste or type a training record before drafting."
         return result
-    messages: list[dict[str, Any]] = [
-        {
-            "role": "user",
-            "content": f"Reference date: {today.isoformat()}\n\n{narrative}",
-        }
-    ]
+    return _run_intake(
+        result,
+        f"Reference date: {today.isoformat()}\n\n{narrative}",
+        provider,
+        catalog,
+        people,
+        today,
+    )
+
+
+def _run_intake(
+    result: IntakeResult,
+    content: str | list[dict[str, Any]],
+    provider: IntakeProvider,
+    catalog: Sequence[CanonicalWeapon],
+    people: Sequence[Person],
+    today: date,
+    *,
+    system: str = SYSTEM_PROMPT,
+    output_schema: dict[str, Any] | None = None,
+    parse: Callable[[str], tuple[IntakeProposal | None, str]] | None = None,
+) -> IntakeResult:
+    messages: list[dict[str, Any]] = [{"role": "user", "content": content}]
     retry = False
     lookup_weapon_ids: set[str] = set()
     # Three ordinary calls, with a fourth available only to repair final JSON validation.
@@ -323,10 +340,10 @@ def run_intake(
         result.model_calls += 1
         try:
             turn = provider.complete(
-                system=SYSTEM_PROMPT,
+                system=system,
                 messages=messages,
                 tools=TOOL_DEFINITIONS,
-                output_schema=PROPOSAL_SCHEMA,
+                output_schema=PROPOSAL_SCHEMA if output_schema is None else output_schema,
                 allow_tools=allow_tools,
             )
         except ProviderError as exc:
@@ -395,8 +412,12 @@ def run_intake(
         text = "".join(
             block.get("text", "") for block in turn.blocks if block.get("type") == "text"
         )
+        proposal: IntakeProposal | None
         try:
-            proposal = IntakeProposal.model_validate_json(text)
+            if parse is None:
+                proposal = IntakeProposal.model_validate_json(text)
+            else:
+                proposal, result.narrative = parse(text)
         except ValidationError as exc:
             if retry:
                 result.error = "The proposal was not valid after one correction. Use manual entry."
@@ -416,6 +437,8 @@ def run_intake(
             )
             continue
         result.trace.append(TraceStep(True, "Model returned a structured proposal"))
+        if proposal is None:
+            return result
         _gate(result, proposal, catalog, people, today, lookup_weapon_ids)
         return result
     result.error = "The model reached the intake call limit. Please use manual entry."

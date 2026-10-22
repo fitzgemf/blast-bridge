@@ -19,6 +19,7 @@ from blastbridge.models.training_tempo import TrainingContext
 from blastbridge.product import store
 from blastbridge.product.agent import (
     GOLDEN_NARRATIVE,
+    IntakeProvider,
     IntakeResult,
     load_replay,
     run_intake,
@@ -76,6 +77,12 @@ from blastbridge.product.followup import (
     FollowUp,
     FollowUpState,
     evaluate,
+)
+from blastbridge.product.image_intake import (
+    image_sha256,
+    load_image_replay,
+    run_image_intake,
+    validate_upload,
 )
 from blastbridge.product.models import (
     Crew,
@@ -1232,8 +1239,10 @@ def run_demo_replay() -> None:
 
 
 def ai_metadata(result: IntakeResult) -> dict[str, object]:
-    metadata = st.session_state.get("ai_metadata", {}) if result.mode == "replay" else {}
+    stored = st.session_state.get("ai_metadata", {})
+    metadata = stored if result.mode == "replay" or stored.get("source_type") else {}
     return {
+        **metadata,
         "mode": result.mode,
         "model": result.model,
         "recorded_at": metadata.get("recorded_at"),
@@ -1242,6 +1251,11 @@ def ai_metadata(result: IntakeResult) -> dict[str, object]:
 
 
 def show_ai_metadata(metadata: dict[str, object]) -> None:
+    if metadata.get("source_type"):
+        st.caption(f"Source: {metadata['source_type']} · {metadata.get('filename', '')}")
+        st.caption(f"SHA-256: {metadata.get('sha256')}")
+        st.caption("Observed on source")
+        st.text(str(metadata.get("observed_text", "")))
     if metadata["mode"] == "replay":
         recorded = str(metadata.get("recorded_at") or "Not recorded")
         try:
@@ -1260,7 +1274,90 @@ def load_example_narrative() -> None:
     st.session_state["ai_narrative"] = GOLDEN_NARRATIVE
 
 
-def ai_intake() -> None:
+def image_intake() -> None:
+    st.caption(
+        "FICTIONAL DEMO — do not upload real personnel, medical, PHI/PII, "
+        "controlled or operational military records."
+    )
+    st.caption("Uploaded image bytes remain session-only and are not persisted by BlastBridge.")
+    upload = st.file_uploader("Upload record", type=["jpg", "jpeg", "png", "webp"])
+    if upload is None:
+        return
+    data = upload.getvalue()
+    try:
+        validate_upload(data, upload.type)
+    except ValueError as exc:
+        st.warning(str(exc))
+        return
+    digest = image_sha256(data)
+    if st.session_state.get("ai_image_digest") != digest:
+        clear_ai_state()
+        st.session_state["ai_image_digest"] = digest
+    st.session_state["ai_image_bytes"] = data
+    st.markdown("**SOURCE IMAGE**")
+    st.image(data, width="stretch")
+    if st.button("Create draft", type="primary"):
+        try:
+            metadata: dict[str, object] = {}
+            intake_provider: IntakeProvider
+            provider = AnthropicProvider() if live_available() else None
+            reference_date = date.today()
+            if provider is None:
+                replay_provider, replay_metadata = load_image_replay(data)
+                metadata.update(replay_metadata)
+                reference_date = date.fromisoformat(replay_metadata["reference_date"])
+                intake_provider = replay_provider
+            else:
+                intake_provider = provider
+            with st.spinner("Reading the training record…"):
+                result = run_image_intake(
+                    data,
+                    upload.type,
+                    intake_provider,
+                    load_weapon_catalog(ROOT / "data/reference/weapons.json"),
+                    list(PEOPLE.values()),
+                    reference_date,
+                )
+            st.session_state["ai_result"] = result
+            st.session_state["ai_metadata"] = {
+                **metadata,
+                "source_type": "uploaded image",
+                "filename": upload.name,
+                "sha256": digest,
+                "observed_text": result.narrative,
+            }
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            st.warning(str(exc))
+            st.caption("Use manual entry to record the training event.")
+    result = st.session_state.get("ai_result")
+    if result is not None:
+        st.markdown("**WHAT BLASTBRIDGE READ**")
+        with st.expander("Observed on source", expanded=True):
+            st.text(result.narrative)
+        if result.error:
+            st.warning(result.error)
+            st.caption("Use a clearer image or select Enter manually.")
+            return
+        ai_intake(image_mode=True)
+
+
+def ai_intake(*, image_mode: bool = False) -> None:
+    if not image_mode:
+        text_intake_controls()
+    result = st.session_state.get("ai_result")
+    if result is None:
+        return
+    if result.error:
+        st.warning(result.error)
+        if result.mode == "live":
+            st.caption("Demo replay uses the golden fictional narrative instead of your text.")
+            st.button("Use demo replay instead", on_click=run_demo_replay)
+        st.button("Start Over", on_click=clear_ai_state)
+        return
+    render_intake_proposal(result)
+
+
+def text_intake_controls() -> None:
     workspace = st.container(key="ai-workspace")
     with workspace:
         st.text_area(
@@ -1298,16 +1395,9 @@ def ai_intake() -> None:
     notice = st.session_state.pop("ai_replay_notice", None)
     if notice:
         st.info(notice)
-    result = st.session_state.get("ai_result")
-    if result is None:
-        return
-    if result.error:
-        st.warning(result.error)
-        if result.mode == "live":
-            st.caption("Demo replay uses the golden fictional narrative instead of your text.")
-            st.button("Use demo replay instead", on_click=run_demo_replay)
-        st.button("Start Over", on_click=clear_ai_state)
-        return
+
+
+def render_intake_proposal(result: IntakeResult) -> None:
     metadata = ai_metadata(result)
     with st.container(key="proposed-draft"):
         st.markdown(
@@ -1449,12 +1539,15 @@ def new_event() -> None:
     header("Log training event", "Record what the crew physically did. You will review it next.")
     mode = st.radio(
         "Entry mode",
-        ["Describe / paste training record", "Enter manually"],
+        ["Describe / paste training record", "Upload / photograph record", "Enter manually"],
         key="f_mode",
         horizontal=True,
     )
     if mode == "Describe / paste training record":
         ai_intake()
+        return
+    if mode == "Upload / photograph record":
+        image_intake()
         return
     if editing:
         st.info(f"Editing draft {editing}. Changes are saved when you review again.")

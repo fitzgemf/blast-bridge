@@ -1,0 +1,64 @@
+{
+  "sha256": "9fe4ffd8993217d41017ec408355f5f4707c71cf13674fee35d2dac771c61079",
+  "model": "claude-sonnet-5-5",
+  "recorded_at": "2026-10-21T00:00:00+00:00",
+  "reference_date": "2026-10-19",
+  "turns": [
+    {
+      "stop_reason": "tool_use",
+      "model": "claude-sonnet-5-5",
+      "blocks": [
+        {"type": "tool_use", "id": "weapon", "name": "search_weapon_catalog",
+         "input": {"query": "HIMARS"}},
+        {"type": "tool_use", "id": "chief1", "name": "search_roster",
+         "input": {"query": "Avery Kestrel"}},
+        {"type": "tool_use", "id": "gunner1", "name": "search_roster",
+         "input": {"query": "Jordan Pike"}},
+        {"type": "tool_use", "id": "driver1", "name": "search_roster",
+         "input": {"query": "Riley Marsh"}},
+        {"type": "tool_use", "id": "chief2", "name": "search_roster",
+         "input": {"query": "Casey Thorne"}},
+        {"type": "tool_use", "id": "gunner2", "name": "search_roster",
+         "input": {"query": "Morgan Vale"}},
+        {"type": "tool_use", "id": "driver2", "name": "search_roster",
+         "input": {"query": "Taylor Brook"}}
+      ]
+    },
+    {
+      "stop_reason": "end_turn",
+      "model": "claude-sonnet-5-5",
+      "blocks": [
+        {"type": "text", "text": "{\"observed_text\":\"FICTIONAL DEMO\\n"},
+        {"type": "text", "text": "2026-10-19 / Demo Range North\\n"},
+        {"type": "text", "text": "HIMARS / Live-fire qualification\\n"},
+        {"type": "text", "text": "Launcher 1 - 6\\nChief: Avery Kestrel\\n"},
+        {"type": "text", "text": "Gunner: Jordan Pike\\nDriver: Riley Marsh\\n"},
+        {"type": "text", "text": "Launcher 2 - ?\\nChief: Casey Thorne\\n"},
+        {"type": "text", "text": "Gunner: Morgan Vale\\nDriver: Taylor Brook\\n"},
+        {"type": "text", "text": "FICTIONAL DEMO - training record only\","},
+        {"type": "text", "text": "\"legibility\":\"CLEAR\",\"proposal\":{"},
+        {"type": "text", "text": "\"event_date\":\"2026-10-19\","},
+        {"type": "text", "text": "\"event_type\":\"weapon_firing\","},
+        {"type": "text", "text": "\"training_context\":\"qualification_certification\","},
+        {"type": "text", "text": "\"weapon_system_id\":\"m142-himars\","},
+        {"type": "text", "text": "\"location_unit\":\"Demo Range North\",\"crews\":[{"},
+        {"type": "text", "text": "\"crew_name\":\"Launcher 1\","},
+        {"type": "text", "text": "\"count_status\":\"explicit_exact\","},
+        {"type": "text", "text": "\"launch_count\":6,\"count_text\":\"6\",\"members\":[{"},
+        {"type": "text", "text": "\"position\":\"chief\",\"name_text\":\"Avery Kestrel\","},
+        {"type": "text", "text": "\"person_id\":\"FIC-001\"},{\"position\":\"gunner\","},
+        {"type": "text", "text": "\"name_text\":\"Jordan Pike\",\"person_id\":\"FIC-002\"},{"},
+        {"type": "text", "text": "\"position\":\"driver\",\"name_text\":\"Riley Marsh\","},
+        {"type": "text", "text": "\"person_id\":\"FIC-003\"}]},{\"crew_name\":\"Launcher 2\","},
+        {"type": "text", "text": "\"count_status\":\"explicitly_unknown\","},
+        {"type": "text", "text": "\"launch_count\":null,\"count_text\":\"?\",\"members\":[{"},
+        {"type": "text", "text": "\"position\":\"chief\",\"name_text\":\"Casey Thorne\","},
+        {"type": "text", "text": "\"person_id\":\"FIC-005\"},{\"position\":\"gunner\","},
+        {"type": "text", "text": "\"name_text\":\"Morgan Vale\",\"person_id\":\"FIC-006\"},{"},
+        {"type": "text", "text": "\"position\":\"driver\",\"name_text\":\"Taylor Brook\","},
+        {"type": "text", "text": "\"person_id\":\"FIC-007\"}]}],\"unresolved\":[]},"},
+        {"type": "text", "text": "\"unresolved_visual\":[]}"}
+      ]
+    }
+  ]
+}
