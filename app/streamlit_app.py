@@ -861,7 +861,7 @@ def analyst_evidence_panels(run: AnalystRun, scope: str) -> None:
         weapon_names = {
             source.draft.weapon_system_id: source.draft.weapon_name for source in comparison.sources
         }
-        with st.container(border=True):
+        with st.container(key=f"evidence-comparison-{scope}-{key}"):
             st.write(
                 "**Possible shared event — not confirmed**"
                 if candidate is not None
@@ -1064,8 +1064,8 @@ def review_brief(run: AnalystRun, scope: str) -> None:
     run_key = f"brief-{scope}-{id(run)}"
     selection_key = f"{run_key}-source"
     person = PEOPLE.get(response.person_id or "")
-    with st.container(border=True):
-        st.subheader("REVIEW BRIEF")
+    with st.container(key=f"review-{run_key}"):
+        st.subheader("Review brief")
         st.write(person.display_name if person else "Selected person")
         st.caption(f"Analysis as of {run.analysis_as_of:%d %b %Y} · FICTIONAL DEMO")
         st.caption(f"Grounded in {len(citations)} cited evidence items")
@@ -1091,8 +1091,8 @@ def review_brief(run: AnalystRun, scope: str) -> None:
             (item for item in citations if item.ref == st.session_state.get(selection_key)), None
         )
         if selected is not None:
-            with st.container(border=True):
-                st.caption("SOURCE EVIDENCE")
+            with st.container(key=f"source-evidence-{run_key}"):
+                st.caption("Source evidence")
                 st.write(f"**[{selected.number}] {selected.label}**")
                 source_fields = []
                 for heading, value in selected.fields:
@@ -1340,6 +1340,23 @@ def dashboard() -> None:
     reports = store.list_symptom_reports(CONN)
     assessments = all_readiness(ANALYSIS_AS_OF)
     marks = organization_marks(approved, reports, ANALYSIS_AS_OF)
+    with st.container(key="attention-heading", horizontal=True, vertical_alignment="center"):
+        st.subheader("Needs attention")
+        st.page_link(PAGES["inbox"], label="Open Review")
+    priority = priority_people(assessments)
+    if not priority:
+        st.caption("No personnel currently surfaced from the recorded information.")
+    for item in priority[:5]:
+        status = item.overall_readiness_status
+        if ui.row(
+            PEOPLE[item.person_id].display_name,
+            readiness_reason(status),
+            state=status.label,
+            tone=ui.attention_tone(status),
+            key=f"home-person-{item.person_id}",
+            avatar=True,
+        ):
+            open_history(item.person_id)
     with ui.surface("org"):
         selected = render_calendar("org", marks, person=False)
         if selected:
@@ -1380,23 +1397,6 @@ def dashboard() -> None:
                         st.write("An urgent danger sign was recorded on this date")
                         st.page_link(PAGES["followup"], label="Review urgent guidance")
 
-    with st.container(key="attention-heading", horizontal=True, vertical_alignment="center"):
-        st.subheader("Needs attention")
-        st.page_link(PAGES["inbox"], label="Open Review")
-    priority = priority_people(assessments)
-    if not priority:
-        st.caption("No personnel currently surfaced from the recorded information.")
-    for item in priority[:5]:
-        status = item.overall_readiness_status
-        if ui.row(
-            PEOPLE[item.person_id].display_name,
-            readiness_reason(status),
-            state=status.label,
-            tone=ui.attention_tone(status),
-            key=f"home-person-{item.person_id}",
-            avatar=True,
-        ):
-            open_history(item.person_id)
     ask_workspace()
     ui.demo_details(DEMO_ARRANGEMENT_NOTE)
     with st.expander("Demo / Advanced"):
@@ -1694,8 +1694,10 @@ def render_intake_proposal(
             if metadata.get("source_type")
             else "AI-assisted proposal"
         )
-        st.caption(PROPOSAL_STATUS)
-        st.caption("Nothing has been recorded yet. Check the details before approving.")
+        st.caption(
+            f"{PROPOSAL_STATUS} · Nothing has been recorded yet. "
+            "Check the details before approving."
+        )
         values = result.form_values
         calendar_date = st.session_state.get("calendar_date")
         narrative_date = values.get("f_date")
@@ -1715,11 +1717,12 @@ def render_intake_proposal(
                 f"Source: {narrative_date_label} · Calendar selection: {calendar_date_label}"
             )
             st.caption("BlastBridge kept the date stated in the source.")
+        event_fields = []
         for title, key in (
             ("Date", "f_date"),
             ("Activity", "f_type"),
-            ("Training context", "f_context"),
             ("Weapon", "f_weapon"),
+            ("Training context", "f_context"),
             ("Location / unit", "f_location"),
         ):
             value = values.get(key)
@@ -1733,7 +1736,9 @@ def render_intake_proposal(
                 value = label(value)
             elif isinstance(value, date):
                 value = value.strftime("%d %B %Y")
-            ui.field(title, str(value) if value is not None else "Needs review")
+            event_fields.append((title, str(value) if value is not None else "Needs review"))
+        ui.section_label("Event")
+        ui.field_grid(event_fields)
         rows = []
         for i in values.get("f_crews", []):
             prefix = f"f_c{i}_"
@@ -1766,17 +1771,26 @@ def render_intake_proposal(
                     }
                 )
         with st.container(key="draft-crews"):
-            previous_crew = None
-            for row in rows:
-                if row["Crew"] != previous_crew:
-                    ui.crew_heading(f"{row['Crew']} · {row['Physical events']} physical events")
-                    previous_crew = row["Crew"]
-                ui.compact_line(f"{row['Position']} · {row['Person']}")
-                if row["As written"] and row["As written"] != row["Person"]:
-                    ui.compact_line(f"As written: {row['As written']}", muted=True)
+            ui.section_label("Crews")
+            for crew in dict.fromkeys(row["Crew"] for row in rows):
+                crew_rows = [row for row in rows if row["Crew"] == crew]
+                ui.crew_block(
+                    crew,
+                    f"{crew_rows[0]['Physical events']} physical events",
+                    [
+                        (
+                            row["Position"],
+                            row["Person"],
+                            row["As written"]
+                            if row["As written"] and row["As written"] != row["Person"]
+                            else "",
+                        )
+                        for row in crew_rows
+                    ],
+                )
         if result.issues:
             with st.container(key="draft-issues"):
-                st.markdown(":orange[Needs review]")
+                ui.section_label("Needs review", tone="followup")
                 for issue in sorted(result.issues, key=lambda item: not item.blocking):
                     prefix = "Required · " if issue.blocking else ""
                     st.write(prefix + ui.markdown_text(issue.message))
@@ -1797,8 +1811,8 @@ def render_intake_proposal(
             st.caption("AI transcription — compare with the source image before approving")
         approve_col = edit_col = save_col = discard_col = ui.actions()
         approve = approve_col.button("Approve event", disabled=result.draft is None, type="primary")
-        edit = edit_col.button("Edit", type="tertiary")
         save = save_col.button("Save for later", disabled=result.draft is None)
+        edit = edit_col.button("Edit", type="tertiary")
         if (approve or save) and result.draft is not None:
             source = {
                 "replay": IntakeSource.AI_REPLAY,
@@ -2649,7 +2663,7 @@ def history() -> None:
         st.caption(status.label)
     else:
         with st.container(key=f"attention-band-{ui.attention_tone(status)}"):
-            st.write(f"**{status.label.upper()}**")
+            st.write(f"**{status.label}**")
             st.write(readiness_reason(status))
             if assessment.symptom_followup_status in (
                 FollowUpState.FOLLOW_UP_SUGGESTED,
