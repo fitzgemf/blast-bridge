@@ -95,6 +95,14 @@ class StoreError(Exception):
     pass
 
 
+class ReconstructionExists(StoreError):
+    """A live reconstruction already covers one of the sources (e.g. created from another tab)."""
+
+    def __init__(self, event_id: str) -> None:
+        super().__init__(f"{event_id} already reconstructs these records")
+        self.event_id = event_id
+
+
 def connect(path: str | Path) -> sqlite3.Connection:
     """Autocommit connection; writes use explicit transactions."""
     conn = sqlite3.connect(path, isolation_level=None)
@@ -255,6 +263,11 @@ def save_draft(
     if event_id is None:
         event_id = f"EVT-{uuid4().hex[:8].upper()}"
     with _transaction(conn):
+        # Checked inside the write transaction so two tabs cannot both create one.
+        for source_id in reconstructed_from or ():
+            existing = live_reconstruction_for_source(conn, source_id)
+            if existing is not None:
+                raise ReconstructionExists(existing.event_id)
         conn.execute(
             "INSERT INTO training_events (event_id, status, event_date, event_type, "
             "training_context, weapon_system_id, weapon_name, location_unit, created_at, "

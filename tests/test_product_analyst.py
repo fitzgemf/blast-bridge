@@ -1,6 +1,7 @@
 """Scripted analyst evaluations against real product evidence and the native intake gate."""
 
 import json
+import time
 from dataclasses import replace
 from datetime import timedelta
 from pathlib import Path
@@ -1896,6 +1897,7 @@ def test_anthropic_request_uses_format_only_for_supplied_schema(output_schema):
     provider.model = "fake-model"
     provider._sdk = SimpleNamespace()
     provider._client = SimpleNamespace(messages=SimpleNamespace(create=create))
+    provider._deadline = time.monotonic() + 600
     messages = [{"role": "user", "content": "Review the records."}]
     result = provider.complete(
         system="System instructions",
@@ -1907,6 +1909,7 @@ def test_anthropic_request_uses_format_only_for_supplied_schema(output_schema):
     config = {"effort": "low"}
     if output_schema is not None:
         config["format"] = {"type": "json_schema", "schema": output_schema}
+    assert requests[0].pop("timeout") == 45.0
     assert requests == [
         {
             "model": "fake-model",
@@ -1919,6 +1922,40 @@ def test_anthropic_request_uses_format_only_for_supplied_schema(output_schema):
         }
     ]
     assert result.stop_reason == "end_turn"
+
+
+def test_anthropic_calls_share_one_request_deadline():
+    class Timeout(Exception):
+        pass
+
+    timeouts = []
+
+    def create(**kwargs):
+        timeouts.append(kwargs["timeout"])
+        if len(timeouts) == 2:
+            raise Timeout
+        return SimpleNamespace(stop_reason="end_turn", content=[], model="fake-model")
+
+    provider = AnthropicProvider.__new__(AnthropicProvider)
+    provider.model = "fake-model"
+    provider._sdk = SimpleNamespace(APITimeoutError=Timeout)
+    provider._client = SimpleNamespace(messages=SimpleNamespace(create=create))
+    provider._deadline = time.monotonic() + 20
+    call = {
+        "system": "s",
+        "messages": [{"role": "user", "content": "x"}],
+        "tools": [],
+        "output_schema": None,
+        "allow_tools": False,
+    }
+    provider.complete(**call)
+    assert 15 < timeouts[0] <= 20
+    with pytest.raises(ProviderError, match="took too long"):
+        provider.complete(**call)
+    provider._deadline = time.monotonic() + 1
+    with pytest.raises(ProviderError, match="took too long"):
+        provider.complete(**call)
+    assert len(timeouts) == 2
 
 
 def test_analyst_sends_schema_in_system_prompt_without_output_format(env):

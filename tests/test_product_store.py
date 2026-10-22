@@ -109,6 +109,23 @@ def test_reconstruction_and_its_sources_cannot_both_enter_history(conn, approve_
     assert all(len(store.member_history(conn, person_id)) == 1 for person_id in CREW)
 
 
+def test_second_tab_cannot_create_a_duplicate_reconstruction(conn, tmp_path):
+    source_ids = [store.save_draft(conn, draft(6)), store.save_draft(conn, draft(6))]
+    other_tab = store.connect(tmp_path / "product.sqlite")
+    try:
+        # Both tabs passed their pre-check; the second save must find the first.
+        first = store.save_draft(conn, draft(6), reconstructed_from=source_ids)
+        with pytest.raises(store.ReconstructionExists) as raised:
+            store.save_draft(other_tab, draft(6), reconstructed_from=list(reversed(source_ids)))
+        assert raised.value.event_id == first
+        with pytest.raises(store.ReconstructionExists):
+            store.save_draft(other_tab, draft(6), reconstructed_from=[source_ids[0]])
+    finally:
+        other_tab.close()
+    store.reject_event(conn, first, 1)
+    assert store.save_draft(conn, draft(6), reconstructed_from=source_ids) != first
+
+
 def test_reconstruction_sources_persist_across_creation_paths(conn):
     source_ids = ["EVT-DEMO-S1", "EVT-DEMO-S2"]
     manual_id = store.save_draft(conn, draft(4))

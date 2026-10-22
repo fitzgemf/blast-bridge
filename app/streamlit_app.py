@@ -599,7 +599,8 @@ def submit_analyst(
 
     try:
         if use_live:
-            provider, intake_provider = AnthropicProvider(), AnthropicProvider()
+            # One budget covers the analyst and any intake it runs.
+            provider = intake_provider = AnthropicProvider()
         else:
             if question is None:
                 replay_name, replay_index = s.get(replay_key, (None, 0))
@@ -788,12 +789,17 @@ def perform_evidence_action(action: UIAction) -> None:
             if not can_create_draft(proposal, sources):
                 st.warning(creation_block_reason(proposal, sources))
                 return
-            event_id = store.save_draft(
-                CONN,
-                to_draft(proposal),
-                intake_source=IntakeSource.MANUAL,
-                reconstructed_from=proposal.source_ids,
-            )
+            try:
+                event_id = store.save_draft(
+                    CONN,
+                    to_draft(proposal),
+                    intake_source=IntakeSource.MANUAL,
+                    reconstructed_from=proposal.source_ids,
+                )
+            except store.ReconstructionExists as exc:
+                proposals[key] = replace(proposal, created_draft_id=exc.event_id)
+                open_review(exc.event_id)
+                return
             proposals[key] = replace(proposal, created_draft_id=event_id)
             s["review_notice"] = (
                 f"Source drafts {', '.join(proposal.source_ids)} are unchanged in Review — "

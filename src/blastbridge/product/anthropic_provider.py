@@ -2,20 +2,30 @@
 
 import importlib.util
 import os
+import time
 from typing import Any
 
 from .agent import ProviderError, ProviderTurn
+
+# One provider serves one user request; its model calls share this wall-clock budget.
+REQUEST_BUDGET_SECONDS = 90.0
+CALL_TIMEOUT_SECONDS = 45.0
+MIN_CALL_SECONDS = 5.0
+TOO_SLOW = "The AI took too long to respond. Please try again or use manual entry."
 
 
 class AnthropicProvider:
     name = "live"
 
-    def __init__(self, model: str = "claude-sonnet-5-5") -> None:
+    def __init__(
+        self, model: str = "claude-sonnet-5-5", budget: float = REQUEST_BUDGET_SECONDS
+    ) -> None:
         import anthropic
 
         self.model = model
         self._sdk: Any = anthropic
-        self._client: Any = anthropic.Anthropic(max_retries=0, timeout=45.0)
+        self._client: Any = anthropic.Anthropic(max_retries=0, timeout=CALL_TIMEOUT_SECONDS)
+        self._deadline = time.monotonic() + budget
 
     def complete(
         self,
@@ -29,8 +39,12 @@ class AnthropicProvider:
         output_config: dict[str, Any] = {"effort": "low"}
         if output_schema is not None:
             output_config["format"] = {"type": "json_schema", "schema": output_schema}
+        remaining = self._deadline - time.monotonic()
+        if remaining < MIN_CALL_SECONDS:
+            raise ProviderError(TOO_SLOW)
         try:
             response = self._client.messages.create(
+                timeout=min(CALL_TIMEOUT_SECONDS, remaining),
                 model=self.model,
                 max_tokens=4000,
                 system=system,
@@ -39,6 +53,8 @@ class AnthropicProvider:
                 messages=messages,
                 output_config=output_config,
             )
+        except self._sdk.APITimeoutError:
+            raise ProviderError(TOO_SLOW) from None
         except self._sdk.AuthenticationError:
             raise ProviderError("API key rejected") from None
         except self._sdk.RateLimitError:
