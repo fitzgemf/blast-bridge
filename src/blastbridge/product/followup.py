@@ -184,8 +184,8 @@ BOUNDARY_NOTE = (
     "Follow-up is not a diagnosis. Unknown is never treated as zero or as reassurance."
 )
 PRIVACY_NOTE = (
-    "Prototype uses fictional data. A production implementation handling health information would "
-    "require appropriate identity, authorization, privacy, security and "
+    "Prototype uses synthetic demonstration data. A production implementation handling health "
+    "information would require appropriate identity, authorization, privacy, security and "
     "records-governance controls."
 )
 GOVERNANCE_NOTE = (

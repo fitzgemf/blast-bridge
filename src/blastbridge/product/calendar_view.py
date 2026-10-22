@@ -38,7 +38,7 @@ def next_action(status: ReadinessStatus) -> str:
             "Medical follow-up recommended: persistent, function-affecting symptoms were reported."
         ),
         ReadinessStatus.REVIEW_PRIORITY: (
-            "Recent HIMARS training cadence differs from the fictional scenario reference. "
+            "Recent HIMARS training cadence differs from the prototype scenario reference. "
             "Review the record."
         ),
         ReadinessStatus.ROUTINE_MONITORING: (

@@ -78,7 +78,7 @@ def test_exact_visible_count_stays_exact(envelope):
     assert result.draft is not None
     assert result.draft.crews[0].physical_event_count == 6
     assert result.origins["Launcher 1 physical events"] == "AI transcription (check against image)"
-    assert result.origins["Launcher 1 · Launcher chief"] == "fictional roster"
+    assert result.origins["Launcher 1 · Launcher chief"] == "demo roster"
 
 
 def test_question_mark_and_explicit_unknown_stay_unknown(envelope):

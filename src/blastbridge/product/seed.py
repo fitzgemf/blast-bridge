@@ -15,7 +15,7 @@ from .symptoms import (
     TemporalRelationship,
 )
 
-_UNIT = "Demo Rocket Battery (FICTIONAL)"
+_UNIT = "Demo Rocket Battery"
 
 _ROSTER = (
     ("Avery Kestrel", "KESTREL", "1st Section", CrewPosition.CHIEF),
@@ -58,7 +58,7 @@ def _demo_draft(
         training_context=context,
         weapon_system_id=weapon,
         weapon_name="M270 MLRS" if weapon == "m270-mlrs" else "M142 HIMARS",
-        location_unit=f"Demo Range {'South' if south else 'North'} (FICTIONAL)",
+        location_unit=f"Demo Range {'South' if south else 'North'}",
         crews=tuple(
             Crew(
                 crew_name=name,
@@ -243,7 +243,7 @@ DEMO_SYMPTOMS: tuple[tuple[str, SymptomReportDraft], ...] = (
             temporal_relationship=TemporalRelationship.AFTER_RECORDED_EVENT,
             persistence=Persistence.STILL_PRESENT,
             functional_impact=FunctionalImpact.YES,
-            note="Fictional demo report.",
+            note="Demo report.",
         ),
     ),
     (

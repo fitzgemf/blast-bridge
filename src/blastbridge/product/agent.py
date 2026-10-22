@@ -290,11 +290,11 @@ def _gate(
                 person = None
             values[prefix + position] = person.person_id if person else None
             label = f"{name} · {position.label}"
-            origins[label] = "fictional roster" if person else "unresolved"
+            origins[label] = "demo roster" if person else "unresolved"
             if person is None:
                 issue(
                     label,
-                    f"{label}: {name_text!r} does not match exactly one fictional person; "
+                    f"{label}: {name_text!r} does not match exactly one roster person; "
                     "select the person",
                 )
             else:
@@ -430,7 +430,7 @@ def _run_intake(
                             ", ".join(f"{row['display_name']} ({row['person_id']})" for row in rows)
                             or "no matches"
                         )
-                        text = f"Searched fictional roster for {query!r} → {summary}"
+                        text = f"Searched roster for {query!r} → {summary}"
                     content = json.dumps(rows)
                     result.trace.append(TraceStep(bool(rows), text))
                 answers.append(

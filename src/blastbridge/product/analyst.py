@@ -386,7 +386,7 @@ def activity_lines(run: AnalystRun) -> list[str]:
         if (
             "search_roster" in tools
             and roster_origins
-            and all(origin == "fictional roster" for origin in roster_origins)
+            and all(origin == "demo roster" for origin in roster_origins)
         ):
             lines.append("Roster matched")
         if any("unknown count" in issue.message.lower() for issue in native.issues):

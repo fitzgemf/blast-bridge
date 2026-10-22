@@ -116,12 +116,12 @@ def test_golden_run_stays_in_memory(conn, catalog, golden):
     assert result.draft.crews[1].physical_event_count is None
     assert not any(issue.blocking for issue in result.issues)
     trace = " ".join(step.text for step in result.trace)
-    assert "weapon catalog" in trace and "fictional roster" in trace
+    assert "weapon catalog" in trace and "Searched roster" in trace
     assert result.origins["Weapon"] == "weapon catalog"
     assert result.origins["Activity"] == "AI interpretation"
     assert result.origins["Training context"] == "AI interpretation"
     assert result.origins["Date"] == "narrative"
-    assert result.origins["Launcher 1 · Gunner"] == "fictional roster"
+    assert result.origins["Launcher 1 · Gunner"] == "demo roster"
     assert before == [
         conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] for table in tables
     ]

@@ -106,7 +106,7 @@ def assess_readiness(
         else:
             evidence.append(
                 "Occupational pattern (ML): atypical elevated cadence vs the SME-informed "
-                "fictional HIMARS scenario reference"
+                "prototype HIMARS scenario reference"
                 if elevated
                 else "Occupational pattern (ML): typical recorded pattern"
             )

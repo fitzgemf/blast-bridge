@@ -98,7 +98,7 @@ def test_pattern_card_uses_authoritative_status_and_occupational_scope_without_s
         {
             "status": "atypical_elevated_activity",
             "reason": None,
-            "reference_label": "SME-informed fictional HIMARS scenario reference",
+            "reference_label": "SME-informed prototype HIMARS scenario reference",
             "scope_note": "HIMARS occupational dates only; symptoms and counts excluded",
             "elevated_features": ["Occupational events in prior 30 days"],
             "differing": [{"label": "Recent cadence", "value": 999.99, "median": 123.45}],

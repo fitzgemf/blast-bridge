@@ -49,7 +49,7 @@ ELEVATION_FEATURES = (
 MODEL_PARAMS = {"n_estimators": 100, "random_state": 20261019}
 BASELINE_DIR = Path(__file__).resolve().parents[3] / "examples/fictional/ml-baseline"
 REFERENCE_DIR = Path(__file__).resolve().parents[3] / "examples/fictional/ml-reference-himars"
-REFERENCE_LABEL = "SME-informed fictional HIMARS scenario reference"
+REFERENCE_LABEL = "SME-informed prototype HIMARS scenario reference"
 HIMARS_SCOPE = {"m142-himars"}
 COVERAGE_RULE = (
     "A comparison requires HIMARS-scope records beginning at least 365 days before analysis_as_of "
@@ -58,19 +58,19 @@ COVERAGE_RULE = (
 )
 DELIBERATELY_EXCLUDED = {
     "unknown-count fraction": (
-        "The fictional HIMARS scenario reference models dates only, with no count missingness. "
+        "The prototype HIMARS scenario reference models dates only, with no count missingness. "
         "Unknown activity counts are reported as data-quality notes instead."
     ),
     "distinct weapon families": (
-        "The fictional HIMARS scenario reference covers HIMARS only, so the feature is constant."
+        "The prototype HIMARS scenario reference covers HIMARS only, so the feature is constant."
     ),
     "physical-event counts": (
-        "Not comparable across weapon families; the fictional reference contains dates only."
+        "Not comparable across weapon families; the prototype reference contains dates only."
     ),
     "symptoms, medical and demographic fields": "Excluded by design.",
 }
 PATTERN_DISCLAIMER = (
-    "This compares recorded HIMARS occupational cadence with an SME-informed fictional "
+    "This compares recorded HIMARS occupational cadence with an SME-informed prototype "
     "HIMARS scenario reference. "
     "It is not a medical risk score."
 )
@@ -78,17 +78,17 @@ CONTEXT_NOTE = (
     "These values provide context for the pattern result. They are not medical risk factors "
     "and do not establish injury."
 )
-DIFFERING_HEADING = "Features that differ from the fictional HIMARS scenario reference"
+DIFFERING_HEADING = "Features that differ from the prototype HIMARS scenario reference"
 BASELINE_LABEL = "FICTIONAL SIMULATION BASELINE — NOT CLINICAL DATA"
 ELEVATION_RULE_TEXT = (
     "Prototype interpretation rule: an atypical comparison is 'elevated' only when at least "
     "one recent-activity feature (30/90/365-day events, most events in 14 days, "
-    "recent-minus-earlier cadence) exceeds the 95th percentile of the SME-informed fictional "
+    "recent-minus-earlier cadence) exceeds the 95th percentile of the SME-informed prototype "
     "HIMARS scenario reference. Not clinical."
 )
 REDUCED_TEXT = (
     "Recorded occupational activity is atypical in a lower/reduced direction relative to the "
-    "SME-informed fictional HIMARS scenario reference."
+    "SME-informed prototype HIMARS scenario reference."
 )
 OBSERVATION_NOTE = "This is an occupational-pattern observation, not a medical risk result."
 
