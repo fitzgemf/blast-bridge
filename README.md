@@ -1,28 +1,36 @@
 # BlastBridge
 
-AI-assisted occupational blast-exposure records and review for military training, using fictional demo data.
+AI-assisted occupational blast-exposure records and review for military training.
 
-**Exposure is not injury.** BlastBridge records training activity and supports human review;
-it does not diagnose TBI, predict injury, assign medical probabilities or determine medical clearance.
+**[▶ Watch the two-minute demo](docs/demo/blastbridge-demo.webm)**
+
+Training blast exposure is usually written down in pieces: a range board, a crew list, a notebook
+page. BlastBridge turns those records into reviewed, longitudinal histories. Claude reads a typed
+note or a photo of a handwritten record and proposes a structured event; a human approves it. Over
+time each person's training history, occupational-pattern signals and symptom follow-up come
+together in one review workflow, without being merged into a single score.
+
+**Exposure is not injury.** BlastBridge records training activity and supports human review.
+It does not diagnose TBI, predict injury, assign medical probabilities or determine medical clearance.
 A symptom report after an event is a temporal association, not evidence of causation.
-Use only fictional records in this demo, never real personnel, medical, PHI/PII, controlled or operational records.
+All people and records in this prototype are fictional.
 
 ## What it does
 
-- **Training intake:** Claude structures text or a photographed training record using fictional-roster
-  and weapon-catalog tools. Unknown stays Unknown. Text, photo and manual entry converge on one
+- **Training intake:** Claude structures text or a photographed training record using roster and
+  weapon-catalog tools. Unknown stays Unknown. Text, photo and manual entry all end at one
   **Review event** decision: Approve event, Edit, Save for later or Discard.
 - **Longitudinal history:** approved records connect dates, people, crews and roles in organization
   and person calendars. Drafts and rejected records stay out of personnel history.
 - **Occupational-pattern comparison:** IsolationForest compares recorded HIMARS event-day cadence
-  with an SME-informed fictional HIMARS scenario reference. Elevated atypical activity is a review
-  signal only; symptoms and physical-event counts are excluded from the model.
+  with an SME-informed HIMARS scenario reference. Elevated atypical activity is a review signal only;
+  symptoms and physical-event counts are excluded from the model.
 - **Symptom follow-up:** human-confirmed structured reports feed deterministic TBICoE/CDC guidance
   rules, separate from the occupational-pattern model. Guidance is not a diagnosis.
 - **Ask BlastBridge:** a bounded analyst uses application tools to produce an evidence-cited
-  **Review brief**. Click numbered citations to inspect structured source evidence and open its record or view.
-- **Evidence Intelligence:** possible duplicate records have field comparisons and an **Evidence map**.
-  Reconstructions preserve conflicts and Unknowns and require a human decision before entering history.
+  **Review brief**. Numbered citations open the structured source evidence behind each statement.
+- **Evidence Intelligence:** possible duplicate records get field comparisons and an **Evidence map**.
+  Reconstructions preserve conflicts and Unknowns and need a human decision before entering history.
 
 ## Screenshots
 
@@ -34,109 +42,31 @@ Use only fictional records in this demo, never real personnel, medical, PHI/PII,
 | --- | --- | --- |
 | ![Review brief](docs/screenshots/review-brief.png) | ![Evidence map](docs/screenshots/evidence-map.png) | ![Person follow-up](docs/screenshots/person-followup.png) |
 
-## Quick start
-
-Use **Python 3.12** from the repository root.
-
-Windows PowerShell:
-
-```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -e ".[app]"
-streamlit run app/streamlit_app.py
-```
-
-macOS / Linux:
-
-```bash
-python3.12 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[app]"
-streamlit run app/streamlit_app.py
-```
-
-After dependencies are installed, the demo works offline with deterministic scripted replays.
-Without a live key, suggested Ask requests use their bundled replays, and **Use demo replay**
-supplies the fictional text-intake example. Photo replay accepts only the bundled
-[demo board image](examples/fictional/intake/demo_range_board.jpg), matched by SHA-256;
-other images require live AI or manual entry. Uploaded image bytes remain session-only.
-
-Live AI is optional. Set `ANTHROPIC_API_KEY` in the launching environment, then start Streamlit:
-
-```powershell
-$env:ANTHROPIC_API_KEY = "your-key"
-```
-
-```bash
-export ANTHROPIC_API_KEY="your-key"
-```
-
-The app reads environment variables directly; **there is no `.env` loader**.
-Demo records live in a local SQLite database (`BLASTBRIDGE_DB` can override its path).
-
-**Presentation mode:** set `BLASTBRIDGE_DEMO_MODE=replay` in the launching environment
-(`$env:BLASTBRIDGE_DEMO_MODE = "replay"` in PowerShell, or
-`export BLASTBRIDGE_DEMO_MODE=replay` on macOS/Linux). Suggested Ask requests then use deterministic
-replays even with an API key; other free-typed questions can still use live AI. Fresh sessions start
-on 19 Oct 2026. Eligible live failures fall back to replay with an explicit on-screen caption.
-The bundled demo board image also replays in presentation mode or on live failure; both cases are labelled on screen.
-
-## Three-minute demo
-
-Presenting live? Use the [presenter run sheet](docs/DEMO.md) (checklist, timed click path, recovery moves, judge Q&A). A two-minute [backup recording](docs/demo/blastbridge-demo.webm) of the full flow is included.
-
-1. Start at **Home → Needs attention**. If a replay-date notice appears, click
-   **Use demo date (19 Oct 2026)**. This changes the analysis/calendar view without resetting the database;
-   repeat the suggested request after changing the date.
-2. Open **Jordan Pike** from Home or People. Inspect the medical follow-up band and click
-   **View Follow-up** to see deterministic guidance and sources.
-3. Open **Reese Calder → Summarize Reese for review**. In the Review brief, click a record,
-   Unknown-count and occupational-pattern citation to inspect their source cards.
-4. Open **Log training event**. Choose **Describe / paste training record → Use demo replay**,
-   or **Upload / photograph record**, upload `examples/fictional/intake/demo_range_board.jpg`,
-   and click **Create proposal**. At **Review event**, check the details and Unknown count, then
-   choose **Approve event** or **Save for later**. Approval enters history; saving leaves a draft in Review.
-5. From **Home → Find possible duplicate records → Compare sources**, inspect the **Evidence map**
-   and field comparison. Choose **Create training draft**, then decide in **Review**.
-   Sources are unchanged; the app does not silently discard them or confirm that they describe one event.
-
-For a repeatable starting database, **Home → Demo / Advanced → Reset to demo state** requires
-confirmation and replaces recorded events and symptom reports with the fictional fixtures.
-Unlike **Use demo date**, this reset changes stored data.
-
 ## How the AI is kept honest
 
-Tool/model-call budgets are bounded. Roster/catalog lookups and a Python grounding gate constrain
-intake; analyst references are validated against returned evidence. Medical section text comes
-from application-owned deterministic guidance. Humans approve training events and confirm symptom
-reports. Provenance distinguishes manual, live-AI and replay input. No AI confidence percentages
-or injury probabilities are presented. Replays are scripted demonstrations, not fresh live responses.
+Tool and model-call budgets are bounded. Roster and catalog lookups plus a Python grounding gate
+constrain intake: a name, count or location that is not in the source record cannot enter a draft
+unchallenged. Analyst references are validated against the evidence its tools returned. Medical
+text comes from application-owned deterministic guidance, never from the model. Humans approve
+training events and confirm symptom reports. Provenance distinguishes manual, live-AI and replayed
+input. No AI confidence percentages or injury probabilities are shown.
 
-Every Ask BlastBridge answer opens an **Agent trace**: each tool call with its subject, status and evidence count,
-the grounding verdict (including when the medical-content guard withheld model wording), and run totals,
-with raw tool I/O one level deeper.
+Every Ask BlastBridge answer opens an **Agent trace**: each tool call with its subject, status and
+evidence count, the grounding verdict (including when the medical-content guard withheld model
+wording), and run totals, with raw tool I/O one level deeper.
 
 ## AI evaluation
 
-Each intake path and five analyst requests have live evaluations on fictional data, including adversarial cases.
-Reports are committed; rerun them with a key set.
+Each intake path and five analyst requests have live evaluations, including adversarial cases.
+Reports are committed and can be rerun with an API key.
 
 | Path | Live result | What it checks | Report |
 | --- | --- | --- | --- |
 | Text intake | 12/12 | golden record, aliases, explicit Unknown, missing roles, invented weapon, future date, approximate counts, name/ID mismatch, medical language in a training record | [report](examples/fictional/intake/eval_report_live.md) |
-| Photo intake (Claude Vision) | 8/8 (committed live run) | clear board, "several" stays unset, off-roster name, invented weapon, **prompt injection written on the board** (the instruction did not change any count), unreadable photo, sideways phone photo (EXIF), future date | [report](examples/fictional/intake/eval_report_image_live.md) |
+| Photo intake (Claude Vision) | 8/8 | clear board, "several" stays unset, off-roster name, invented weapon, **prompt injection written on the board** (the instruction did not change any count), unreadable photo, sideways phone photo (EXIF), future date | [report](examples/fictional/intake/eval_report_image_live.md) |
 | Ask BlastBridge analyst | 5/5 | every response grounded in tool-returned evidence, every Review-brief citation resolves; on 2/5 the medical-content guard withheld model wording and showed deterministic text | [report](examples/fictional/analyst/eval_report_live.md) |
 
-```bash
-python scripts/eval_intake.py --mode live          # text intake
-python scripts/make_image_eval_cases.py            # (re)render the fictional evaluation boards
-python scripts/eval_image_intake.py                # photo intake
-python scripts/eval_analyst.py                     # Ask BlastBridge
-```
-
 Pass criteria are fixed in the scripts before running; failures are reported, not tuned away.
-Deterministic replays (used in presentation mode) are separate from these live measurements.
 
 ## Architecture
 
@@ -148,65 +78,37 @@ Deterministic replays (used in presentation mode) are separate from these live m
 | `briefing.py` | Code-owned citation labels and captured-evidence source cards |
 | `evidence.py`, `evidence_graph.py` | Deterministic comparisons/reconstruction and read-only provenance map |
 | `readiness.py`, `followup.py`, `symptoms.py` | Deterministic states and confirmed symptom guidance |
-| `patterns.py` | Occupational cadence comparison with the fictional scenario reference |
+| `patterns.py` | Occupational cadence comparison with the scenario reference |
 | `review_flow.py`, `store.py` | Save/approve fail-safe, revision protections and SQLite persistence |
 | `data/`, `examples/fictional/` | Versioned public references, fictional scenarios and replays |
 
 Module names after the first product row are relative to `src/blastbridge/product/`.
 [PRODUCT.md](PRODUCT.md) documents model assumptions, coverage and reference limitations.
 
-## Development
+## Run it locally
 
-In an activated Python 3.12 environment:
+Requires **Python 3.12**. From the repository root:
 
 ```bash
-pip install -e ".[dev,app]"
-pytest
-ruff check .
-ruff format --check .
-mypy
-python -m blastbridge.validation.reference
-python -m blastbridge.validation.priors
+python3.12 -m venv .venv
+source .venv/bin/activate          # Windows: .\.venv\Scripts\Activate.ps1
+pip install -e ".[app]"
+streamlit run app/streamlit_app.py
 ```
 
-The reference and priors validators need no gitignored source downloads. Training-tempo source
-audits and optional source-archive release checks require local research originals; see
-[reference guidance](data/reference/README.md). Historical-release tests require the repository's
-annotated release tags. CI fetches history/tags and runs the checks above.
-`requirements-dev.lock.txt` records a development-tool snapshot; `pyproject.toml` specifies compatible ranges.
+The app runs offline: without an API key, the suggested analyst requests, the example text record
+and the [sample photo](examples/fictional/intake/demo_range_board.jpg) use recorded AI responses,
+labelled as such on screen. For live Claude, set `ANTHROPIC_API_KEY` in the environment before
+starting Streamlit. Records are stored in a local SQLite database (`BLASTBRIDGE_DB` overrides the path).
+
+Tests and checks: `pip install -e ".[dev,app]"`, then `pytest`, `ruff check .`, `mypy`.
 
 ## Research foundation
 
-The original typed research records and validators remain available alongside the product prototype.
-Dataset/schema versions are independent of the Python package version, which remains **0.1.0**.
-
-- **V0.1 (0.1.0):** 18 weapon/category records, eight occupational specialties, 12 supported
-  relationships, ten taxonomy nodes and 11 official sources. Field-level citations preserve source
-  scope and conflicts. HIMARS, MLRS and Abrams Tier-1 status remains unknown under the reviewed
-  2021 report; no category is invented. See the [V0.1 review](research/notes/reference-v0.1.md).
-- **V0.2:** 40 training-tempo evidence records, 31 sources (29 official, one SME recollection and
-  one research-definition source), eight counting definitions and a separate release manifest.
-  Requirements, observations, plans and recollections are distinct. All 29 official sources lack
-  archived originals and retain retrieval limitations. V0.1 JSON was retained byte-for-byte from
-  `v0.1.0` at `0c3ede2dadff3b21dda2c901407a214658f63b9b`.
-  See the [V0.2 review](research/notes/training-tempo-v0.2.md).
-- **V0.3:** prior/uncertainty design, not empirical population priors. `empirical_priors` remains
-  null; source claims do not establish individual annual exposure frequency or medical truth.
-  Earlier release artifacts are retained, and tagged-tree checks verify historical releases
-  independently of the current README. See [prior design](research/notes/prior-design-v0.3.md)
-  and [dependency modeling](research/notes/dependency-modeling-v0.3.md).
-
-Pydantic models preserve provenance and distinguish measured, estimated, self-reported, synthetic
-and documented evidence. Unknown quantities use `None`, never zero. Pressure and impulse require
-their own units and evidence; there are no undocumented weapon defaults, cumulative-dose formulas
-or physiological thresholds. Research estimate-confidence annotations are not injury probabilities
-and are separate from the product's AI presentation. Real and synthetic records require separate
-validated batches; individual records alone cannot validate cross-record links.
-
-The product's runtime-fitted IsolationForest and arranged fictional histories are demonstration
-components, not an empirical population model or clinical validation. Historical V0.4/V0.5 design
-notes remain in [research/notes/](research/notes/); they do not authorize real synthetic population
-generation. Read [data governance](research/notes/data-governance.md),
-[dataset decisions](research/notes/dataset-decisions.md) and the
-[repository migration record](research/notes/repository-migration.md) before research use.
-No repository license has been selected; licensing and data-use terms need a decision before distribution.
+The product sits on typed, cited research datasets built first: 18 weapon/category records and
+11 official sources (V0.1), 40 training-tempo evidence records from 31 sources (V0.2), and a
+prior/uncertainty design (V0.3). Every field keeps its source and scope; unknown quantities are
+`None`, never zero; there are no invented weapon defaults, dose formulas or physiological thresholds.
+See [research/notes/](research/notes/) and [data governance](research/notes/data-governance.md).
+The IsolationForest model and fictional histories are demonstration components, not an empirical
+population model or clinical validation.
