@@ -59,7 +59,7 @@ streamlit run app/streamlit_app.py
 After dependencies are installed, the demo works offline with deterministic scripted replays.
 Without a live key, suggested Ask requests use their bundled replays, and **Use demo replay**
 supplies the fictional text-intake example. Photo replay accepts only the bundled
-[demo board image](examples/fictional/intake/demo_range_board.png), matched by SHA-256;
+[demo board image](examples/fictional/intake/demo_range_board.jpg), matched by SHA-256;
 other images require live AI or manual entry. Uploaded image bytes remain session-only.
 
 Live AI is optional. Set `ANTHROPIC_API_KEY` in the launching environment, then start Streamlit:
@@ -94,7 +94,7 @@ Presenting live? Use the [presenter run sheet](docs/DEMO.md) (checklist, timed c
 3. Open **Reese Calder → Summarize Reese for review**. In the Review brief, click a record,
    Unknown-count and occupational-pattern citation to inspect their source cards.
 4. Open **Log training event**. Choose **Describe / paste training record → Use demo replay**,
-   or **Upload / photograph record**, upload `examples/fictional/intake/demo_range_board.png`,
+   or **Upload / photograph record**, upload `examples/fictional/intake/demo_range_board.jpg`,
    and click **Create proposal**. At **Review event**, check the details and Unknown count, then
    choose **Approve event** or **Save for later**. Approval enters history; saving leaves a draft in Review.
 5. From **Home → Find possible duplicate records → Compare sources**, inspect the **Evidence map**
