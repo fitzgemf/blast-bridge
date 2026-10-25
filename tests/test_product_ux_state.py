@@ -186,7 +186,7 @@ def test_evidence_display_uses_human_names_and_labels(ui):
 
 
 def test_presentation_mode_chooses_digest_matched_board_replay_with_live_available(ui, monkeypatch):
-    path = Path(__file__).resolve().parents[1] / "examples/fictional/intake/demo_range_board.png"
+    path = Path(__file__).resolve().parents[1] / "examples/fictional/intake/demo_range_board.jpg"
     data = path.read_bytes()
     load_image_replay(data)
     monkeypatch.setenv("BLASTBRIDGE_DEMO_MODE", "replay")
@@ -200,7 +200,7 @@ def test_presentation_mode_chooses_digest_matched_board_replay_with_live_availab
 
 
 def test_demo_board_live_failure_uses_replay_and_sets_fallback_flag(ui, monkeypatch):
-    path = Path(__file__).resolve().parents[1] / "examples/fictional/intake/demo_range_board.png"
+    path = Path(__file__).resolve().parents[1] / "examples/fictional/intake/demo_range_board.jpg"
     data = path.read_bytes()
     load_image_replay(data)
     monkeypatch.delenv("BLASTBRIDGE_DEMO_MODE", raising=False)

@@ -202,8 +202,8 @@ def test_exif_rotated_jpeg_is_transposed_before_ai_reading():
 
 
 def test_demo_board_is_reencoded_but_replay_matching_uses_original_digest():
-    original = (ROOT / "examples/fictional/intake/demo_range_board.png").read_bytes()
-    prepared, media_type, note = prepare_image(original, "image/png")
+    original = (ROOT / "examples/fictional/intake/demo_range_board.jpg").read_bytes()
+    prepared, media_type, note = prepare_image(original, "image/jpeg")
     assert prepared != original
     assert image_sha256(prepared) != image_sha256(original)
     assert media_type == "image/jpeg" and note is None
